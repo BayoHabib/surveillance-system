@@ -1,4 +1,3 @@
-// internal/vision/mock.go
 package vision
 
 import (
@@ -127,14 +126,15 @@ func (mc *mockClient) generateFrames(stream *mockStream) {
 
 		case <-stream.ticker.C:
 			// Générer frame mock
+			imageData := mc.generateMockImageData()
 			frame := core.Frame{
 				CameraID:  stream.cameraID,
-				Data:      mc.generateMockImageData(),
+				Data:      imageData,
 				Width:     1920,
 				Height:    1080,
 				Format:    "jpeg",
 				Timestamp: time.Now(),
-				Size:      65536, // ~64KB
+				Size:      len(imageData), // ← CORRECTION: utiliser la vraie taille
 			}
 
 			// Envoyer frame (non-bloquant)
@@ -156,12 +156,12 @@ func (mc *mockClient) generateMockImageData() []byte {
 	// Génère des données d'image factices
 	size := 65536 + rand.Intn(32768) // Entre 64KB et 96KB
 	data := make([]byte, size)
-	
+
 	// Remplir avec du bruit pseudo-aléatoire pour simuler une image JPEG
 	for i := range data {
 		data[i] = byte(rand.Intn(256))
 	}
-	
+
 	return data
 }
 
@@ -177,9 +177,9 @@ func (mc *mockClient) simulateDetection(cameraID string) {
 	confidence := 0.6 + rand.Float32()*0.4 // Entre 0.6 et 1.0
 
 	detection := core.Detection{
-		ID:       uuid.New().String(),
-		CameraID: cameraID,
-		Type:     detectionType,
+		ID:         uuid.New().String(),
+		CameraID:   cameraID,
+		Type:       detectionType,
 		Confidence: confidence,
 		BBox: core.BoundingBox{
 			X:      rand.Intn(1600),
@@ -189,12 +189,12 @@ func (mc *mockClient) simulateDetection(cameraID string) {
 		},
 		Timestamp: time.Now(),
 		Metadata: map[string]string{
-			"source":     "mock_detector",
+			"source":        "mock_detector",
 			"model_version": "1.0.0",
 		},
 	}
 
-	fmt.Printf("🔍 Détection simulée: %s sur %s (confiance: %.2f)\n", 
+	fmt.Printf("🔍 Détection simulée: %s sur %s (confiance: %.2f)\n",
 		detectionType, cameraID, confidence)
 
 	// Dans un vrai système, ceci irait vers l'EventProcessor

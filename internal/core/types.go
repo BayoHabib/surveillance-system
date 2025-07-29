@@ -7,24 +7,24 @@ import (
 
 // Camera représente une caméra de surveillance
 type Camera struct {
-	ID          string            `json:"id"`
-	Name        string            `json:"name"`
-	URL         string            `json:"url"`
-	Status      CameraStatus      `json:"status"`
-	Location    string            `json:"location"`
-	Config      CameraConfig      `json:"config"`
-	CreatedAt   time.Time         `json:"created_at"`
-	LastFrame   *time.Time        `json:"last_frame,omitempty"`
-	Metadata    map[string]string `json:"metadata"`
+	ID        string            `json:"id"`
+	Name      string            `json:"name"`
+	URL       string            `json:"url"`
+	Status    CameraStatus      `json:"status"`
+	Location  string            `json:"location"`
+	Config    CameraConfig      `json:"config"`
+	CreatedAt time.Time         `json:"created_at"`
+	LastFrame *time.Time        `json:"last_frame,omitempty"`
+	Metadata  map[string]string `json:"metadata"`
 }
 
 type CameraStatus string
 
 const (
-	CameraStatusOffline    CameraStatus = "offline"
-	CameraStatusOnline     CameraStatus = "online"
-	CameraStatusStreaming  CameraStatus = "streaming"
-	CameraStatusError      CameraStatus = "error"
+	CameraStatusOffline   CameraStatus = "offline"
+	CameraStatusOnline    CameraStatus = "online"
+	CameraStatusStreaming CameraStatus = "streaming"
+	CameraStatusError     CameraStatus = "error"
 )
 
 type CameraConfig struct {
@@ -42,10 +42,10 @@ type Resolution struct {
 }
 
 type Zone struct {
-	ID     string    `json:"id"`
-	Name   string    `json:"name"`
-	Points []Point   `json:"points"` // Polygone de détection
-	Active bool      `json:"active"`
+	ID     string  `json:"id"`
+	Name   string  `json:"name"`
+	Points []Point `json:"points"` // Polygone de détection
+	Active bool    `json:"active"`
 }
 
 type Point struct {
@@ -84,17 +84,17 @@ type BoundingBox struct {
 
 // Alert représente une alerte générée
 type Alert struct {
-	ID          string            `json:"id"`
-	CameraID    string            `json:"camera_id"`
-	Type        AlertType         `json:"type"`
-	Level       AlertLevel        `json:"level"`
-	Message     string            `json:"message"`
-	Detection   *Detection        `json:"detection,omitempty"`
-	Timestamp   time.Time         `json:"timestamp"`
-	Acknowledged bool             `json:"acknowledged"`
-	AckedBy     string            `json:"acked_by,omitempty"`
-	AckedAt     *time.Time        `json:"acked_at,omitempty"`
-	Metadata    map[string]string `json:"metadata"`
+	ID           string            `json:"id"`
+	CameraID     string            `json:"camera_id"`
+	Type         AlertType         `json:"type"`
+	Level        AlertLevel        `json:"level"`
+	Message      string            `json:"message"`
+	Detection    *Detection        `json:"detection,omitempty"`
+	Timestamp    time.Time         `json:"timestamp"`
+	Acknowledged bool              `json:"acknowledged"`
+	AckedBy      string            `json:"acked_by,omitempty"`
+	AckedAt      *time.Time        `json:"acked_at,omitempty"`
+	Metadata     map[string]string `json:"metadata"`
 }
 
 type AlertType string
@@ -126,16 +126,18 @@ type Frame struct {
 	Size      int       `json:"size"`
 }
 
-// Config représente la configuration globale
-type Config struct {
-	Port           string
-	VisionService  string
-	MaxCameras     int
-	AlertRetention time.Duration
-	LogLevel       string
-	Database       DatabaseConfig
-}
+/*
+Config représente la configuration globale
 
+	type Config struct {
+		Port           string
+		VisionService  string
+		MaxCameras     int
+		AlertRetention time.Duration
+		LogLevel       string
+		Database       DatabaseConfig
+	}
+*/
 type DatabaseConfig struct {
 	Type     string // "sqlite", "postgres", etc.
 	URL      string
@@ -150,3 +152,12 @@ type Event struct {
 	Data      map[string]interface{} `json:"data"`
 	Timestamp time.Time              `json:"timestamp"`
 }
+
+// StreamStatus représente l'état d'un flux vidéo
+type StreamStatus string
+
+const (
+	StreamStatusInactive StreamStatus = "inactive"
+	StreamStatusActive   StreamStatus = "active"
+	StreamStatusError    StreamStatus = "error"
+)

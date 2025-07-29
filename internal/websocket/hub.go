@@ -63,9 +63,9 @@ func (h *Hub) Run() {
 			h.mutex.Lock()
 			h.clients[client] = true
 			h.mutex.Unlock()
-			
+
 			log.Printf("Client connecté: %s", client.id)
-			
+
 			// Envoyer message de bienvenue
 			welcome := Message{
 				Type:      "connection",
@@ -101,7 +101,7 @@ func (h *Hub) Run() {
 func (h *Hub) removeClient(client *Client) {
 	h.mutex.Lock()
 	defer h.mutex.Unlock()
-	
+
 	if _, ok := h.clients[client]; ok {
 		delete(h.clients, client)
 		close(client.send)

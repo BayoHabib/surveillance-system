@@ -7,13 +7,13 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 
-	"github.com/gin-gonic/gin"
 	"surveillance-core/internal/api"
 	"surveillance-core/internal/core"
 	"surveillance-core/internal/vision"
 	wsHub "surveillance-core/internal/websocket"
+
+	"github.com/gin-gonic/gin"
 )
 
 type App struct {
@@ -24,12 +24,10 @@ type App struct {
 }
 
 func main() {
-	// Configuration
-	config := &core.Config{
-		Port:           ":8080",
-		VisionService:  "localhost:50051", // gRPC C++ service
-		MaxCameras:     10,
-		AlertRetention: time.Hour * 24,
+	// Load advanced config from environment or defaults
+	config, err := core.LoadConfig()
+	if err != nil {
+		log.Fatalf("Config error: %v", err)
 	}
 
 	// Initialisation des composants
@@ -40,9 +38,9 @@ func main() {
 
 	// Démarrage du serveur HTTP
 	router := setupRouter(app)
-	
+
 	server := &http.Server{
-		Addr:    config.Port,
+		Addr:    config.Server.Port, // Use nested field
 		Handler: router,
 	}
 
@@ -53,7 +51,7 @@ func main() {
 		}
 	}()
 
-	log.Printf("Serveur démarré sur %s", config.Port)
+	log.Printf("Serveur démarré sur %s", config.Server.Port)
 
 	// Attente signal d'arrêt
 	quit := make(chan os.Signal, 1)
@@ -61,7 +59,7 @@ func main() {
 	<-quit
 
 	log.Println("Arrêt du serveur...")
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), config.Server.ShutdownTimeout)
 	defer cancel()
 
 	if err := server.Shutdown(ctx); err != nil {
@@ -70,19 +68,11 @@ func main() {
 }
 
 func initializeApp(config *core.Config) *App {
-	// Vision client (avec mock pour Phase 1)
 	visionClient := vision.NewMockClient()
-	
-	// Event processor
 	eventProcessor := core.NewEventProcessor()
-	
-	// Alert manager
-	alertManager := core.NewAlertManager(config.AlertRetention)
-	
-	// WebSocket Hub
+	alertManager := core.NewAlertManager(config.Alerts.Retention)
 	hub := wsHub.NewHub()
 
-	// Connexion event processor -> websocket
 	eventProcessor.SetAlertCallback(func(alert core.Alert) {
 		hub.Broadcast(wsHub.Message{
 			Type: "alert",
@@ -116,7 +106,7 @@ func setupRouter(app *App) *gin.Engine {
 
 	// API routes
 	apiHandler := api.NewHandler(app.VisionClient, app.EventProcessor, app.AlertManager)
-	
+
 	v1 := router.Group("/api/v1")
 	{
 		v1.GET("/cameras", apiHandler.GetCameras)

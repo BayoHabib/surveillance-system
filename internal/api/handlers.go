@@ -118,9 +118,9 @@ func (h *Handler) GetCamera(c *gin.Context) {
 
 func (h *Handler) CreateCamera(c *gin.Context) {
 	var req struct {
-		Name     string `json:"name" binding:"required"`
-		URL      string `json:"url" binding:"required"`
-		Location string `json:"location"`
+		Name     string            `json:"name" binding:"required"`
+		URL      string            `json:"url" binding:"required"`
+		Location string            `json:"location"`
 		Config   core.CameraConfig `json:"config"`
 	}
 
@@ -174,7 +174,7 @@ func (h *Handler) StartCamera(c *gin.Context) {
 		h.mutex.Lock()
 		camera.Status = core.CameraStatusError
 		h.mutex.Unlock()
-		
+
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Impossible de démarrer le stream"})
 		return
 	}
@@ -287,7 +287,7 @@ func (h *Handler) processFrames(cameraID string, framesChan <-chan core.Frame) {
 
 		// Ici on pourrait appeler l'EventProcessor avec des détections
 		// Pour le moment, on simule juste la réception des frames
-		
+
 		// Log toutes les 5 secondes pour éviter le spam
 		if frame.Timestamp.Second()%5 == 0 {
 			println("📹 Frame reçue de", cameraID, "taille:", frame.Size, "bytes")

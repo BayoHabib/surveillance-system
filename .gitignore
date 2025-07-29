@@ -7,10 +7,7 @@
 
 # Test binary, built with `go test -c`
 *.test
-# Test coverage files
-*.out
-coverage.html
-*.prof
+
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
 
@@ -21,6 +18,11 @@ go.work
 build/
 tmp/
 dist/
+
+# Test coverage files
+coverage.out
+coverage.html
+*.prof
 
 # Environment files
 .env

@@ -1,0 +1,148 @@
+syntax = "proto3";
+
+package surveillance.vision;
+
+option go_package = "surveillance-core/internal/vision/proto";
+
+// Service principal de traitement vidéo
+service VisionService {
+  // Démarrer un stream de caméra
+  rpc StartStream(StreamRequest) returns (StreamResponse);
+  
+  // Arrêter un stream de caméra  
+  rpc StopStream(StopRequest) returns (StopResponse);
+  
+  // Récupérer le statut d'un stream
+  rpc GetStreamStatus(StatusRequest) returns (StatusResponse);
+  
+  // Health check du service
+  rpc GetHealth(HealthRequest) returns (HealthResponse);
+  
+  // Stream de frames (bidirectionnel)
+  rpc ProcessFrames(stream FrameRequest) returns (stream FrameResponse);
+}
+
+// Configuration d'un stream
+message StreamConfig {
+  int32 width = 1;
+  int32 height = 2;
+  int32 fps = 3;
+  string format = 4;  // "jpeg", "png", "raw"
+  bool enable_motion_detection = 5;
+  repeated DetectionZone zones = 6;
+}
+
+// Zone de détection
+message DetectionZone {
+  string id = 1;
+  string name = 2;
+  repeated Point points = 3;
+  bool active = 4;
+}
+
+message Point {
+  int32 x = 1;
+  int32 y = 2;
+}
+
+// Requête de démarrage de stream
+message StreamRequest {
+  string camera_id = 1;
+  string camera_url = 2;  // URL de la caméra (RTSP, file, etc.)
+  StreamConfig config = 3;
+}
+
+message StreamResponse {
+  string status = 1;      // "success", "error"
+  string message = 2;
+  string stream_id = 3;   // ID unique du stream
+}
+
+// Requête d'arrêt de stream
+message StopRequest {
+  string camera_id = 1;
+}
+
+message StopResponse {
+  string status = 1;
+  string message = 2;
+}
+
+// Requête de statut
+message StatusRequest {
+  string camera_id = 1;
+}
+
+message StatusResponse {
+  string camera_id = 1;
+  string status = 2;      // "stopped", "starting", "active", "error"
+  string message = 3;
+  StreamStats stats = 4;
+}
+
+// Statistiques de stream
+message StreamStats {
+  int64 frames_processed = 1;
+  int64 detections_count = 2;
+  double fps_actual = 3;
+  int64 uptime_seconds = 4;
+  int64 last_frame_timestamp = 5;
+}
+
+// Health check
+message HealthRequest {}
+
+message HealthResponse {
+  string status = 1;      // "healthy", "degraded", "unhealthy"
+  string message = 2;
+  int32 active_streams = 3;
+  int64 uptime_seconds = 4;
+  string version = 5;
+}
+
+// Frame processing (pour streaming bidirectionnel)
+message FrameRequest {
+  string camera_id = 1;
+  bytes frame_data = 2;
+  int64 timestamp = 3;
+  FrameMetadata metadata = 4;
+}
+
+message FrameMetadata {
+  int32 width = 1;
+  int32 height = 2;
+  string format = 3;
+  int32 size = 4;
+}
+
+message FrameResponse {
+  string camera_id = 1;
+  int64 timestamp = 2;
+  repeated Detection detections = 3;
+  ProcessingStats processing_stats = 4;
+}
+
+// Détection
+message Detection {
+  string id = 1;
+  string type = 2;        // "motion", "person", "vehicle", etc.
+  float confidence = 3;
+  BoundingBox bbox = 4;
+  int64 timestamp = 5;
+  map<string, string> metadata = 6;
+}
+
+message BoundingBox {
+  int32 x = 1;
+  int32 y = 2;
+  int32 width = 3;
+  int32 height = 4;
+}
+
+// Statistiques de traitement
+message ProcessingStats {
+  int64 processing_time_ms = 1;
+  int32 detections_count = 2;
+  float cpu_usage = 3;
+  int64 memory_usage_mb = 4;
+}

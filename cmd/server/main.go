@@ -68,7 +68,8 @@ func main() {
 }
 
 func initializeApp(config *core.Config) *App {
-	visionClient := vision.NewMockClient()
+	//visionClient := vision.NewMockClient()
+	visionClient := vision.NewClient(vision.DefaultClientConfig())
 	eventProcessor := core.NewEventProcessor()
 	alertManager := core.NewAlertManager(config.Alerts.Retention)
 	hub := wsHub.NewHub()

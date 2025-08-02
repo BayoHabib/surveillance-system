@@ -20,6 +20,9 @@ find_package(PkgConfig REQUIRED)
 find_package(Protobuf REQUIRED)
 find_package(gRPC REQUIRED)
 
+# RE2 (required for regex)
+pkg_check_modules(RE2 REQUIRED re2)
+
 # Optionnel : OpenCV (pour Phase 2.3)
 find_package(OpenCV QUIET)
 if(OpenCV_FOUND)
@@ -66,10 +69,11 @@ add_custom_command(
     COMMENT "Generating gRPC C++ files"
 )
 
-# Sources du service principal
+# Sources du service principal - ADD service_metrics.cpp
 set(VISION_SOURCES
     src/main.cpp
     src/vision_service.cpp
+    src/service_metrics.cpp
     src/frame_processor.cpp
     src/camera_manager.cpp
     ${PROTO_SRCS}
@@ -79,6 +83,7 @@ set(VISION_SOURCES
 # Headers du service
 set(VISION_HEADERS
     src/vision_service.h
+    src/service_metrics.h
     src/frame_processor.h
     src/camera_manager.h
     ${PROTO_HDRS}
@@ -88,12 +93,17 @@ set(VISION_HEADERS
 # Exécutable principal
 add_executable(vision-service ${VISION_SOURCES} ${VISION_HEADERS})
 
-# Bibliothèques à lier
+# Bibliothèques à lier - ADD grpc++_reflection and re2
 target_link_libraries(vision-service
     gRPC::grpc++
+    gRPC::grpc++_reflection
     protobuf::libprotobuf
+    ${RE2_LIBRARIES}
     pthread
 )
+
+# Include directories for RE2
+target_include_directories(vision-service PRIVATE ${RE2_INCLUDE_DIRS})
 
 # Lier OpenCV si disponible
 if(OpenCV_FOUND)
@@ -103,7 +113,6 @@ endif()
 # Installation
 install(TARGETS vision-service DESTINATION bin)
 
-
 # Tests (optionnel)
 option(BUILD_TESTS "Build tests" ON)
 if(BUILD_TESTS)
@@ -111,7 +120,7 @@ if(BUILD_TESTS)
     if(GTest_FOUND)
         enable_testing()
         
-        # Sources des tests (SUPPRIMER test_frame_processor.cpp)
+        # Sources des tests
         set(TEST_SOURCES
             tests/test_vision_service.cpp
             src/vision_service.cpp
@@ -125,14 +134,19 @@ if(BUILD_TESTS)
         # Exécutable de tests
         add_executable(vision-service-tests ${TEST_SOURCES})
         
-        # Liens pour les tests
+        # Liens pour les tests - ADD grpc++_reflection and re2
         target_link_libraries(vision-service-tests
             gRPC::grpc++
+            gRPC::grpc++_reflection
             protobuf::libprotobuf
+            ${RE2_LIBRARIES}
             GTest::gtest
             GTest::gtest_main
             pthread
         )
+        
+        # Include directories for RE2
+        target_include_directories(vision-service-tests PRIVATE ${RE2_INCLUDE_DIRS})
         
         # Lier OpenCV si disponible
         if(OpenCV_FOUND)

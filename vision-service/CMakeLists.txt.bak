@@ -176,28 +176,3 @@ else()
     message(STATUS "  Tests: Disabled")
 endif()
 message(STATUS "")
-# OpenCV Configuration for Phase 2.3
-find_package(OpenCV REQUIRED)
-if(OpenCV_FOUND)
-    message(STATUS "OpenCV found: ${OpenCV_VERSION}")
-    add_definitions(-DHAVE_OPENCV)
-    include_directories(${OpenCV_INCLUDE_DIRS})
-    
-    # Ajouter les composants OpenCV au target principal
-    target_link_libraries(vision-service ${OpenCV_LIBS})
-    
-    # Ajouter aux tests aussi
-    if(BUILD_TESTS AND GTest_FOUND)
-        target_link_libraries(vision-service-tests ${OpenCV_LIBS})
-    endif()
-    
-    # Afficher les composants OpenCV
-    message(STATUS "OpenCV components: ${OpenCV_LIBS}")
-else()
-    message(FATAL_ERROR "OpenCV not found - required for Phase 2.3")
-endif()
-
-# Optimisations spécifiques OpenCV
-if(CMAKE_BUILD_TYPE STREQUAL "Release")
-    target_compile_definitions(vision-service PRIVATE CV_ENABLE_INTRINSICS)
-endif()

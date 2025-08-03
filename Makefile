@@ -156,6 +156,11 @@ test-cpp:
 	cd vision-service && make test
 
 # Integration tests (both services)
+# Run integration tests for both services.
+# 1. Build all binaries.
+# 2. Start the C++ service in the background.
+# 3. Run Go integration tests (with 'integration' build tag).
+# 4. Stop the C++ service after tests.
 test-integration: build
 	@echo "Running integration tests..."
 	@echo "Starting C++ service for integration tests..."
@@ -165,7 +170,19 @@ test-integration: build
 	$(GOTEST) -v -timeout $(TEST_TIMEOUT) -tags=integration ./...
 	@echo "Stopping C++ service..."
 	cd vision-service && make stop
+	@# Attendre l'arrêt complet
+	@sleep 3
+	@echo "✅ Integration tests completed"
 
+# Makefile principal
+.PHONY: test-integration-fast
+test-integration-fast: build
+	@echo "Running integration tests (fast mode)..."
+	cd vision-service && make start
+	@sleep 1
+	$(GOTEST) -v -timeout $(TEST_TIMEOUT) -tags=integration ./...
+	cd vision-service && pkill -f vision-service || true
+	@echo "✅ Tests completed (background cleanup)"
 # Test with coverage (Go)
 test-coverage:
 	@echo "Running Go tests with coverage..."

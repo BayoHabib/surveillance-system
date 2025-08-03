@@ -284,3 +284,51 @@ help:
 	@echo "  deps-install  - Install dependencies (Ubuntu/Debian)"
 	@echo "  info          - Show build information"
 	@echo "  help          - Show this help"
+# =============================================================================
+# OPENCV COMMANDS (Phase 2.3)
+# =============================================================================
+
+# Test OpenCV installation
+.PHONY: test-opencv
+test-opencv:
+	@echo "🔍 Test installation OpenCV..."
+	@pkg-config --exists opencv4 && echo "✅ OpenCV 4.x détecté" || \
+	 pkg-config --exists opencv && echo "✅ OpenCV détecté" || \
+	 echo "❌ OpenCV non trouvé"
+	@echo "Version:" $$(pkg-config --modversion opencv4 2>/dev/null || pkg-config --modversion opencv 2>/dev/null)
+
+# Build avec OpenCV
+.PHONY: build-opencv
+build-opencv: setup-gtest
+	@echo "🔨 Building with OpenCV support..."
+	mkdir -p build
+	cd build && cmake -DHAVE_OPENCV=ON .. && make -j$(NUM_CORES)
+
+# Tests OpenCV spécifiques
+.PHONY: test-opencv-unit
+test-opencv-unit: build-opencv
+	@echo "🧪 Running OpenCV unit tests..."
+	@if [ -f "build/vision-service-tests" ]; then \
+		cd build && ./vision-service-tests --gtest_filter="OpenCV*"; \
+	else \
+		echo "⚠️ Tests not built"; \
+	fi
+
+# Debug OpenCV
+.PHONY: debug-opencv
+debug-opencv: build-opencv
+	@echo "🔍 Debug OpenCV integration..."
+	cd build && gdb ./vision-service
+
+# Informations OpenCV
+.PHONY: opencv-info
+opencv-info:
+	@echo "📋 OpenCV Information"
+	@echo "===================="
+	@pkg-config --list-all | grep opencv || echo "No OpenCV packages found"
+	@echo ""
+	@echo "Include directories:"
+	@pkg-config --cflags opencv4 2>/dev/null || pkg-config --cflags opencv 2>/dev/null || echo "Not found"
+	@echo ""
+	@echo "Libraries:"
+	@pkg-config --libs opencv4 2>/dev/null || pkg-config --libs opencv 2>/dev/null || echo "Not found"

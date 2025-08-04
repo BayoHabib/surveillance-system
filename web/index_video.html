@@ -509,13 +509,23 @@
             async loadCameras() {
                 try {
                     const response = await fetch('/api/v1/cameras');
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
                     const data = await response.json();
-                    this.cameras = data.cameras;
+                    
+                    // Ensure cameras is an array
+                    this.cameras = Array.isArray(data.cameras) ? data.cameras : [];
+                    
                     this.renderCameras();
                     this.updateStats();
                     this.log(`📹 Loaded ${this.cameras.length} cameras`, 'info');
                 } catch (error) {
                     this.log('❌ Error loading cameras: ' + error.message, 'error');
+                    // Fallback to empty array
+                    this.cameras = [];
+                    this.renderCameras();
+                    this.updateStats();
                 }
             }
 

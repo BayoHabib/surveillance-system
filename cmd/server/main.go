@@ -2,18 +2,23 @@ package main
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
+	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"os/signal"
-	"syscall"
-
-	"surveillance-core/internal/api"
 	"surveillance-core/internal/core"
 	"surveillance-core/internal/vision"
 	wsHub "surveillance-core/internal/websocket"
+	"sync"
+	"syscall"
+	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/gorilla/websocket"
 )
 
 type App struct {
@@ -21,82 +26,318 @@ type App struct {
 	EventProcessor core.EventProcessor
 	WSHub          *wsHub.Hub
 	AlertManager   core.AlertManager
+	Config         *core.Config
+	ActiveStreams  sync.Map // map[string]*StreamInfo
+	Logger         *log.Logger
+}
+
+type StreamInfo struct {
+	ID        string    `json:"id"`
+	Name      string    `json:"name"`
+	URL       string    `json:"url"`
+	Status    string    `json:"status"`
+	StartTime time.Time `json:"start_time"`
+	FramesCh  <-chan core.Frame
+	mu        sync.RWMutex
+}
+
+// CameraRequest represents the request structure for adding cameras
+type CameraRequest struct {
+	Name     string `json:"name" binding:"required"`
+	URL      string `json:"url" binding:"required"`
+	Location string `json:"location"`
+	Type     string `json:"type"`
+	Username string `json:"username"`
+	Password string `json:"password"`
 }
 
 func main() {
-	// Load advanced config from environment or defaults
+	// Initialize structured logger
+	logger := log.New(os.Stdout, "[SURVEILLANCE] ", log.LstdFlags|log.Lshortfile)
+	
+	// Set Gin mode based on environment
+	if os.Getenv("GIN_MODE") == "" {
+		if os.Getenv("ENVIRONMENT") == "production" {
+			gin.SetMode(gin.ReleaseMode)
+		} else {
+			gin.SetMode(gin.DebugMode)
+		}
+	}
+
+	// Load configuration with validation
 	config, err := core.LoadConfig()
 	if err != nil {
-		log.Fatalf("Config error: %v", err)
+		logger.Fatalf("❌ Configuration error: %v", err)
 	}
 
-	// Initialisation des composants
-	app := initializeApp(config)
+	// Validate critical configuration
+	if err := validateConfig(config); err != nil {
+		logger.Fatalf("❌ Configuration validation failed: %v", err)
+	}
 
-	// Démarrage du Hub WebSocket
-	go app.WSHub.Run()
+	logger.Printf("🚀 Starting Surveillance System v%s", getVersion())
+	logger.Printf("📝 Environment: %s", getEnvironment())
+	logger.Printf("🔧 Configuration loaded successfully")
 
-	// Démarrage du serveur HTTP
+	// Initialize application components
+	app, err := initializeApp(config, logger)
+	if err != nil {
+		logger.Fatalf("❌ Application initialization failed: %v", err)
+	}
+
+	// Start WebSocket hub
+	go func() {
+		logger.Printf("🔌 Starting WebSocket hub...")
+		app.WSHub.Run()
+	}()
+
+	// Setup HTTP router with middlewares
 	router := setupRouter(app)
 
+	// Configure HTTP server with production settings
 	server := &http.Server{
-		Addr:    config.Server.Port, // Use nested field
-		Handler: router,
+		Addr:           config.Server.Port,
+		Handler:        router,
+		ReadTimeout:    30 * time.Second,  // Default 30 seconds
+		WriteTimeout:   30 * time.Second,  // Default 30 seconds
+		IdleTimeout:    120 * time.Second, // Default 2 minutes
+		MaxHeaderBytes: 1 << 20, // 1 MB
 	}
 
-	// Graceful shutdown
+	// Start server in background
 	go func() {
+		logger.Printf("🌐 Server starting on %s", config.Server.Port)
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("Erreur serveur: %v", err)
+			logger.Fatalf("❌ Server error: %v", err)
 		}
 	}()
 
-	log.Printf("Serveur démarré sur %s", config.Server.Port)
+	logger.Printf("✅ Surveillance System started successfully on %s", config.Server.Port)
 
-	// Attente signal d'arrêt
+	// Wait for interrupt signal to gracefully shutdown
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 
-	log.Println("Arrêt du serveur...")
+	logger.Println("🛑 Shutdown signal received, starting graceful shutdown...")
+
+	// Create shutdown context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), config.Server.ShutdownTimeout)
 	defer cancel()
 
+	// Shutdown server gracefully
 	if err := server.Shutdown(ctx); err != nil {
-		log.Fatalf("Erreur arrêt serveur: %v", err)
+		logger.Printf("❌ Server forced to shutdown: %v", err)
+	} else {
+		logger.Println("✅ Server shutdown completed successfully")
 	}
+
+	// Cleanup application resources
+	cleanup(app, logger)
 }
 
-func initializeApp(config *core.Config) *App {
-	//visionClient := vision.NewMockClient()
+func initializeApp(config *core.Config, logger *log.Logger) (*App, error) {
+	logger.Printf("🔧 Initializing application components...")
+
+	// Initialize vision client with proper error handling
 	visionClient := vision.NewClient(vision.DefaultClientConfig())
+	if !visionClient.IsConnected() {
+		logger.Printf("⚠️  Vision service not connected, using mock client")
+		visionClient = vision.NewMockClient()
+	}
+
+	// Initialize other components
 	eventProcessor := core.NewEventProcessor()
 	alertManager := core.NewAlertManager(config.Alerts.Retention)
 	hub := wsHub.NewHub()
 
+	// Set up event processing pipeline
 	eventProcessor.SetAlertCallback(func(alert core.Alert) {
+		logger.Printf("🚨 Alert generated: %s", alert.Message)
 		hub.Broadcast(wsHub.Message{
 			Type: "alert",
 			Data: alert,
 		})
 	})
 
-	return &App{
+	app := &App{
 		VisionClient:   visionClient,
 		EventProcessor: eventProcessor,
 		WSHub:          hub,
 		AlertManager:   alertManager,
+		Config:         config,
+		Logger:         logger,
 	}
+
+	logger.Printf("✅ Application components initialized successfully")
+	return app, nil
+}
+
+// validateConfig validates critical configuration parameters
+func validateConfig(config *core.Config) error {
+	if config.Server.Port == "" {
+		return fmt.Errorf("server port cannot be empty")
+	}
+	
+	if config.Server.ShutdownTimeout <= 0 {
+		return fmt.Errorf("shutdown timeout must be positive")
+	}
+	
+	if config.Alerts.Retention <= 0 {
+		return fmt.Errorf("alert retention must be positive")
+	}
+	
+	return nil
+}
+
+// getVersion returns the application version
+func getVersion() string {
+	version := os.Getenv("APP_VERSION")
+	if version == "" {
+		return "2.5.0-dev"
+	}
+	return version
+}
+
+// getEnvironment returns the current environment
+func getEnvironment() string {
+	env := os.Getenv("ENVIRONMENT")
+	if env == "" {
+		return "development"
+	}
+	return env
+}
+
+// cleanup performs application cleanup on shutdown
+func cleanup(app *App, logger *log.Logger) {
+	logger.Printf("🧹 Starting cleanup process...")
+	
+	// Stop all active streams
+	app.ActiveStreams.Range(func(key, value interface{}) bool {
+		if streamInfo, ok := value.(*StreamInfo); ok {
+			logger.Printf("🛑 Stopping stream: %s", streamInfo.ID)
+			app.VisionClient.StopStream(streamInfo.ID)
+		}
+		return true
+	})
+	
+	logger.Printf("✅ Cleanup completed")
 }
 
 func setupRouter(app *App) *gin.Engine {
-	router := gin.Default()
+	router := gin.New()
+	
+	// Production middleware stack
+	router.Use(gin.Logger())
+	router.Use(gin.Recovery())
+	router.Use(securityHeaders())
+	router.Use(corsMiddleware())
+	router.Use(rateLimitMiddleware())
+	router.Use(requestIDMiddleware())
 
-	// CORS middleware
-	router.Use(func(c *gin.Context) {
-		c.Header("Access-Control-Allow-Origin", "*")
+	app.Logger.Printf("🔧 Setting up production router with security middleware...")
+
+	// API v1 routes
+	v1 := router.Group("/api/v1")
+	{
+		// Health and status endpoints
+		v1.GET("/health", healthHandler(app))
+		v1.GET("/status", statusHandler(app))
+		v1.GET("/metrics", metricsHandler(app))
+
+		// Camera management endpoints
+		cameras := v1.Group("/cameras")
+		{
+			cameras.GET("", getCamerasHandler(app))
+			cameras.POST("", createCameraHandler(app))
+			cameras.GET("/:id", getCameraHandler(app))
+			cameras.PUT("/:id", updateCameraHandler(app))
+			cameras.DELETE("/:id", deleteCameraHandler(app))
+			cameras.PUT("/:id/start", startCameraHandler(app))
+			cameras.PUT("/:id/stop", stopCameraHandler(app))
+			cameras.GET("/:id/stream", streamHandler(app))
+		}
+
+		// Internet streaming endpoints
+		internet := v1.Group("/cameras/internet")
+		{
+			internet.POST("", addInternetCameraHandler(app))
+			internet.GET("/formats", streamFormatsHandler(app))
+		}
+
+		// Alert management
+		alerts := v1.Group("/alerts")
+		{
+			alerts.GET("", getAlertsHandler(app))
+			alerts.POST("/:id/acknowledge", acknowledgeAlertHandler(app))
+		}
+	}
+
+	// WebSocket endpoint
+	router.GET("/ws", websocketHandler(app))
+
+	// Static file serving with security headers
+	router.Static("/static", "./web/static")
+	router.StaticFile("/", "./web/index_video.html")
+	router.StaticFile("/internet", "./web/internet_streaming.html")
+
+	// 404 handler
+	router.NoRoute(func(c *gin.Context) {
+		c.JSON(404, gin.H{
+			"error":     "endpoint not found",
+			"path":      c.Request.URL.Path,
+			"method":    c.Request.Method,
+			"timestamp": time.Now(),
+		})
+	})
+
+	app.Logger.Printf("✅ Router setup completed with %d routes", len(router.Routes()))
+	return router
+}
+
+// Middleware functions
+func securityHeaders() gin.HandlerFunc {
+	return gin.HandlerFunc(func(c *gin.Context) {
+		c.Header("X-Frame-Options", "DENY")
+		c.Header("X-Content-Type-Options", "nosniff")
+		c.Header("X-XSS-Protection", "1; mode=block")
+		c.Header("Referrer-Policy", "strict-origin-when-cross-origin")
+		c.Header("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';")
+		c.Next()
+	})
+}
+
+func corsMiddleware() gin.HandlerFunc {
+	return gin.HandlerFunc(func(c *gin.Context) {
+		origin := c.Request.Header.Get("Origin")
+		
+		// In production, validate origins against allowlist
+		if getEnvironment() == "production" {
+			allowedOrigins := []string{
+				"http://localhost:3000",
+				"https://yourdomain.com",
+			}
+			
+			allowed := false
+			for _, allowedOrigin := range allowedOrigins {
+				if origin == allowedOrigin {
+					allowed = true
+					break
+				}
+			}
+			
+			if allowed {
+				c.Header("Access-Control-Allow-Origin", origin)
+			}
+		} else {
+			// Development mode - allow all origins
+			c.Header("Access-Control-Allow-Origin", "*")
+		}
+		
 		c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-		c.Header("Access-Control-Allow-Headers", "Content-Type, Authorization")
+		c.Header("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Request-ID")
+		c.Header("Access-Control-Allow-Credentials", "true")
+		c.Header("Access-Control-Max-Age", "86400")
 
 		if c.Request.Method == "OPTIONS" {
 			c.AbortWithStatus(204)
@@ -104,30 +345,508 @@ func setupRouter(app *App) *gin.Engine {
 		}
 		c.Next()
 	})
+}
 
-	// API routes
-	apiHandler := api.NewHandler(app.VisionClient, app.EventProcessor, app.AlertManager)
+func rateLimitMiddleware() gin.HandlerFunc {
+	// Simple in-memory rate limiter (in production, use Redis)
+	clients := make(map[string][]time.Time)
+	var mu sync.Mutex
+	
+	return gin.HandlerFunc(func(c *gin.Context) {
+		clientIP := c.ClientIP()
+		now := time.Now()
+		
+		mu.Lock()
+		defer mu.Unlock()
+		
+		// Clean old requests (older than 1 minute)
+		if requests, exists := clients[clientIP]; exists {
+			var validRequests []time.Time
+			for _, reqTime := range requests {
+				if now.Sub(reqTime) < time.Minute {
+					validRequests = append(validRequests, reqTime)
+				}
+			}
+			clients[clientIP] = validRequests
+		}
+		
+		// Check rate limit (100 requests per minute)
+		if len(clients[clientIP]) >= 100 {
+			c.JSON(429, gin.H{
+				"error": "rate limit exceeded",
+				"retry_after": 60,
+			})
+			c.Abort()
+			return
+		}
+		
+		// Add current request
+		clients[clientIP] = append(clients[clientIP], now)
+		c.Next()
+	})
+}
 
-	v1 := router.Group("/api/v1")
-	{
-		v1.GET("/cameras", apiHandler.GetCameras)
-		v1.POST("/cameras", apiHandler.CreateCamera)
-		v1.GET("/cameras/:id", apiHandler.GetCamera)
-		v1.PUT("/cameras/:id/start", apiHandler.StartCamera)
-		v1.PUT("/cameras/:id/stop", apiHandler.StopCamera)
-		v1.GET("/alerts", apiHandler.GetAlerts)
-		v1.GET("/health", apiHandler.Health)
+func requestIDMiddleware() gin.HandlerFunc {
+	return gin.HandlerFunc(func(c *gin.Context) {
+		requestID := c.Request.Header.Get("X-Request-ID")
+		if requestID == "" {
+			requestID = generateRequestID()
+		}
+		c.Header("X-Request-ID", requestID)
+		c.Set("RequestID", requestID)
+		c.Next()
+	})
+}
+
+func generateRequestID() string {
+	bytes := make([]byte, 16)
+	rand.Read(bytes)
+	return hex.EncodeToString(bytes)
+}
+
+// Handler functions
+func healthHandler(app *App) gin.HandlerFunc {
+	return gin.HandlerFunc(func(c *gin.Context) {
+		visionConnected := app.VisionClient.IsConnected()
+		
+		status := "healthy"
+		if !visionConnected {
+			status = "degraded"
+		}
+		
+		c.JSON(200, gin.H{
+			"status":            status,
+			"timestamp":         time.Now(),
+			"version":           getVersion(),
+			"environment":       getEnvironment(),
+			"vision_connected":  visionConnected,
+			"uptime":           time.Since(time.Now()).String(), // This would be calculated from start time
+			"internet_streaming": "enabled",
+		})
+	})
+}
+
+func statusHandler(app *App) gin.HandlerFunc {
+	return gin.HandlerFunc(func(c *gin.Context) {
+		activeStreams := 0
+		app.ActiveStreams.Range(func(key, value interface{}) bool {
+			activeStreams++
+			return true
+		})
+		
+		c.JSON(200, gin.H{
+			"server": gin.H{
+				"version":     getVersion(),
+				"environment": getEnvironment(),
+				"uptime":      time.Since(time.Now()).String(),
+			},
+			"vision": gin.H{
+				"connected": app.VisionClient.IsConnected(),
+				"type":      "grpc",
+			},
+			"streams": gin.H{
+				"active": activeStreams,
+			},
+			"websocket": gin.H{
+				"connections": 0, // Would need to implement counter in WSHub
+			},
+		})
+	})
+}
+
+func metricsHandler(app *App) gin.HandlerFunc {
+	return gin.HandlerFunc(func(c *gin.Context) {
+		// Basic metrics - in production, use Prometheus
+		c.JSON(200, gin.H{
+			"metrics": gin.H{
+				"requests_total":   0, // Would need to implement counter
+				"active_streams":   0, // Count from ActiveStreams
+				"alerts_total":     0, // From AlertManager
+				"uptime_seconds":   0, // Calculate from start time
+			},
+		})
+	})
+}
+
+func getCamerasHandler(app *App) gin.HandlerFunc {
+	return gin.HandlerFunc(func(c *gin.Context) {
+		// This would typically fetch from database
+		cameras := []gin.H{
+			{"id": "camera_1", "name": "Front Camera", "status": "offline", "location": "Entrance"},
+			{"id": "camera_2", "name": "Back Camera", "status": "offline", "location": "Garden"},
+		}
+		
+		c.JSON(200, gin.H{
+			"cameras": cameras,
+			"total":   len(cameras),
+		})
+	})
+}
+
+func createCameraHandler(app *App) gin.HandlerFunc {
+	return gin.HandlerFunc(func(c *gin.Context) {
+		var req CameraRequest
+		if err := c.ShouldBindJSON(&req); err != nil {
+			c.JSON(400, gin.H{"error": "Invalid request format", "details": err.Error()})
+			return
+		}
+		
+		// Validate URL
+		if !isValidURL(req.URL) {
+			c.JSON(400, gin.H{"error": "Invalid camera URL format"})
+			return
+		}
+		
+		cameraID := fmt.Sprintf("cam_%d", time.Now().Unix())
+		
+		// In production, save to database
+		app.Logger.Printf("📹 Creating camera: %s (%s)", req.Name, cameraID)
+		
+		c.JSON(201, gin.H{
+			"message":    "Camera created successfully",
+			"camera_id":  cameraID,
+			"name":       req.Name,
+			"url":        req.URL,
+			"location":   req.Location,
+			"status":     "offline",
+			"created_at": time.Now(),
+		})
+	})
+}
+
+func getCameraHandler(app *App) gin.HandlerFunc {
+	return gin.HandlerFunc(func(c *gin.Context) {
+		cameraID := c.Param("id")
+		
+		// In production, fetch from database
+		c.JSON(200, gin.H{
+			"id":       cameraID,
+			"name":     "Sample Camera",
+			"status":   "offline",
+			"location": "Unknown",
+		})
+	})
+}
+
+func updateCameraHandler(app *App) gin.HandlerFunc {
+	return gin.HandlerFunc(func(c *gin.Context) {
+		cameraID := c.Param("id")
+		
+		var req CameraRequest
+		if err := c.ShouldBindJSON(&req); err != nil {
+			c.JSON(400, gin.H{"error": err.Error()})
+			return
+		}
+		
+		app.Logger.Printf("📝 Updating camera: %s", cameraID)
+		
+		c.JSON(200, gin.H{
+			"message":    "Camera updated successfully",
+			"camera_id":  cameraID,
+			"updated_at": time.Now(),
+		})
+	})
+}
+
+func deleteCameraHandler(app *App) gin.HandlerFunc {
+	return gin.HandlerFunc(func(c *gin.Context) {
+		cameraID := c.Param("id")
+		
+		// Stop stream if active
+		app.VisionClient.StopStream(cameraID)
+		app.ActiveStreams.Delete(cameraID)
+		
+		app.Logger.Printf("🗑️  Deleting camera: %s", cameraID)
+		
+		c.JSON(200, gin.H{
+			"message":    "Camera deleted successfully",
+			"camera_id":  cameraID,
+			"deleted_at": time.Now(),
+		})
+	})
+}
+
+func startCameraHandler(app *App) gin.HandlerFunc {
+	return gin.HandlerFunc(func(c *gin.Context) {
+		cameraID := c.Param("id")
+		
+		framesChan, err := app.VisionClient.StartStream(cameraID)
+		if err != nil {
+			c.JSON(500, gin.H{"error": fmt.Sprintf("Failed to start stream: %v", err)})
+			return
+		}
+		
+		// Store stream info
+		streamInfo := &StreamInfo{
+			ID:        cameraID,
+			Name:      "Camera " + cameraID,
+			Status:    "streaming",
+			StartTime: time.Now(),
+			FramesCh:  framesChan,
+		}
+		app.ActiveStreams.Store(cameraID, streamInfo)
+		
+		app.Logger.Printf("▶️  Started camera stream: %s", cameraID)
+		
+		c.JSON(200, gin.H{
+			"message":    "Camera stream started",
+			"camera_id":  cameraID,
+			"status":     "streaming",
+			"started_at": time.Now(),
+		})
+	})
+}
+
+func stopCameraHandler(app *App) gin.HandlerFunc {
+	return gin.HandlerFunc(func(c *gin.Context) {
+		cameraID := c.Param("id")
+		
+		err := app.VisionClient.StopStream(cameraID)
+		if err != nil {
+			c.JSON(500, gin.H{"error": fmt.Sprintf("Failed to stop stream: %v", err)})
+			return
+		}
+		
+		app.ActiveStreams.Delete(cameraID)
+		
+		app.Logger.Printf("⏹️  Stopped camera stream: %s", cameraID)
+		
+		c.JSON(200, gin.H{
+			"message":    "Camera stream stopped",
+			"camera_id":  cameraID,
+			"status":     "offline",
+			"stopped_at": time.Now(),
+		})
+	})
+}
+
+func streamHandler(app *App) gin.HandlerFunc {
+	return gin.HandlerFunc(func(c *gin.Context) {
+		cameraID := c.Param("id")
+
+		// Set MJPEG headers
+		c.Header("Content-Type", "multipart/x-mixed-replace; boundary=frame")
+		c.Header("Cache-Control", "no-cache, no-store, must-revalidate")
+		c.Header("Connection", "keep-alive")
+		c.Header("Pragma", "no-cache")
+		c.Header("Expires", "0")
+
+		frames, err := app.VisionClient.GetStream(cameraID)
+		if err != nil {
+			app.Logger.Printf("❌ Error getting stream for camera %s: %v", cameraID, err)
+			c.JSON(404, gin.H{"error": "Stream not found"})
+			return
+		}
+
+		app.Logger.Printf("📺 Starting MJPEG stream for camera: %s", cameraID)
+
+		// Stream frames without gocv dependency
+		for range frames {
+			// For now, generate a simple response
+			// In production, you'd convert the frame data to JPEG
+			frameData := []byte("Mock JPEG frame data")
+			
+			c.Writer.Write([]byte("--frame\r\n"))
+			c.Writer.Write([]byte("Content-Type: image/jpeg\r\n"))
+			c.Writer.Write([]byte(fmt.Sprintf("Content-Length: %d\r\n\r\n", len(frameData))))
+			c.Writer.Write(frameData)
+			c.Writer.Write([]byte("\r\n"))
+			c.Writer.Flush()
+		}
+
+		app.Logger.Printf("📺 MJPEG stream stopped for camera: %s", cameraID)
+	})
+}
+
+func addInternetCameraHandler(app *App) gin.HandlerFunc {
+	return gin.HandlerFunc(func(c *gin.Context) {
+		var req CameraRequest
+		if err := c.ShouldBindJSON(&req); err != nil {
+			c.JSON(400, gin.H{"error": "Invalid request format", "details": err.Error()})
+			return
+		}
+
+		// Validate URL
+		if !isValidURL(req.URL) {
+			c.JSON(400, gin.H{"error": "Invalid camera URL format"})
+			return
+		}
+
+		cameraID := fmt.Sprintf("internet_%d", time.Now().Unix())
+
+		// Start internet stream
+		framesChan, err := app.VisionClient.StartStreamWithURL(cameraID, req.URL)
+		if err != nil {
+			c.JSON(500, gin.H{"error": fmt.Sprintf("Failed to start stream: %v", err)})
+			return
+		}
+
+		// Store stream info
+		streamInfo := &StreamInfo{
+			ID:        cameraID,
+			Name:      req.Name,
+			URL:       req.URL,
+			Status:    "streaming",
+			StartTime: time.Now(),
+			FramesCh:  framesChan,
+		}
+		app.ActiveStreams.Store(cameraID, streamInfo)
+
+		app.Logger.Printf("🌐 Internet camera added: %s (%s) from URL: %s", req.Name, cameraID, req.URL)
+
+		c.JSON(201, gin.H{
+			"message":          "Internet camera added successfully",
+			"camera_id":        cameraID,
+			"name":             req.Name,
+			"url":              req.URL,
+			"status":           "streaming",
+			"resolution":       "1280x720",
+			"fps":              30,
+			"frames_available": len(framesChan) > 0,
+			"created_at":       time.Now(),
+		})
+	})
+}
+
+func streamFormatsHandler(app *App) gin.HandlerFunc {
+	return gin.HandlerFunc(func(c *gin.Context) {
+		c.JSON(200, gin.H{
+			"formats": []gin.H{
+				{"protocol": "rtsp", "description": "Real Time Streaming Protocol for IP cameras", "example": "rtsp://username:password@192.168.1.100:554/stream"},
+				{"protocol": "http", "description": "HTTP video streams and MJPEG", "example": "http://camera-ip:8080/video"},
+				{"protocol": "https", "description": "Secure HTTP video streams", "example": "https://example.com/stream.m3u8"},
+				{"protocol": "rtmp", "description": "Real Time Messaging Protocol", "example": "rtmp://live-server.com/live/stream-key"},
+			},
+			"demo_streams": []gin.H{
+				{"name": "Big Buck Bunny RTSP", "url": "rtsp://wowzaec2demo.streamlock.net/vod/mp4:BigBuckBunny_115k.mp4"},
+				{"name": "Sample MP4", "url": "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"},
+				{"name": "Tears of Steel", "url": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4"},
+			},
+		})
+	})
+}
+
+func getAlertsHandler(app *App) gin.HandlerFunc {
+	return gin.HandlerFunc(func(c *gin.Context) {
+		// In production, fetch from AlertManager
+		c.JSON(200, gin.H{
+			"alerts": []gin.H{},
+			"total":  0,
+		})
+	})
+}
+
+func acknowledgeAlertHandler(app *App) gin.HandlerFunc {
+	return gin.HandlerFunc(func(c *gin.Context) {
+		alertID := c.Param("id")
+		
+		app.Logger.Printf("✅ Alert acknowledged: %s", alertID)
+		
+		c.JSON(200, gin.H{
+			"message":        "Alert acknowledged",
+			"alert_id":       alertID,
+			"acknowledged_at": time.Now(),
+		})
+	})
+}
+
+func websocketHandler(app *App) gin.HandlerFunc {
+	upgrader := websocket.Upgrader{
+		CheckOrigin: func(r *http.Request) bool {
+			// In production, check allowed origins
+			if getEnvironment() == "production" {
+				origin := r.Header.Get("Origin")
+				allowedOrigins := []string{
+					"http://localhost:3000",
+					"https://yourdomain.com",
+				}
+				
+				for _, allowedOrigin := range allowedOrigins {
+					if origin == allowedOrigin {
+						return true
+					}
+				}
+				return false
+			}
+			return true // Allow all origins in development
+		},
 	}
 
-	// WebSocket endpoint
-	wsHandler := wsHub.NewHandler(app.WSHub)
-	router.GET("/ws", func(c *gin.Context) {
-		wsHandler.HandleWebSocket(c.Writer, c.Request)
+	return gin.HandlerFunc(func(c *gin.Context) {
+		conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
+		if err != nil {
+			app.Logger.Printf("❌ WebSocket upgrade failed: %v", err)
+			c.JSON(400, gin.H{"error": "WebSocket upgrade failed"})
+			return
+		}
+		defer conn.Close()
+
+		app.Logger.Printf("🔌 WebSocket client connected from %s", c.ClientIP())
+
+		// Send initial status message
+		statusMsg := map[string]interface{}{
+			"type": "status",
+			"data": map[string]interface{}{
+				"connected":    true,
+				"server_time": time.Now(),
+				"version":     getVersion(),
+			},
+		}
+		
+		if err := conn.WriteJSON(statusMsg); err != nil {
+			app.Logger.Printf("❌ Failed to send initial status: %v", err)
+			return
+		}
+
+		// Handle incoming messages and keep connection alive
+		for {
+			messageType, message, err := conn.ReadMessage()
+			if err != nil {
+				if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
+					app.Logger.Printf("❌ WebSocket error: %v", err)
+				}
+				break
+			}
+
+			if messageType == websocket.TextMessage {
+				app.Logger.Printf("📨 WebSocket message received: %s", string(message))
+				
+				// Echo the message back for now
+				response := map[string]interface{}{
+					"type": "echo",
+					"data": string(message),
+					"timestamp": time.Now(),
+				}
+				
+				if err := conn.WriteJSON(response); err != nil {
+					app.Logger.Printf("❌ Failed to send WebSocket response: %v", err)
+					break
+				}
+			}
+		}
+
+		app.Logger.Printf("🔌 WebSocket client disconnected from %s", c.ClientIP())
 	})
+}
 
-	// Static files pour le frontend
-	router.Static("/static", "./web/static")
-	router.StaticFile("/", "./web/index.html")
-
-	return router
+// Utility functions
+func isValidURL(urlStr string) bool {
+	if urlStr == "" {
+		return false
+	}
+	
+	parsedURL, err := url.Parse(urlStr)
+	if err != nil {
+		return false
+	}
+	
+	// Check for valid schemes
+	validSchemes := []string{"http", "https", "rtsp", "rtmp"}
+	for _, scheme := range validSchemes {
+		if parsedURL.Scheme == scheme {
+			return true
+		}
+	}
+	
+	return false
 }

@@ -10,22 +10,6 @@ import (
 	"github.com/google/uuid"
 )
 
-type Client interface {
-	StartStream(cameraID string) (<-chan core.Frame, error)
-	StopStream(cameraID string) error
-	GetStreamStatus(cameraID string) StreamStatus
-	IsConnected() bool
-}
-
-type StreamStatus string
-
-const (
-	StreamStatusStopped  StreamStatus = "stopped"
-	StreamStatusStarting StreamStatus = "starting"
-	StreamStatusActive   StreamStatus = "active"
-	StreamStatusError    StreamStatus = "error"
-)
-
 type mockClient struct {
 	streams map[string]*mockStream
 	mutex   sync.RWMutex
@@ -33,7 +17,7 @@ type mockClient struct {
 
 type mockStream struct {
 	cameraID   string
-	status     StreamStatus
+	status     core.StreamStatus
 	framesChan chan core.Frame
 	stopChan   chan bool
 	ticker     *time.Ticker
@@ -49,33 +33,50 @@ func (mc *mockClient) StartStream(cameraID string) (<-chan core.Frame, error) {
 	mc.mutex.Lock()
 	defer mc.mutex.Unlock()
 
-	// Vérifier si le stream existe déjà
 	if stream, exists := mc.streams[cameraID]; exists {
-		if stream.status == StreamStatusActive {
-			return stream.framesChan, nil
-		}
-		// Arrêter l'ancien stream s'il existe
-		mc.stopStreamInternal(cameraID)
+		// Return existing stream if already running
+		return stream.framesChan, nil
 	}
 
-	// Créer nouveau stream
+	// Créer un nouveau flux mock
 	stream := &mockStream{
 		cameraID:   cameraID,
-		status:     StreamStatusStarting,
-		framesChan: make(chan core.Frame, 10),
+		status:     core.StreamStatusStarting,
+		framesChan: make(chan core.Frame, 10), // Tampon de 10 frames
 		stopChan:   make(chan bool),
-		ticker:     time.NewTicker(time.Second / 15), // 15 FPS
+		ticker:     time.NewTicker(100 * time.Millisecond), // 10 FPS
 	}
 
 	mc.streams[cameraID] = stream
-
-	// Démarrer le générateur de frames en goroutine
-	go mc.generateFrames(stream)
-
-	stream.status = StreamStatusActive
 	fmt.Printf("Stream démarré pour caméra: %s\n", cameraID)
 
+	go mc.generateFrames(stream)
+
+	// Attendre que le flux soit prêt
+	time.Sleep(50 * time.Millisecond)
+
 	return stream.framesChan, nil
+}
+
+func (mc *mockClient) GetStream(cameraID string) (<-chan core.Frame, error) {
+	mc.mutex.RLock()
+	defer mc.mutex.RUnlock()
+
+	if stream, exists := mc.streams[cameraID]; exists {
+		return stream.framesChan, nil
+	}
+	return nil, fmt.Errorf("stream not found for camera: %s", cameraID)
+}
+
+func (mc *mockClient) HealthCheck() error {
+	// Mock is always healthy
+	return nil
+}
+
+func (mc *mockClient) StartStreamWithURL(cameraID string, cameraURL string) (<-chan core.Frame, error) {
+	fmt.Printf("Mock: StartStreamWithURL - Camera: %s, URL: %s\n", cameraID, cameraURL)
+	// For mock, just call the regular StartStream method
+	return mc.StartStream(cameraID)
 }
 
 func (mc *mockClient) StopStream(cameraID string) error {
@@ -102,14 +103,14 @@ func (mc *mockClient) stopStreamInternal(cameraID string) error {
 	return nil
 }
 
-func (mc *mockClient) GetStreamStatus(cameraID string) StreamStatus {
+func (mc *mockClient) GetStreamStatus(cameraID string) core.StreamStatus {
 	mc.mutex.RLock()
 	defer mc.mutex.RUnlock()
 
 	if stream, exists := mc.streams[cameraID]; exists {
 		return stream.status
 	}
-	return StreamStatusStopped
+	return core.StreamStatusStopped
 }
 
 func (mc *mockClient) IsConnected() bool {
@@ -117,6 +118,11 @@ func (mc *mockClient) IsConnected() bool {
 }
 
 func (mc *mockClient) generateFrames(stream *mockStream) {
+	// Set status to active once frame generation starts
+	mc.mutex.Lock()
+	stream.status = core.StreamStatusActive
+	mc.mutex.Unlock()
+	
 	detectionCounter := 0
 
 	for {

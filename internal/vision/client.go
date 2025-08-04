@@ -4,7 +4,6 @@ package vision
 import (
 	"log"
 	"os"
-	//"surveillance-core/internal/core"
 )
 
 // ClientType represents the type of vision client to create
@@ -17,42 +16,46 @@ const (
 
 // ClientConfig holds configuration for vision clients
 type ClientConfig struct {
-	Type        ClientType `json:"type"`
-	GRPCAddress string     `json:"grpc_address"`
+	Type        ClientType
+	GRPCAddress string
+	Timeout     int // seconds
 }
 
-// DefaultClientConfig returns default configuration
+// DefaultClientConfig returns default configuration based on environment
 func DefaultClientConfig() *ClientConfig {
-	return &ClientConfig{
-		Type:        ClientTypeMock, // Default to mock for backward compatibility
-		GRPCAddress: "localhost:50051",
+	clientType := os.Getenv("VISION_CLIENT_TYPE")
+	if clientType == "" {
+		clientType = "grpc" // Default to gRPC for integration
 	}
+
+	address := os.Getenv("VISION_SERVICE_ADDRESS")
+	if address == "" {
+		address = "localhost:50051"
+	}
+
+	config := &ClientConfig{
+		Type:        ClientType(clientType),
+		GRPCAddress: address,
+		Timeout:     30,
+	}
+
+	log.Printf("🔧 Creating vision client: type=%s, address=%s", config.Type, config.GRPCAddress)
+	return config
 }
 
 // NewClient creates a vision client based on configuration
-func NewClient(config *ClientConfig) Client {
+func NewClient(config *ClientConfig) VisionClient {
 	if config == nil {
 		config = DefaultClientConfig()
 	}
 
-	// Override with environment variables if set
-	if envType := os.Getenv("VISION_CLIENT_TYPE"); envType != "" {
-		config.Type = ClientType(envType)
-	}
-
-	if envAddr := os.Getenv("VISION_SERVICE_ADDRESS"); envAddr != "" {
-		config.GRPCAddress = envAddr
-	}
-
-	log.Printf("🔧 Creating vision client: type=%s, address=%s", config.Type, config.GRPCAddress)
-
 	switch config.Type {
 	case ClientTypeGRPC:
-		return NewGRPCClient(config.GRPCAddress)
+		return NewGRPCClient(config)
 	case ClientTypeMock:
 		return NewMockClient()
 	default:
-		log.Printf("⚠️ Unknown client type %s, falling back to mock", config.Type)
+		log.Printf("⚠️  Unknown client type %s, using mock", config.Type)
 		return NewMockClient()
 	}
 }

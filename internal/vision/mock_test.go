@@ -19,10 +19,13 @@ func TestMockClient_StartStream(t *testing.T) {
 		t.Errorf("Expected frames channel, got nil")
 	}
 
+	// Wait a moment for the stream to become active
+	time.Sleep(100 * time.Millisecond)
+
 	// Vérifier le statut
 	status := client.GetStreamStatus("test_cam")
-	if status != StreamStatusActive {
-		t.Errorf("Expected status %s, got %s", StreamStatusActive, status)
+	if status != core.StreamStatusActive {
+		t.Errorf("Expected status %s, got %s", core.StreamStatusActive, status)
 	}
 
 	// Nettoyer
@@ -69,8 +72,8 @@ func TestMockClient_StopStream(t *testing.T) {
 
 	// Vérifier le statut
 	status := client.GetStreamStatus("test_cam")
-	if status != StreamStatusStopped {
-		t.Errorf("Expected status %s, got %s", StreamStatusStopped, status)
+	if status != core.StreamStatusStopped {
+		t.Errorf("Expected status %s, got %s", core.StreamStatusStopped, status)
 	}
 }
 
@@ -89,15 +92,16 @@ func TestMockClient_GetStreamStatus(t *testing.T) {
 
 	// Statut initial
 	status := client.GetStreamStatus("test_cam")
-	if status != StreamStatusStopped {
-		t.Errorf("Expected initial status %s, got %s", StreamStatusStopped, status)
+	if status != core.StreamStatusStopped {
+		t.Errorf("Expected initial status %s, got %s", core.StreamStatusStopped, status)
 	}
 
 	// Après démarrage
 	client.StartStream("test_cam")
+	time.Sleep(100 * time.Millisecond) // Wait for stream to become active
 	status = client.GetStreamStatus("test_cam")
-	if status != StreamStatusActive {
-		t.Errorf("Expected active status %s, got %s", StreamStatusActive, status)
+	if status != core.StreamStatusActive {
+		t.Errorf("Expected active status %s, got %s", core.StreamStatusActive, status)
 	}
 
 	// Nettoyer
@@ -179,10 +183,13 @@ func TestMockClient_MultipleStreams(t *testing.T) {
 		channels[camID] = framesChan
 	}
 
+	// Wait for all streams to become active
+	time.Sleep(150 * time.Millisecond)
+
 	// Vérifier que tous les streams sont actifs
 	for _, camID := range cameras {
 		status := client.GetStreamStatus(camID)
-		if status != StreamStatusActive {
+		if status != core.StreamStatusActive {
 			t.Errorf("Expected %s to be active, got %s", camID, status)
 		}
 	}

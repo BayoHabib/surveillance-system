@@ -12,6 +12,13 @@
 #include <chrono>
 #include <functional>
 #include <future>
+#include <iostream>
+
+// Logging macros
+#define LOG_INFO(msg) std::cout << "[INFO] " << msg << std::endl
+#define LOG_ERROR(msg) std::cerr << "[ERROR] " << msg << std::endl
+#define LOG_DEBUG(msg) std::cout << "[DEBUG] " << msg << std::endl
+#define LOG_WARNING(msg) std::cout << "[WARNING] " << msg << std::endl
 
 #ifdef HAVE_OPENCV
 #include <opencv2/opencv.hpp>
@@ -27,6 +34,16 @@ enum class CameraType {
     RTSP_STREAM,    // Stream RTSP
     HTTP_STREAM,    // Stream HTTP/MJPEG
     TEST_PATTERN    // Pattern de test généré
+};
+
+// Source type for internal capture logic
+enum class SourceType {
+    UNKNOWN,
+    FILE,
+    WEBCAM, 
+    RTSP,
+    HTTP,
+    TEST
 };
 
 // Configuration d'une caméra
@@ -50,6 +67,7 @@ enum class CameraState {
     INITIALIZING,
     READY,
     CAPTURING,
+    STREAMING,
     ERROR,
     DISCONNECTED,
     RECONNECTING
@@ -89,11 +107,14 @@ public:
     
     // Méthodes principales
     bool Initialize();
-    bool Initialize(const CameraConfig& config);
-    void Cleanup();
+    virtual bool Initialize(const CameraConfig& config);
+    virtual void Cleanup();
     
     bool StartCapture();
     bool StopCapture();
+    
+    // Frame capture
+    Frame CaptureFrame();
     
     // Configuration
     void SetConfig(const CameraConfig& config);
@@ -111,22 +132,35 @@ public:
     // Informations sur la caméra
     std::string GetCameraUrl() const;
     CameraType GetCameraType() const;
-    bool IsCapturing() const;
+    virtual bool IsCapturing() const;
     bool IsConnected() const;
+    bool IsInitialized() const;
     
     // Méthodes statiques utilitaires
     static CameraType DetectCameraType(const std::string& url);
     static bool IsValidCameraUrl(const std::string& url);
     static std::vector<std::string> GetAvailableWebcams();
+    static std::unique_ptr<CameraManager> CreateManager(const std::string& camera_url);
     
-private:
+    // Additional methods
+    SourceType GetSourceType() const;
+    
+protected:
     std::string camera_url_;
     CameraType camera_type_;
+    SourceType source_type_;
     CameraConfig config_;
     std::atomic<CameraState> state_;
     CameraStats stats_;
     std::string last_error_;
     mutable std::mutex config_mutex_;
+    
+    // Additional member variables
+    bool is_initialized_;
+    bool capture_active_;
+    CameraConfig current_config_;
+    int total_frames_captured_;
+    std::chrono::steady_clock::time_point capture_start_time_;
     
     // Threading
     std::unique_ptr<std::thread> capture_thread_;
@@ -145,22 +179,28 @@ private:
     // Reconnection
     std::atomic<int> reconnect_attempts_;
     std::chrono::steady_clock::time_point last_reconnect_time_;
-    
+
 #ifdef HAVE_OPENCV
     std::unique_ptr<cv::VideoCapture> opencv_capture_;
 #endif
     
-    // Méthodes privées
-    void CaptureLoop();
-    bool InitializeCapture();
-    bool CaptureFrame();
-    void HandleCaptureError(const std::string& error);
-    void AttemptReconnect();
-    bool ShouldAttemptReconnect() const;
-    
+    // Méthodes protégées pour les classes dérivées
     void SetState(CameraState new_state);
     void SetError(const std::string& error);
     void NotifyFrameAvailable(const Frame& frame);
+    Frame CreateEmptyFrame() const;
+    bool ShouldAttemptReconnect() const;
+    void DetermineSourceType();
+    bool ValidateConfig(const CameraConfig& config) const;
+    void IncrementFrameCount();
+    std::string SourceTypeToString(SourceType type) const;
+    
+private:
+    // Méthodes privées
+    void CaptureLoop();
+    bool InitializeCapture();
+    void HandleCaptureError(const std::string& error);
+    void AttemptReconnect();
     
     // Implémentations spécifiques par type
     bool InitializeFileCapture();
@@ -168,13 +208,12 @@ private:
     bool InitializeRtspCapture();
     bool InitializeTestPattern();
     
-    Frame CaptureFileFrame();
-    Frame CaptureWebcamFrame();
-    Frame CaptureRtspFrame();
+    virtual Frame CaptureFileFrame();
+    virtual Frame CaptureWebcamFrame();
+    virtual Frame CaptureRtspFrame();
     Frame CaptureTestFrame();
     
     // Utilitaires
-    Frame CreateEmptyFrame() const;
     bool ValidateFrame(const Frame& frame) const;
     void UpdateStats(const Frame& frame);
 };
@@ -223,6 +262,7 @@ namespace CameraManagerConstants {
     constexpr int DEFAULT_WIDTH = 640;
     constexpr int DEFAULT_HEIGHT = 480;
     constexpr int DEFAULT_FPS = 15;
+    constexpr int MAX_FPS = 120;  // Added missing constant
     constexpr int MAX_RECONNECT_ATTEMPTS = 5;
     constexpr int DEFAULT_RECONNECT_DELAY_MS = 5000;
     constexpr int MAX_FRAME_BUFFER_SIZE = 60;  // 4 secondes à 15fps

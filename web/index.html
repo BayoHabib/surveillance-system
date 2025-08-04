@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Surveillance Dashboard</title>
+    <title>🎥 Surveillance Dashboard - Real Video Streaming</title>
     <style>
         * {
             margin: 0;
@@ -13,23 +13,28 @@
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: #1a1a1a;
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
             color: #ffffff;
             min-height: 100vh;
         }
 
         .header {
-            background: #2d2d2d;
+            background: linear-gradient(135deg, #2d2d2d 0%, #404040 100%);
             padding: 1rem 2rem;
-            border-bottom: 2px solid #404040;
+            border-bottom: 3px solid #4CAF50;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
         }
 
         .header h1 {
             color: #4CAF50;
-            font-size: 1.8rem;
+            font-size: 2rem;
+            font-weight: 300;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
         }
 
         .connection-status {
@@ -37,6 +42,9 @@
             align-items: center;
             gap: 0.5rem;
             font-weight: 500;
+            background: rgba(255,255,255,0.1);
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
         }
 
         .status-dot {
@@ -59,177 +67,324 @@
 
         .main-container {
             display: grid;
-            grid-template-columns: 300px 1fr 300px;
+            grid-template-columns: 1fr 350px;
             height: calc(100vh - 80px);
             gap: 1rem;
             padding: 1rem;
         }
 
-        .sidebar {
+        .video-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 1rem;
+            height: fit-content;
+        }
+
+        .video-card {
             background: #2d2d2d;
-            border-radius: 8px;
+            border-radius: 12px;
             padding: 1rem;
-            overflow-y: auto;
-        }
-
-        .sidebar h2 {
-            margin-bottom: 1rem;
-            color: #4CAF50;
-            font-size: 1.2rem;
-        }
-
-        .camera-list {
-            display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
-        }
-
-        .camera-item {
-            background: #404040;
-            padding: 0.75rem;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
             border: 2px solid transparent;
+            transition: all 0.3s ease;
         }
 
-        .camera-item:hover {
-            background: #505050;
-        }
-
-        .camera-item.active {
+        .video-card:hover {
             border-color: #4CAF50;
-            background: #353535;
+            transform: translateY(-2px);
         }
 
-        .camera-status {
+        .video-card.streaming {
+            border-color: #4CAF50;
+            box-shadow: 0 0 20px rgba(76, 175, 80, 0.3);
+        }
+
+        .video-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-top: 0.5rem;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid #404040;
+        }
+
+        .camera-name {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #4CAF50;
+        }
+
+        .camera-location {
+            font-size: 0.9rem;
+            color: #888;
         }
 
         .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .status-streaming {
+            background: #4CAF50;
+            color: white;
+            animation: pulse 2s infinite;
+        }
+
+        .status-offline {
+            background: #666;
+            color: #ccc;
+        }
+
+        .status-error {
+            background: #f44336;
+            color: white;
+        }
+
+        .video-container {
+            position: relative;
+            width: 100%;
+            height: 240px;
+            background: #1a1a1a;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 1rem;
+            border: 2px solid #404040;
+        }
+
+        .video-stream {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            background: #000;
+        }
+
+        .video-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.7);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #888;
+            transition: opacity 0.3s ease;
+        }
+
+        .video-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .video-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        .camera-controls {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+        }
+
+        .btn-start {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .btn-start:hover {
+            background: #45a049;
+            transform: scale(1.05);
+        }
+
+        .btn-stop {
+            background: #f44336;
+            color: white;
+        }
+
+        .btn-stop:hover {
+            background: #da190b;
+            transform: scale(1.05);
+        }
+
+        .btn:disabled {
+            background: #666;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .panel {
+            background: #2d2d2d;
+            border-radius: 12px;
+            padding: 1rem;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+
+        .panel h3 {
+            color: #4CAF50;
+            margin-bottom: 1rem;
+            font-size: 1.2rem;
+            font-weight: 600;
+            border-bottom: 2px solid #404040;
+            padding-bottom: 0.5rem;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 1rem;
+            background: #1a1a1a;
+            border-radius: 8px;
+            border: 1px solid #404040;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #4CAF50;
+            display: block;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: #888;
+            margin-top: 0.25rem;
+        }
+
+        .logs-container {
+            max-height: 300px;
+            overflow-y: auto;
+            background: #1a1a1a;
+            border-radius: 8px;
+            padding: 1rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            border: 1px solid #404040;
+        }
+
+        .log-entry {
+            margin-bottom: 0.5rem;
+            padding: 0.25rem;
+            border-radius: 3px;
+        }
+
+        .log-entry.info {
+            color: #4CAF50;
+        }
+
+        .log-entry.error {
+            color: #f44336;
+            background: rgba(244, 67, 54, 0.1);
+        }
+
+        .log-entry.warning {
+            color: #ff9800;
+            background: rgba(255, 152, 0, 0.1);
+        }
+
+        .fps-indicator {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.8);
+            color: #4CAF50;
             padding: 0.25rem 0.5rem;
             border-radius: 4px;
             font-size: 0.8rem;
             font-weight: bold;
         }
 
-        .status-offline { background: #666; }
-        .status-online { background: #4CAF50; }
-        .status-streaming { background: #2196F3; }
-        .status-error { background: #f44336; }
-
-        .main-content {
-            background: #2d2d2d;
-            border-radius: 8px;
-            padding: 1rem;
-            display: flex;
-            flex-direction: column;
+        .timestamp {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.8rem;
         }
 
-        .video-container {
-            flex: 1;
-            background: #000;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            position: relative;
-            min-height: 400px;
-        }
-
-        .video-placeholder {
-            text-align: center;
-            color: #888;
-        }
-
-        .video-controls {
-            display: flex;
-            gap: 1rem;
-            margin-top: 1rem;
-            justify-content: center;
-        }
-
-        .btn {
-            padding: 0.75rem 1.5rem;
+        .fullscreen-btn {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.8);
+            color: white;
             border: none;
-            border-radius: 6px;
+            padding: 0.5rem;
+            border-radius: 4px;
             cursor: pointer;
-            font-weight: bold;
-            transition: all 0.3s ease;
+            font-size: 1rem;
         }
 
-        .btn-primary {
-            background: #4CAF50;
-            color: white;
+        .fullscreen-btn:hover {
+            background: rgba(76, 175, 80, 0.8);
         }
 
-        .btn-primary:hover {
-            background: #45a049;
-        }
-
-        .btn-danger {
-            background: #f44336;
-            color: white;
-        }
-
-        .btn-danger:hover {
-            background: #da190b;
-        }
-
-        .btn:disabled {
-            background: #666;
-            cursor: not-allowed;
-        }
-
-        .alerts-panel {
-            background: #2d2d2d;
-            border-radius: 8px;
-            padding: 1rem;
-            overflow-y: auto;
-        }
-
-        .alert-item {
-            background: #404040;
-            padding: 0.75rem;
-            border-radius: 6px;
-            margin-bottom: 0.5rem;
-            border-left: 4px solid #666;
-        }
-
-        .alert-item.info { border-left-color: #2196F3; }
-        .alert-item.warning { border-left-color: #ff9800; }
-        .alert-item.critical { border-left-color: #f44336; }
-
-        .alert-time {
-            font-size: 0.8rem;
-            color: #888;
-        }
-
-        .logs-container {
-            background: #1a1a1a;
-            border-radius: 6px;
-            padding: 1rem;
-            margin-top: 1rem;
-            max-height: 200px;
-            overflow-y: auto;
-            font-family: 'Courier New', monospace;
-            font-size: 0.8rem;
-        }
-
-        .log-entry {
-            margin-bottom: 0.25rem;
-            color: #4CAF50;
-        }
-
-        .log-entry.error {
+        .error-message {
             color: #f44336;
+            text-align: center;
+            padding: 1rem;
+            background: rgba(244, 67, 54, 0.1);
+            border-radius: 8px;
+            margin: 1rem 0;
         }
 
-        .log-entry.warning {
-            color: #ff9800;
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #666;
+            border-radius: 50%;
+            border-top-color: #4CAF50;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            .main-container {
+                grid-template-columns: 1fr;
+                grid-template-rows: 1fr auto;
+            }
+            
+            .video-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .sidebar {
+                order: -1;
+            }
         }
     </style>
 </head>
@@ -238,43 +393,43 @@
         <h1>🎥 Surveillance Dashboard</h1>
         <div class="connection-status">
             <div class="status-dot" id="connectionDot"></div>
-            <span id="connectionText">Déconnecté</span>
+            <span id="connectionText">Connecting...</span>
         </div>
     </div>
 
     <div class="main-container">
-        <!-- Sidebar gauche - Caméras -->
-        <div class="sidebar">
-            <h2>📹 Caméras</h2>
-            <div class="camera-list" id="cameraList">
-                <!-- Les caméras seront ajoutées dynamiquement -->
-            </div>
+        <div class="video-grid" id="videoGrid">
+            <!-- Video cards will be dynamically generated -->
         </div>
 
-        <!-- Contenu principal -->
-        <div class="main-content">
-            <div class="video-container" id="videoContainer">
-                <div class="video-placeholder">
-                    <h3>Sélectionnez une caméra</h3>
-                    <p>Choisissez une caméra dans la liste pour démarrer la surveillance</p>
+        <div class="sidebar">
+            <div class="panel">
+                <h3>📊 System Stats</h3>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <span class="stat-value" id="cameraCount">0</span>
+                        <span class="stat-label">Cameras</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-value" id="streamingCount">0</span>
+                        <span class="stat-label">Streaming</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-value" id="alertCount">0</span>
+                        <span class="stat-label">Alerts</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-value" id="uptime">0s</span>
+                        <span class="stat-label">Uptime</span>
+                    </div>
                 </div>
             </div>
-            <div class="video-controls">
-                <button class="btn btn-primary" id="startBtn" disabled>▶️ Démarrer</button>
-                <button class="btn btn-danger" id="stopBtn" disabled>⏹️ Arrêter</button>
-            </div>
-            
-            <!-- Logs en temps réel -->
-            <div class="logs-container" id="logsContainer">
-                <div class="log-entry">📡 Initialisation du dashboard...</div>
-            </div>
-        </div>
 
-        <!-- Sidebar droite - Alertes -->
-        <div class="sidebar alerts-panel">
-            <h2>🚨 Alertes</h2>
-            <div id="alertsList">
-                <!-- Les alertes seront ajoutées dynamiquement -->
+            <div class="panel">
+                <h3>📋 Activity Logs</h3>
+                <div class="logs-container" id="logsContainer">
+                    <!-- Logs will be dynamically added -->
+                </div>
             </div>
         </div>
     </div>
@@ -282,28 +437,19 @@
     <script>
         class SurveillanceDashboard {
             constructor() {
-                this.ws = null;
-                this.selectedCamera = null;
                 this.cameras = [];
-                this.alerts = [];
-                
-                this.initializeElements();
-                this.loadCameras();
-                this.connectWebSocket();
-            }
-
-            initializeElements() {
+                this.ws = null;
                 this.connectionDot = document.getElementById('connectionDot');
                 this.connectionText = document.getElementById('connectionText');
-                this.cameraList = document.getElementById('cameraList');
-                this.videoContainer = document.getElementById('videoContainer');
-                this.startBtn = document.getElementById('startBtn');
-                this.stopBtn = document.getElementById('stopBtn');
-                this.alertsList = document.getElementById('alertsList');
+                this.videoGrid = document.getElementById('videoGrid');
                 this.logsContainer = document.getElementById('logsContainer');
+                this.startTime = Date.now();
 
-                this.startBtn.addEventListener('click', () => this.startCamera());
-                this.stopBtn.addEventListener('click', () => this.stopCamera());
+                this.initWebSocket();
+                this.loadCameras();
+                this.startStatsUpdater();
+                
+                this.log('🚀 Dashboard initialized', 'info');
             }
 
             log(message, type = 'info') {
@@ -314,9 +460,49 @@
                 this.logsContainer.appendChild(entry);
                 this.logsContainer.scrollTop = this.logsContainer.scrollHeight;
 
-                // Garder seulement les 50 derniers logs
+                // Keep only last 50 logs
                 while (this.logsContainer.children.length > 50) {
                     this.logsContainer.removeChild(this.logsContainer.firstChild);
+                }
+            }
+
+            initWebSocket() {
+                const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                const wsUrl = `${protocol}//${window.location.host}/ws`;
+                
+                try {
+                    this.ws = new WebSocket(wsUrl);
+                    
+                    this.ws.onopen = () => {
+                        this.connectionDot.classList.add('connected');
+                        this.connectionText.textContent = 'Connected';
+                        this.log('🔗 WebSocket connected', 'info');
+                    };
+                    
+                    this.ws.onmessage = (event) => {
+                        const data = JSON.parse(event.data);
+                        this.handleWebSocketMessage(data);
+                    };
+                    
+                    this.ws.onclose = () => {
+                        this.connectionDot.classList.remove('connected');
+                        this.connectionText.textContent = 'Disconnected';
+                        this.log('❌ WebSocket disconnected', 'error');
+                        setTimeout(() => this.initWebSocket(), 5000);
+                    };
+                    
+                    this.ws.onerror = (error) => {
+                        this.log('❌ WebSocket error: ' + error.message, 'error');
+                    };
+                } catch (error) {
+                    this.log('❌ Failed to create WebSocket: ' + error.message, 'error');
+                }
+            }
+
+            handleWebSocketMessage(data) {
+                if (data.type === 'alert') {
+                    this.log(`🚨 Alert: ${data.data.message}`, 'warning');
+                    this.updateAlertCount();
                 }
             }
 
@@ -326,200 +512,216 @@
                     const data = await response.json();
                     this.cameras = data.cameras;
                     this.renderCameras();
-                    this.log(`${this.cameras.length} caméras chargées`);
+                    this.updateStats();
+                    this.log(`📹 Loaded ${this.cameras.length} cameras`, 'info');
                 } catch (error) {
-                    this.log('Erreur chargement caméras: ' + error.message, 'error');
+                    this.log('❌ Error loading cameras: ' + error.message, 'error');
                 }
             }
 
             renderCameras() {
-                this.cameraList.innerHTML = '';
+                this.videoGrid.innerHTML = '';
                 
                 this.cameras.forEach(camera => {
-                    const item = document.createElement('div');
-                    item.className = 'camera-item';
-                    item.dataset.cameraId = camera.id;
-                    
-                    item.innerHTML = `
-                        <div><strong>${camera.name}</strong></div>
-                        <div style="font-size: 0.8rem; color: #888;">${camera.location}</div>
-                        <div class="camera-status">
-                            <span class="status-badge status-${camera.status}">${camera.status}</span>
-                            <span style="font-size: 0.8rem;">${camera.config.resolution.width}x${camera.config.resolution.height}</span>
+                    const videoCard = this.createVideoCard(camera);
+                    this.videoGrid.appendChild(videoCard);
+                });
+            }
+
+            createVideoCard(camera) {
+                const card = document.createElement('div');
+                card.className = `video-card ${camera.status === 'streaming' ? 'streaming' : ''}`;
+                card.dataset.cameraId = camera.id;
+                
+                card.innerHTML = `
+                    <div class="video-header">
+                        <div>
+                            <div class="camera-name">${camera.name}</div>
+                            <div class="camera-location">${camera.location}</div>
                         </div>
-                    `;
+                        <span class="status-badge status-${camera.status}">${camera.status}</span>
+                    </div>
                     
-                    item.addEventListener('click', () => this.selectCamera(camera));
-                    this.cameraList.appendChild(item);
-                });
-            }
-
-            selectCamera(camera) {
-                // Mettre à jour la sélection visuelle
-                document.querySelectorAll('.camera-item').forEach(item => {
-                    item.classList.remove('active');
-                });
-                document.querySelector(`[data-camera-id="${camera.id}"]`).classList.add('active');
-
-                this.selectedCamera = camera;
-                this.updateVideoContainer();
-                this.updateControls();
-                this.log(`Caméra sélectionnée: ${camera.name}`);
-            }
-
-            updateVideoContainer() {
-                if (!this.selectedCamera) return;
-
-                this.videoContainer.innerHTML = `
-                    <div class="video-placeholder">
-                        <h3>${this.selectedCamera.name}</h3>
-                        <p>${this.selectedCamera.location}</p>
-                        <p>Status: <span class="status-badge status-${this.selectedCamera.status}">${this.selectedCamera.status}</span></p>
+                    <div class="video-container">
+                        <img class="video-stream" id="stream-${camera.id}" 
+                             style="display: none;" 
+                             alt="Camera ${camera.name}">
+                        
+                        <div class="video-overlay" id="overlay-${camera.id}">
+                            <div class="video-icon">📹</div>
+                            <div>Camera offline</div>
+                        </div>
+                        
+                        <div class="fps-indicator" id="fps-${camera.id}" style="display: none;">
+                            15 FPS
+                        </div>
+                        
+                        <div class="timestamp" id="timestamp-${camera.id}" style="display: none;">
+                            --:--:--
+                        </div>
+                        
+                        <button class="fullscreen-btn" onclick="dashboard.toggleFullscreen('${camera.id}')">
+                            ⛶
+                        </button>
+                    </div>
+                    
+                    <div class="camera-controls">
+                        <button class="btn btn-start" onclick="dashboard.startCamera('${camera.id}')" 
+                                ${camera.status === 'streaming' ? 'disabled' : ''}>
+                            ${camera.status === 'streaming' ? '✓ Streaming' : '▶ Start'}
+                        </button>
+                        <button class="btn btn-stop" onclick="dashboard.stopCamera('${camera.id}')"
+                                ${camera.status !== 'streaming' ? 'disabled' : ''}>
+                            ⏹ Stop
+                        </button>
+                        <span style="font-size: 0.8rem; color: #888;">
+                            ${camera.url.length > 30 ? camera.url.substring(0, 30) + '...' : camera.url}
+                        </span>
                     </div>
                 `;
+                
+                return card;
             }
 
-            updateControls() {
-                if (!this.selectedCamera) {
-                    this.startBtn.disabled = true;
-                    this.stopBtn.disabled = true;
-                    return;
-                }
-
-                const isStreaming = this.selectedCamera.status === 'streaming';
-                this.startBtn.disabled = isStreaming;
-                this.stopBtn.disabled = !isStreaming;
-            }
-
-            async startCamera() {
-                if (!this.selectedCamera) return;
-
+            async startCamera(cameraId) {
                 try {
-                    const response = await fetch(`/api/v1/cameras/${this.selectedCamera.id}/start`, {
+                    this.log(`🎬 Starting camera ${cameraId}...`, 'info');
+                    
+                    const response = await fetch(`/api/v1/cameras/${cameraId}/start`, {
                         method: 'PUT'
                     });
                     
                     if (response.ok) {
-                        const data = await response.json();
-                        this.selectedCamera.status = 'streaming';
-                        this.updateControls();
-                        this.renderCameras();
-                        this.log(`Stream démarré: ${this.selectedCamera.name}`);
+                        this.log(`✅ Camera ${cameraId} started`, 'info');
+                        await this.loadCameras(); // Refresh camera list
+                        
+                        // Start video stream
+                        setTimeout(() => {
+                            this.startVideoStream(cameraId);
+                        }, 1000);
                     } else {
-                        throw new Error('Erreur démarrage stream');
+                        const error = await response.json();
+                        this.log(`❌ Failed to start camera: ${error.error}`, 'error');
                     }
                 } catch (error) {
-                    this.log('Erreur démarrage: ' + error.message, 'error');
+                    this.log(`❌ Error starting camera: ${error.message}`, 'error');
                 }
             }
 
-            async stopCamera() {
-                if (!this.selectedCamera) return;
-
+            async stopCamera(cameraId) {
                 try {
-                    const response = await fetch(`/api/v1/cameras/${this.selectedCamera.id}/stop`, {
+                    this.log(`⏹ Stopping camera ${cameraId}...`, 'info');
+                    
+                    const response = await fetch(`/api/v1/cameras/${cameraId}/stop`, {
                         method: 'PUT'
                     });
                     
                     if (response.ok) {
-                        this.selectedCamera.status = 'offline';
-                        this.updateControls();
-                        this.renderCameras();
-                        this.log(`Stream arrêté: ${this.selectedCamera.name}`);
+                        this.log(`✅ Camera ${cameraId} stopped`, 'info');
+                        this.stopVideoStream(cameraId);
+                        await this.loadCameras(); // Refresh camera list
                     } else {
-                        throw new Error('Erreur arrêt stream');
+                        const error = await response.json();
+                        this.log(`❌ Failed to stop camera: ${error.error}`, 'error');
                     }
                 } catch (error) {
-                    this.log('Erreur arrêt: ' + error.message, 'error');
+                    this.log(`❌ Error stopping camera: ${error.message}`, 'error');
                 }
             }
 
-            connectWebSocket() {
-                const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-                const wsUrl = `${protocol}//${window.location.host}/ws`;
+            startVideoStream(cameraId) {
+                const streamImg = document.getElementById(`stream-${cameraId}`);
+                const overlay = document.getElementById(`overlay-${cameraId}`);
+                const timestamp = document.getElementById(`timestamp-${cameraId}`);
+                const fps = document.getElementById(`fps-${cameraId}`);
                 
-                this.ws = new WebSocket(wsUrl);
-                
-                this.ws.onopen = () => {
-                    this.connectionDot.classList.add('connected');
-                    this.connectionText.textContent = 'Connecté';
-                    this.log('WebSocket connecté');
-                };
-                
-                this.ws.onclose = () => {
-                    this.connectionDot.classList.remove('connected');
-                    this.connectionText.textContent = 'Déconnecté';
-                    this.log('WebSocket déconnecté', 'warning');
-                    
-                    // Tentative de reconnexion
-                    setTimeout(() => this.connectWebSocket(), 3000);
-                };
-                
-                this.ws.onmessage = (event) => {
-                    const message = JSON.parse(event.data);
-                    this.handleWebSocketMessage(message);
-                };
-                
-                this.ws.onerror = (error) => {
-                    this.log('Erreur WebSocket: ' + error.message, 'error');
-                };
-            }
-
-            handleWebSocketMessage(message) {
-                switch (message.type) {
-                    case 'connection':
-                        this.log(`Client ID: ${message.data.client_id}`);
-                        break;
-                    
-                    case 'alert':
-                        this.addAlert(message.data);
-                        break;
-                    
-                    case 'detection_event':
-                        this.log(`🔍 Détection: ${message.event.type} sur ${message.camera_id}`);
-                        break;
-                    
-                    default:
-                        this.log(`Message WS: ${message.type}`);
+                if (streamImg) {
+                    streamImg.src = `/api/v1/cameras/${cameraId}/stream?t=${Date.now()}`;
+                    streamImg.onload = () => {
+                        streamImg.style.display = 'block';
+                        overlay.classList.add('hidden');
+                        timestamp.style.display = 'block';
+                        fps.style.display = 'block';
+                        this.startTimestampUpdater(cameraId);
+                    };
+                    streamImg.onerror = () => {
+                        this.log(`❌ Failed to load video stream for camera ${cameraId}`, 'error');
+                        overlay.classList.remove('hidden');
+                        overlay.innerHTML = '<div class="video-icon">❌</div><div>Stream Error</div>';
+                    };
                 }
             }
 
-            addAlert(alert) {
-                this.alerts.unshift(alert);
-                if (this.alerts.length > 10) {
-                    this.alerts.pop();
-                }
+            stopVideoStream(cameraId) {
+                const streamImg = document.getElementById(`stream-${cameraId}`);
+                const overlay = document.getElementById(`overlay-${cameraId}`);
+                const timestamp = document.getElementById(`timestamp-${cameraId}`);
+                const fps = document.getElementById(`fps-${cameraId}`);
                 
-                this.renderAlerts();
-                this.log(`🚨 Alerte: ${alert.message}`, 'warning');
+                if (streamImg) {
+                    streamImg.style.display = 'none';
+                    streamImg.src = '';
+                    overlay.classList.remove('hidden');
+                    overlay.innerHTML = '<div class="video-icon">📹</div><div>Camera offline</div>';
+                    timestamp.style.display = 'none';
+                    fps.style.display = 'none';
+                }
             }
 
-            renderAlerts() {
-                this.alertsList.innerHTML = '';
-                
-                if (this.alerts.length === 0) {
-                    this.alertsList.innerHTML = '<div style="color: #888; text-align: center;">Aucune alerte</div>';
-                    return;
+            startTimestampUpdater(cameraId) {
+                const timestamp = document.getElementById(`timestamp-${cameraId}`);
+                if (timestamp) {
+                    setInterval(() => {
+                        timestamp.textContent = new Date().toLocaleTimeString();
+                    }, 1000);
                 }
+            }
+
+            toggleFullscreen(cameraId) {
+                const streamImg = document.getElementById(`stream-${cameraId}`);
+                if (streamImg) {
+                    if (streamImg.requestFullscreen) {
+                        streamImg.requestFullscreen();
+                    } else if (streamImg.webkitRequestFullscreen) {
+                        streamImg.webkitRequestFullscreen();
+                    } else if (streamImg.msRequestFullscreen) {
+                        streamImg.msRequestFullscreen();
+                    }
+                }
+            }
+
+            updateStats() {
+                const cameraCount = this.cameras.length;
+                const streamingCount = this.cameras.filter(c => c.status === 'streaming').length;
                 
-                this.alerts.forEach(alert => {
-                    const item = document.createElement('div');
-                    item.className = `alert-item ${alert.level}`;
+                document.getElementById('cameraCount').textContent = cameraCount;
+                document.getElementById('streamingCount').textContent = streamingCount;
+            }
+
+            updateAlertCount() {
+                const alertElement = document.getElementById('alertCount');
+                const current = parseInt(alertElement.textContent) || 0;
+                alertElement.textContent = current + 1;
+            }
+
+            startStatsUpdater() {
+                setInterval(() => {
+                    // Update uptime
+                    const uptime = Math.floor((Date.now() - this.startTime) / 1000);
+                    const minutes = Math.floor(uptime / 60);
+                    const seconds = uptime % 60;
+                    document.getElementById('uptime').textContent = `${minutes}m ${seconds}s`;
                     
-                    const time = new Date(alert.timestamp).toLocaleTimeString();
-                    item.innerHTML = `
-                        <div><strong>${alert.message}</strong></div>
-                        <div class="alert-time">${time} - ${alert.camera_id}</div>
-                    `;
-                    
-                    this.alertsList.appendChild(item);
-                });
+                    // Refresh camera status
+                    this.loadCameras();
+                }, 5000);
             }
         }
 
-        // Initialiser le dashboard
-        document.addEventListener('DOMContentLoaded', () => {
-            new SurveillanceDashboard();
+        // Initialize dashboard when page loads
+        let dashboard;
+        window.addEventListener('load', () => {
+            dashboard = new SurveillanceDashboard();
         });
     </script>
 </body>

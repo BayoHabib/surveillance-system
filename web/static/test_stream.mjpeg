@@ -1,0 +1,15 @@
+--frame
+Content-Type: image/jpeg
+Content-Length: 1024
+
+Test MJPEG Stream Frame 1
+Camera Feed Simulation
+Timestamp: 2025-08-03 21:15:00
+
+--frame
+Content-Type: image/jpeg  
+Content-Length: 1024
+
+Test MJPEG Stream Frame 2
+Camera Feed Simulation
+Timestamp: 2025-08-03 21:15:01

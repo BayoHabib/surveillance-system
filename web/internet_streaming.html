@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Internet Video Streaming - Surveillance Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+            color: #ffffff;
+            min-height: 100vh;
+        }
+
+        .header {
+            background: rgba(0,0,0,0.8);
+            padding: 1rem 2rem;
+            border-bottom: 2px solid #4CAF50;
+            backdrop-filter: blur(10px);
+        }
+
+        .header h1 {
+            color: #4CAF50;
+            font-size: 1.8rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 2rem;
+        }
+
+        .add-camera-section {
+            background: rgba(45, 45, 45, 0.9);
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            border: 1px solid #404040;
+        }
+
+        .section-title {
+            color: #4CAF50;
+            font-size: 1.5rem;
+            margin-bottom: 1.5rem;
+            border-bottom: 2px solid #4CAF50;
+            padding-bottom: 0.5rem;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group label {
+            color: #ccc;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .form-group input, .form-group select {
+            padding: 0.75rem;
+            border: 2px solid #404040;
+            border-radius: 6px;
+            background: #1a1a1a;
+            color: #fff;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #4CAF50;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+            text-transform: uppercase;
+        }
+
+        .btn-primary {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #45a049;
+            transform: translateY(-2px);
+        }
+
+        .examples-section {
+            background: rgba(45, 45, 45, 0.9);
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .examples-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 1rem;
+        }
+
+        .example-card {
+            background: #1a1a1a;
+            border: 1px solid #404040;
+            border-radius: 8px;
+            padding: 1rem;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .example-card:hover {
+            border-color: #4CAF50;
+            transform: translateY(-2px);
+        }
+
+        .example-name {
+            color: #4CAF50;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .example-url {
+            font-family: monospace;
+            font-size: 0.9rem;
+            color: #888;
+            word-break: break-all;
+            margin-bottom: 0.5rem;
+        }
+
+        .example-type {
+            background: #333;
+            color: #4CAF50;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            display: inline-block;
+        }
+
+        .cameras-section {
+            background: rgba(45, 45, 45, 0.9);
+            border-radius: 12px;
+            padding: 2rem;
+        }
+
+        .cameras-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1rem;
+        }
+
+        .camera-card {
+            background: #1a1a1a;
+            border: 1px solid #404040;
+            border-radius: 8px;
+            padding: 1rem;
+        }
+
+        .camera-name {
+            color: #4CAF50;
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .camera-url {
+            font-family: monospace;
+            font-size: 0.8rem;
+            color: #888;
+            margin-bottom: 0.5rem;
+            word-break: break-all;
+        }
+
+        .camera-status {
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .status-offline {
+            background: #666;
+            color: #ccc;
+        }
+
+        .status-streaming {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .notification {
+            position: fixed;
+            top: 2rem;
+            right: 2rem;
+            padding: 1rem 2rem;
+            border-radius: 6px;
+            font-weight: 600;
+            z-index: 1000;
+            transform: translateX(100%);
+            transition: transform 0.3s;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .notification.success {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .notification.error {
+            background: #f44336;
+            color: white;
+        }
+
+        .help-text {
+            color: #888;
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>
+            🌐 Internet Video Streaming Dashboard
+        </h1>
+    </div>
+
+    <div class="container">
+        <!-- Add Internet Camera Section -->
+        <div class="add-camera-section">
+            <h2 class="section-title">Add Internet Camera Stream</h2>
+            
+            <form id="addCameraForm">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="cameraName">Camera Name *</label>
+                        <input type="text" id="cameraName" required placeholder="e.g., Office Front Door">
+                        <div class="help-text">Give your camera a descriptive name</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="cameraURL">Stream URL *</label>
+                        <input type="url" id="cameraURL" required placeholder="rtsp://username:password@ip:port/path">
+                        <div class="help-text">RTSP, HTTP, HTTPS, or RTMP stream URL</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="cameraLocation">Location</label>
+                        <input type="text" id="cameraLocation" placeholder="e.g., Building A - Main Entrance">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="cameraType">Stream Type</label>
+                        <select id="cameraType">
+                            <option value="rtsp">RTSP (IP Camera)</option>
+                            <option value="http">HTTP/MJPEG</option>
+                            <option value="rtmp">RTMP Stream</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="username">Username (Optional)</label>
+                        <input type="text" id="username" placeholder="Camera username">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="password">Password (Optional)</label>
+                        <input type="password" id="password" placeholder="Camera password">
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary">
+                    📹 Add Internet Camera
+                </button>
+            </form>
+        </div>
+
+        <!-- Example Streams Section -->
+        <div class="examples-section">
+            <h2 class="section-title">Example Public Streams</h2>
+            <p style="color: #888; margin-bottom: 1.5rem;">
+                Click on any example to automatically fill the form with public test streams:
+            </p>
+            
+            <div class="examples-grid" id="examplesGrid">
+                <!-- Examples will be loaded here -->
+            </div>
+        </div>
+
+        <!-- Current Cameras Section -->
+        <div class="cameras-section">
+            <h2 class="section-title">Connected Cameras</h2>
+            <div class="cameras-grid" id="camerasGrid">
+                <!-- Cameras will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification -->
+    <div id="notification" class="notification"></div>
+
+    <script>
+        let cameras = [];
+
+        // Load example streams
+        async function loadExamples() {
+            try {
+                const response = await fetch('/api/v1/stream/formats');
+                const data = await response.json();
+                
+                const examplesGrid = document.getElementById('examplesGrid');
+                examplesGrid.innerHTML = '';
+
+                // Add examples from API
+                if (data.examples) {
+                    Object.entries(data.examples).forEach(([key, url]) => {
+                        const card = createExampleCard(key.replace(/_/g, ' '), url, 'example');
+                        examplesGrid.appendChild(card);
+                    });
+                }
+
+                // Add public demos if available
+                if (data.public_demos) {
+                    data.public_demos.forEach(demo => {
+                        const card = createExampleCard(demo.name, demo.url, demo.type, demo.description);
+                        examplesGrid.appendChild(card);
+                    });
+                }
+            } catch (error) {
+                console.error('Failed to load examples:', error);
+            }
+        }
+
+        function createExampleCard(name, url, type, description = '') {
+            const card = document.createElement('div');
+            card.className = 'example-card';
+            card.innerHTML = `
+                <div class="example-name">${name}</div>
+                <div class="example-url">${url}</div>
+                <div class="example-type">${type}</div>
+                ${description ? `<div class="help-text" style="margin-top: 0.5rem;">${description}</div>` : ''}
+            `;
+            
+            card.addEventListener('click', () => {
+                document.getElementById('cameraURL').value = url;
+                document.getElementById('cameraName').value = name;
+                document.getElementById('cameraType').value = type === 'mjpeg' ? 'http' : type;
+                showNotification('Example loaded! Click "Add Internet Camera" to connect.', 'success');
+            });
+
+            return card;
+        }
+
+        // Load cameras
+        async function loadCameras() {
+            try {
+                const response = await fetch('/api/v1/cameras');
+                const data = await response.json();
+                cameras = data.cameras || [];
+                
+                const camerasGrid = document.getElementById('camerasGrid');
+                camerasGrid.innerHTML = '';
+
+                if (cameras.length === 0) {
+                    camerasGrid.innerHTML = '<p style="color: #888;">No cameras connected yet. Add an internet camera above.</p>';
+                    return;
+                }
+
+                cameras.forEach(camera => {
+                    const card = document.createElement('div');
+                    card.className = 'camera-card';
+                    card.innerHTML = `
+                        <div class="camera-name">${camera.name}</div>
+                        <div class="camera-url">${camera.url}</div>
+                        <div class="camera-status status-${camera.status}">${camera.status}</div>
+                        <div class="help-text" style="margin-top: 0.5rem;">
+                            📍 ${camera.location || 'No location specified'}
+                        </div>
+                    `;
+                    camerasGrid.appendChild(card);
+                });
+            } catch (error) {
+                console.error('Failed to load cameras:', error);
+            }
+        }
+
+        // Add camera form submission
+        document.getElementById('addCameraForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const formData = {
+                name: document.getElementById('cameraName').value,
+                url: document.getElementById('cameraURL').value,
+                location: document.getElementById('cameraLocation').value,
+                type: document.getElementById('cameraType').value,
+                username: document.getElementById('username').value,
+                password: document.getElementById('password').value
+            };
+
+            try {
+                const response = await fetch('/api/v1/cameras/internet', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    showNotification('Internet camera added successfully!', 'success');
+                    document.getElementById('addCameraForm').reset();
+                    loadCameras(); // Refresh cameras list
+                } else {
+                    showNotification(result.error || 'Failed to add camera', 'error');
+                }
+            } catch (error) {
+                showNotification('Network error: ' + error.message, 'error');
+            }
+        });
+
+        function showNotification(message, type) {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.className = `notification ${type} show`;
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 5000);
+        }
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', () => {
+            loadExamples();
+            loadCameras();
+            
+            // Auto-refresh cameras every 30 seconds
+            setInterval(loadCameras, 30000);
+        });
+    </script>
+</body>
+</html>

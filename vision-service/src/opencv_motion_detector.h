@@ -62,6 +62,7 @@ private:
     Detection CreateDetectionFromContour(const std::vector<cv::Point>& contour, int64_t timestamp) const;
     void ApplyNoiseReduction(cv::Mat& mask) const;
     std::string GenerateDetectionId() const;
+    float CalculateConfidence(const std::vector<cv::Point>& contour, double area, const cv::Rect& bounding_rect) const;
 };
 
 #endif // OPENCV_MOTION_DETECTOR_H

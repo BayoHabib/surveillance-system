@@ -381,3 +381,7 @@ Mat OpenCVCaptureManager::ConvertFrameToMat(const Frame& frame) const {
 
     return mat;
 }
+
+bool OpenCVCaptureManager::IsCapturing() const {
+    return opencv_capture_ && opencv_capture_->isOpened() && is_capturing_.load();
+}

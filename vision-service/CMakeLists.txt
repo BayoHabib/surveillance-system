@@ -80,6 +80,15 @@ set(VISION_SOURCES
     ${GRPC_SRCS}
 )
 
+# Add OpenCV-specific sources conditionally
+if(OpenCV_FOUND)
+    list(APPEND VISION_SOURCES
+        src/opencv_capture_manager.cpp
+        src/opencv_motion_detector.cpp
+        src/performance_manager.cpp
+    )
+endif()
+
 # Headers du service
 set(VISION_HEADERS
     src/vision_service.h
@@ -89,6 +98,14 @@ set(VISION_HEADERS
     ${PROTO_HDRS}
     ${GRPC_HDRS}
 )
+
+# Add OpenCV-specific headers conditionally
+if(OpenCV_FOUND)
+    list(APPEND VISION_HEADERS
+        src/opencv_capture_manager.h
+        src/performance_manager.h
+    )
+endif()
 
 # Exécutable principal
 add_executable(vision-service ${VISION_SOURCES} ${VISION_HEADERS})
@@ -130,6 +147,15 @@ if(BUILD_TESTS)
             ${PROTO_SRCS}
             ${GRPC_SRCS}
         )
+        
+        # Add OpenCV-specific sources to tests if available
+        if(OpenCV_FOUND)
+            list(APPEND TEST_SOURCES
+                src/opencv_capture_manager.cpp
+                src/opencv_motion_detector.cpp
+                src/performance_manager.cpp
+            )
+        endif()
         
         # Exécutable de tests
         add_executable(vision-service-tests ${TEST_SOURCES})

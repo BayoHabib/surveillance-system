@@ -1,0 +1,1047 @@
+🔧 Setting up OpenCV environment for Phase 2.3...
+✅ OpenCV found: 4.6.0
+🔨 Building vision service with OpenCV...
+Makefile:247: warning: overriding recipe for target 'build'
+Makefile:28: warning: ignoring old recipe for target 'build'
+Makefile:344: warning: overriding recipe for target 'test-opencv'
+Makefile:294: warning: ignoring old recipe for target 'test-opencv'
+Cleaning build artifacts...
+rm -rf build
+Makefile:247: warning: overriding recipe for target 'build'
+Makefile:28: warning: ignoring old recipe for target 'build'
+Makefile:344: warning: overriding recipe for target 'test-opencv'
+Makefile:294: warning: ignoring old recipe for target 'test-opencv'
+✅ GTest already available
+🔨 Building with OpenCV support...
+mkdir -p build
+cd build && cmake -DHAVE_OPENCV=ON .. && make -j12
+-- The CXX compiler identification is GNU 13.3.0
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/c++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Found PkgConfig: /usr/bin/pkg-config (found version "1.8.1") 
+-- Found Protobuf: /usr/lib/x86_64-linux-gnu/libprotobuf.so (found version "3.21.12") 
+-- Found ZLIB: /usr/lib/x86_64-linux-gnu/libz.so (found version "1.3")  
+-- Found OpenSSL: /usr/lib/x86_64-linux-gnu/libcrypto.so (found version "3.0.13")  
+-- Found c-ares: /usr/lib/x86_64-linux-gnu/cmake/c-ares/c-ares-config.cmake (found version "1.27.0") 
+-- Found Threads: TRUE  
+-- Found RE2 via pkg-config.
+-- Checking for module 're2'
+--   Found re2, version 10.0.0
+-- OpenCV found: 4.6.0
+-- Tests enabled - run with 'make test'
+-- 
+-- Configuration Summary:
+--   Build type: Release
+--   C++ standard: 17
+--   Protobuf version: 3.21.12
+--   gRPC found: 1
+--   OpenCV found: 1
+--   Tests: Enabled
+-- 
+-- Found OpenCV: /usr (found version "4.6.0") 
+-- OpenCV found: 4.6.0
+-- OpenCV components: opencv_calib3d;opencv_core;opencv_dnn;opencv_features2d;opencv_flann;opencv_highgui;opencv_imgcodecs;opencv_imgproc;opencv_ml;opencv_objdetect;opencv_photo;opencv_stitching;opencv_video;opencv_videoio;opencv_alphamat;opencv_aruco;opencv_barcode;opencv_bgsegm;opencv_bioinspired;opencv_ccalib;opencv_cvv;opencv_datasets;opencv_dnn_objdetect;opencv_dnn_superres;opencv_dpm;opencv_face;opencv_freetype;opencv_fuzzy;opencv_hdf;opencv_hfs;opencv_img_hash;opencv_intensity_transform;opencv_line_descriptor;opencv_mcc;opencv_optflow;opencv_phase_unwrapping;opencv_plot;opencv_quality;opencv_rapid;opencv_reg;opencv_rgbd;opencv_saliency;opencv_shape;opencv_stereo;opencv_structured_light;opencv_superres;opencv_surface_matching;opencv_text;opencv_tracking;opencv_videostab;opencv_viz;opencv_wechat_qrcode;opencv_ximgproc;opencv_xobjdetect;opencv_xphoto;opencv_calib3d;opencv_core;opencv_dnn;opencv_features2d;opencv_flann;opencv_highgui;opencv_imgcodecs;opencv_imgproc;opencv_ml;opencv_objdetect;opencv_photo;opencv_stitching;opencv_video;opencv_videoio;opencv_alphamat;opencv_aruco;opencv_barcode;opencv_bgsegm;opencv_bioinspired;opencv_ccalib;opencv_cvv;opencv_datasets;opencv_dnn_objdetect;opencv_dnn_superres;opencv_dpm;opencv_face;opencv_freetype;opencv_fuzzy;opencv_hdf;opencv_hfs;opencv_img_hash;opencv_intensity_transform;opencv_line_descriptor;opencv_mcc;opencv_optflow;opencv_phase_unwrapping;opencv_plot;opencv_quality;opencv_rapid;opencv_reg;opencv_rgbd;opencv_saliency;opencv_shape;opencv_stereo;opencv_structured_light;opencv_superres;opencv_surface_matching;opencv_text;opencv_tracking;opencv_videostab;opencv_viz;opencv_wechat_qrcode;opencv_ximgproc;opencv_xobjdetect;opencv_xphoto
+-- Configuring done (4.6s)
+-- Generating done (0.0s)
+CMake Warning:
+  Manually-specified variables were not used by the project:
+
+    HAVE_OPENCV
+
+
+-- Build files have been written to: /home/habib/surveillance-system/vision-service/build
+make[1]: Entering directory '/home/habib/surveillance-system/vision-service/build'
+make[2]: Entering directory '/home/habib/surveillance-system/vision-service/build'
+make[3]: Entering directory '/home/habib/surveillance-system/vision-service/build'
+make[3]: Entering directory '/home/habib/surveillance-system/vision-service/build'
+[ 17%] Generating gRPC C++ files
+[ 17%] Generating protobuf C++ files
+[ 17%] Generating protobuf C++ files
+[ 17%] Generating gRPC C++ files
+make[3]: Leaving directory '/home/habib/surveillance-system/vision-service/build'
+make[3]: Leaving directory '/home/habib/surveillance-system/vision-service/build'
+make[3]: Entering directory '/home/habib/surveillance-system/vision-service/build'
+make[3]: Entering directory '/home/habib/surveillance-system/vision-service/build'
+[ 39%] Building CXX object CMakeFiles/vision-service-tests.dir/tests/test_vision_service.cpp.o
+[ 39%] Building CXX object CMakeFiles/vision-service.dir/src/main.cpp.o
+[ 39%] Building CXX object CMakeFiles/vision-service-tests.dir/src/vision_service.cpp.o
+[ 39%] Building CXX object CMakeFiles/vision-service.dir/src/vision_service.cpp.o
+[ 39%] Building CXX object CMakeFiles/vision-service-tests.dir/src/service_metrics.cpp.o
+[ 43%] Building CXX object CMakeFiles/vision-service.dir/src/service_metrics.cpp.o
+[ 47%] Building CXX object CMakeFiles/vision-service-tests.dir/src/frame_processor.cpp.o
+[ 52%] Building CXX object CMakeFiles/vision-service.dir/src/camera_manager.cpp.o
+[ 60%] Building CXX object CMakeFiles/vision-service.dir/src/frame_processor.cpp.o
+[ 60%] Building CXX object CMakeFiles/vision-service-tests.dir/src/camera_manager.cpp.o
+[ 65%] Building CXX object CMakeFiles/vision-service-tests.dir/vision.pb.cc.o
+[ 69%] Building CXX object CMakeFiles/vision-service.dir/vision.pb.cc.o
+[ 73%] Building CXX object CMakeFiles/vision-service.dir/vision.grpc.pb.cc.o
+[ 78%] Building CXX object CMakeFiles/vision-service.dir/src/opencv_capture_manager.cpp.o
+In file included from /home/habib/surveillance-system/vision-service/src/opencv_capture_manager.cpp:4:
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.h:19:10: error: ‘bool OpenCVCaptureManager::Initialize(const CameraConfig&)’ marked ‘override’, but does not override
+   19 |     bool Initialize(const CameraConfig& config) override;
+      |          ^~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.h:20:10: error: ‘void OpenCVCaptureManager::Cleanup()’ marked ‘override’, but does not override
+   20 |     void Cleanup() override;
+      |          ^~~~~~~
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.h:21:10: error: ‘bool OpenCVCaptureManager::IsCapturing() const’ marked ‘override’, but does not override
+   21 |     bool IsCapturing() const override;
+      |          ^~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.h:30:11: error: ‘Frame OpenCVCaptureManager::CaptureFileFrame()’ marked ‘override’, but does not override
+   30 |     Frame CaptureFileFrame() override;
+      |           ^~~~~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.h:31:11: error: ‘Frame OpenCVCaptureManager::CaptureWebcamFrame()’ marked ‘override’, but does not override
+   31 |     Frame CaptureWebcamFrame() override;
+      |           ^~~~~~~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.h:32:11: error: ‘Frame OpenCVCaptureManager::CaptureRtspFrame()’ marked ‘override’, but does not override
+   32 |     Frame CaptureRtspFrame() override;
+      |           ^~~~~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.cpp: In member function ‘bool OpenCVCaptureManager::Initialize(const CameraConfig&)’:
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.cpp:29:42: error: ‘std::mutex CameraManager::config_mutex_’ is private within this context
+   29 |         std::lock_guard<std::mutex> lock(config_mutex_);
+      |                                          ^~~~~~~~~~~~~
+In file included from /home/habib/surveillance-system/vision-service/src/opencv_capture_manager.h:9:
+/home/habib/surveillance-system/vision-service/src/camera_manager.h:129:24: note: declared private here
+  129 |     mutable std::mutex config_mutex_;
+      |                        ^~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.cpp:30:13: error: ‘std::atomic<CameraState> CameraManager::state_’ is private within this context
+   30 |         if (state_ != CameraState::UNINITIALIZED) {
+      |             ^~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.h:126:30: note: declared private here
+  126 |     std::atomic<CameraState> state_;
+      |                              ^~~~~~
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.cpp:31:13: error: ‘void CameraManager::SetError(const std::string&)’ is private within this context
+   31 |             SetError("Already initialized");
+      |             ^~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.h:162:10: note: declared private here
+  162 |     void SetError(const std::string& error);
+      |          ^~~~~~~~
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.cpp:31:21: error: ‘void CameraManager::SetError(const std::string&)’ is private within this context
+   31 |             SetError("Already initialized");
+      |             ~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.h:162:10: note: declared private here
+  162 |     void SetError(const std::string& error);
+      |          ^~~~~~~~
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.cpp:34:9: error: ‘void CameraManager::SetState(CameraState)’ is private within this context
+   34 |         SetState(CameraState::INITIALIZING);
+      |         ^~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.h:161:10: note: declared private here
+  161 |     void SetState(CameraState new_state);
+      |          ^~~~~~~~
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.cpp:34:17: error: ‘void CameraManager::SetState(CameraState)’ is private within this context
+   34 |         SetState(CameraState::INITIALIZING);
+      |         ~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.h:161:10: note: declared private here
+  161 |     void SetState(CameraState new_state);
+      |          ^~~~~~~~
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.cpp:35:9: error: ‘CameraConfig CameraManager::config_’ is private within this context
+   35 |         config_ = config;
+      |         ^~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.h:125:18: note: declared private here
+  125 |     CameraConfig config_;
+      |                  ^~~~~~~
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.cpp:40:13: error: ‘void CameraManager::SetError(const std::string&)’ is private within this context
+   40 |             SetError("Failed to setup OpenCV capture");
+      |             ^~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.h:162:10: note: declared private here
+  162 |     void SetError(const std::string& error);
+      |          ^~~~~~~~
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.cpp:40:21: error: ‘void CameraManager::SetError(const std::string&)’ is private within this context
+   40 |             SetError("Failed to setup OpenCV capture");
+      |             ~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.h:162:10: note: declared private here
+  162 |     void SetError(const std::string& error);
+      |          ^~~~~~~~
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.cpp:41:13: error: ‘void CameraManager::SetState(CameraState)’ is private within this context
+   41 |             SetState(CameraState::ERROR);
+      |             ^~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.h:161:10: note: declared private here
+  161 |     void SetState(CameraState new_state);
+      |          ^~~~~~~~
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.cpp:41:21: error: ‘void CameraManager::SetState(CameraState)’ is private within this context
+   41 |             SetState(CameraState::ERROR);
+      |             ~~~~~~~~^~~~~~~~~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.h:161:10: note: declared private here
+  161 |     void SetState(CameraState new_state);
+      |          ^~~~~~~~
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.cpp:50:13: error: ‘void CameraManager::SetError(const std::string&)’ is private within this context
+   50 |             SetError("OpenCV capture validation failed");
+      |             ^~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.h:162:10: note: declared private here
+  162 |     void SetError(const std::string& error);
+      |          ^~~~~~~~
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.cpp:50:21: error: ‘void CameraManager::SetError(const std::string&)’ is private within this context
+   50 |             SetError("OpenCV capture validation failed");
+      |             ~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.h:162:10: note: declared private here
+  162 |     void SetError(const std::string& error);
+      |          ^~~~~~~~
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.cpp:51:13: error: ‘void CameraManager::SetState(CameraState)’ is private within this context
+   51 |             SetState(CameraState::ERROR);
+      |             ^~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.h:161:10: note: declared private here
+  161 |     void SetState(CameraState new_state);
+      |          ^~~~~~~~
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.cpp:51:21: error: ‘void CameraManager::SetState(CameraState)’ is private within this context
+   51 |             SetState(CameraState::ERROR);
+      |             ~~~~~~~~^~~~~~~~~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.h:161:10: note: declared private here
+  161 |     void SetState(CameraState new_state);
+      |          ^~~~~~~~
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.cpp:55:9: error: ‘void CameraManager::SetState(CameraState)’ is private within this context
+   55 |         SetState(CameraState::READY);
+      |         ^~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.h:161:10: note: declared private here
+  161 |     void SetState(CameraState new_state);
+      |          ^~~~~~~~
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.cpp:55:17: error: ‘void CameraManager::SetState(CameraState)’ is private within this context
+   55 |         SetState(CameraState::READY);
+      |         ~~~~~~~~^~~~~~~~~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.h:161:10: note: declared private here
+  161 |     void SetState(CameraState new_state);
+      |          ^~~~~~~~
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.cpp:56:9: error: ‘CameraStats CameraManager::stats_’ is private within this context
+   56 |         stats_.start_time = std::chrono::steady_clock::now();
+      |         ^~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.h:127:17: note: declared private here
+  127 |     CameraStats stats_;
+      |                 ^~~~~~
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.cpp:61:9: error: ‘void CameraManager::SetError(const std::string&)’ is private within this context
+   61 |         SetError("OpenCV initialization exception: " + std::string(e.what()));
+      |         ^~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.h:162:10: note: declared private here
+  162 |     void SetError(const std::string& error);
+      |          ^~~~~~~~
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.cpp:61:17: error: ‘void CameraManager::SetError(const std::string&)’ is private within this context
+   61 |         SetError("OpenCV initialization exception: " + std::string(e.what()));
+      |         ~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.h:162:10: note: declared private here
+  162 |     void SetError(const std::string& error);
+      |          ^~~~~~~~
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.cpp:62:9: error: ‘void CameraManager::SetState(CameraState)’ is private within this context
+   62 |         SetState(CameraState::ERROR);
+      |         ^~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.h:161:10: note: declared private here
+  161 |     void SetState(CameraState new_state);
+      |          ^~~~~~~~
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.cpp:62:17: error: ‘void CameraManager::SetState(CameraState)’ is private within this context
+   62 |         SetState(CameraState::ERROR);
+      |         ~~~~~~~~^~~~~~~~~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.h:161:10: note: declared private here
+  161 |     void SetState(CameraState new_state);
+      |          ^~~~~~~~
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.cpp: In member function ‘void OpenCVCaptureManager::Cleanup()’:
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.cpp:75:42: error: ‘std::mutex CameraManager::config_mutex_’ is private within this context
+   75 |         std::lock_guard<std::mutex> lock(config_mutex_);
+      |                                          ^~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.h:129:24: note: declared private here
+  129 |     mutable std::mutex config_mutex_;
+      |                        ^~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.cpp: In member function ‘bool OpenCVCaptureManager::SetupCapture()’:
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.cpp:89:35: error: ‘CameraType CameraManager::camera_type_’ is private within this context
+   89 |               << static_cast<int>(camera_type_) << std::endl;
+      |                                   ^~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.h:124:16: note: declared private here
+  124 |     CameraType camera_type_;
+      |                ^~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.cpp:93:13: error: ‘CameraType CameraManager::camera_type_’ is private within this context
+   93 |     switch (camera_type_) {
+      |             ^~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.h:124:16: note: declared private here
+  124 |     CameraType camera_type_;
+      |                ^~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.cpp:104:13: error: ‘void CameraManager::SetError(const std::string&)’ is private within this context
+  104 |             SetError("Unsupported camera type for OpenCV");
+      |             ^~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.h:162:10: note: declared private here
+  162 |     void SetError(const std::string& error);
+      |          ^~~~~~~~
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.cpp:104:21: error: ‘void CameraManager::SetError(const std::string&)’ is private within this context
+  104 |             SetError("Unsupported camera type for OpenCV");
+      |             ~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.h:162:10: note: declared private here
+  162 |     void SetError(const std::string& error);
+      |          ^~~~~~~~
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.cpp: In member function ‘bool OpenCVCaptureManager::SetupFileCapture()’:
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.cpp:110:72: error: ‘std::string CameraManager::camera_url_’ is private within this context
+  110 |     std::cerr << "[OpenCVCaptureManager] Setting up file capture: " << camera_url_ << std::endl;
+      |                                                                        ^~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.h:123:17: note: declared private here
+  123 |     std::string camera_url_;
+      |                 ^~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.cpp:112:32: error: ‘std::string CameraManager::camera_url_’ is private within this context
+  112 |     if (!opencv_capture_->open(camera_url_)) {
+      |                                ^~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.h:123:17: note: declared private here
+  123 |     std::string camera_url_;
+      |                 ^~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.cpp:113:9: error: ‘void CameraManager::SetError(const std::string&)’ is private within this context
+  113 |         SetError("Failed to open video file: " + camera_url_);
+      |         ^~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.h:162:10: note: declared private here
+  162 |     void SetError(const std::string& error);
+      |          ^~~~~~~~
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.cpp:113:50: error: ‘std::string CameraManager::camera_url_’ is private within this context
+  113 |         SetError("Failed to open video file: " + camera_url_);
+      |                                                  ^~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.h:123:17: note: declared private here
+  123 |     std::string camera_url_;
+      |                 ^~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.cpp:113:17: error: ‘void CameraManager::SetError(const std::string&)’ is private within this context
+  113 |         SetError("Failed to open video file: " + camera_url_);
+      |         ~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.h:162:10: note: declared private here
+  162 |     void SetError(const std::string& error);
+      |          ^~~~~~~~
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.cpp:128:9: error: ‘CameraConfig CameraManager::config_’ is private within this context
+  128 |     if (config_.fps <= 0) {
+      |         ^~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.h:125:18: note: declared private here
+  125 |     CameraConfig config_;
+      |                  ^~~~~~~
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.cpp:129:9: error: ‘CameraConfig CameraManager::config_’ is private within this context
+  129 |         config_.fps = static_cast<int>(fps);
+      |         ^~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.h:125:18: note: declared private here
+  125 |     CameraConfig config_;
+      |                  ^~~~~~~
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.cpp:131:9: error: ‘CameraConfig CameraManager::config_’ is private within this context
+  131 |     if (config_.width <= 0) {
+      |         ^~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.h:125:18: note: declared private here
+  125 |     CameraConfig config_;
+      |                  ^~~~~~~
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.cpp:132:9: error: ‘CameraConfig CameraManager::config_’ is private within this context
+  132 |         config_.width = width;
+      |         ^~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.h:125:18: note: declared private here
+  125 |     CameraConfig config_;
+      |                  ^~~~~~~
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.cpp:134:9: error: ‘CameraConfig CameraManager::config_’ is private within this context
+  134 |     if (config_.height <= 0) {
+      |         ^~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.h:125:18: note: declared private here
+  125 |     CameraConfig config_;
+      |                  ^~~~~~~
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.cpp:135:9: error: ‘CameraConfig CameraManager::config_’ is private within this context
+  135 |         config_.height = height;
+      |         ^~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.h:125:18: note: declared private here
+  125 |     CameraConfig config_;
+      |                  ^~~~~~~
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.cpp: In member function ‘bool OpenCVCaptureManager::SetupWebcamCapture()’:
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.cpp:142:74: error: ‘std::string CameraManager::camera_url_’ is private within this context
+  142 |     std::cerr << "[OpenCVCaptureManager] Setting up webcam capture: " << camera_url_ << std::endl;
+      |                                                                          ^~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.h:123:17: note: declared private here
+  123 |     std::string camera_url_;
+      |                 ^~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.cpp:146:9: error: ‘std::string CameraManager::camera_url_’ is private within this context
+  146 |     if (camera_url_.find("/dev/video") == 0) {
+      |         ^~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.h:123:17: note: declared private here
+  123 |     std::string camera_url_;
+      |                 ^~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.cpp:148:38: error: ‘std::string CameraManager::camera_url_’ is private within this context
+  148 |             device_index = std::stoi(camera_url_.substr(10)); // "/dev/video".length() = 10
+      |                                      ^~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.h:123:17: note: declared private here
+  123 |     std::string camera_url_;
+      |                 ^~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.cpp:150:13: error: ‘void CameraManager::SetError(const std::string&)’ is private within this context
+  150 |             SetError("Invalid webcam device index: " + camera_url_);
+      |             ^~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.h:162:10: note: declared private here
+  162 |     void SetError(const std::string& error);
+      |          ^~~~~~~~
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.cpp:150:56: error: ‘std::string CameraManager::camera_url_’ is private within this context
+  150 |             SetError("Invalid webcam device index: " + camera_url_);
+      |                                                        ^~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.h:123:17: note: declared private here
+  123 |     std::string camera_url_;
+      |                 ^~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.cpp:150:21: error: ‘void CameraManager::SetError(const std::string&)’ is private within this context
+  150 |             SetError("Invalid webcam device index: " + camera_url_);
+      |             ~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.h:162:10: note: declared private here
+  162 |     void SetError(const std::string& error);
+      |          ^~~~~~~~
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.cpp:166:9: error: ‘void CameraManager::SetError(const std::string&)’ is private within this context
+  166 |         SetError("Failed to open webcam: " + camera_url_);
+      |         ^~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.h:162:10: note: declared private here
+  162 |     void SetError(const std::string& error);
+      |          ^~~~~~~~
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.cpp:166:46: error: ‘std::string CameraManager::camera_url_’ is private within this context
+  166 |         SetError("Failed to open webcam: " + camera_url_);
+      |                                              ^~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.h:123:17: note: declared private here
+  123 |     std::string camera_url_;
+      |                 ^~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.cpp:166:17: error: ‘void CameraManager::SetError(const std::string&)’ is private within this context
+  166 |         SetError("Failed to open webcam: " + camera_url_);
+      |         ~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.h:162:10: note: declared private here
+  162 |     void SetError(const std::string& error);
+      |          ^~~~~~~~
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.cpp:171:48: error: ‘CameraConfig CameraManager::config_’ is private within this context
+  171 |     opencv_capture_->set(CAP_PROP_FRAME_WIDTH, config_.width);
+      |                                                ^~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.h:125:18: note: declared private here
+  125 |     CameraConfig config_;
+      |                  ^~~~~~~
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.cpp:172:49: error: ‘CameraConfig CameraManager::config_’ is private within this context
+  172 |     opencv_capture_->set(CAP_PROP_FRAME_HEIGHT, config_.height);
+      |                                                 ^~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.h:125:18: note: declared private here
+  125 |     CameraConfig config_;
+      |                  ^~~~~~~
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.cpp:173:40: error: ‘CameraConfig CameraManager::config_’ is private within this context
+  173 |     opencv_capture_->set(CAP_PROP_FPS, config_.fps);
+      |                                        ^~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.h:125:18: note: declared private here
+  125 |     CameraConfig config_;
+      |                  ^~~~~~~
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.cpp: In member function ‘bool OpenCVCaptureManager::SetupRtspCapture()’:
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.cpp:187:72: error: ‘std::string CameraManager::camera_url_’ is private within this context
+  187 |     std::cerr << "[OpenCVCaptureManager] Setting up RTSP capture: " << camera_url_ << std::endl;
+      |                                                                        ^~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.h:123:17: note: declared private here
+  123 |     std::string camera_url_;
+      |                 ^~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.cpp:192:32: error: ‘std::string CameraManager::camera_url_’ is private within this context
+  192 |     if (!opencv_capture_->open(camera_url_)) {
+      |                                ^~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.h:123:17: note: declared private here
+  123 |     std::string camera_url_;
+      |                 ^~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.cpp:193:9: error: ‘void CameraManager::SetError(const std::string&)’ is private within this context
+  193 |         SetError("Failed to open RTSP stream: " + camera_url_);
+      |         ^~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.h:162:10: note: declared private here
+  162 |     void SetError(const std::string& error);
+      |          ^~~~~~~~
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.cpp:193:51: error: ‘std::string CameraManager::camera_url_’ is private within this context
+  193 |         SetError("Failed to open RTSP stream: " + camera_url_);
+      |                                                   ^~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.h:123:17: note: declared private here
+  123 |     std::string camera_url_;
+      |                 ^~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.cpp:193:17: error: ‘void CameraManager::SetError(const std::string&)’ is private within this context
+  193 |         SetError("Failed to open RTSP stream: " + camera_url_);
+      |         ~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.h:162:10: note: declared private here
+  162 |     void SetError(const std::string& error);
+      |          ^~~~~~~~
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.cpp:211:5: error: ‘void CameraManager::SetError(const std::string&)’ is private within this context
+  211 |     SetError("RTSP stream timeout - no frames received");
+      |     ^~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.h:162:10: note: declared private here
+  162 |     void SetError(const std::string& error);
+      |          ^~~~~~~~
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.cpp:211:13: error: ‘void CameraManager::SetError(const std::string&)’ is private within this context
+  211 |     SetError("RTSP stream timeout - no frames received");
+      |     ~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.h:162:10: note: declared private here
+  162 |     void SetError(const std::string& error);
+      |          ^~~~~~~~
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.cpp: In member function ‘void OpenCVCaptureManager::OptimizeCapture()’:
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.cpp:226:13: error: ‘CameraType CameraManager::camera_type_’ is private within this context
+  226 |     switch (camera_type_) {
+      |             ^~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.h:124:16: note: declared private here
+  124 |     CameraType camera_type_;
+      |                ^~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.cpp: In member function ‘Frame OpenCVCaptureManager::CaptureFileFrame()’:
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.cpp:271:16: error: ‘Frame CameraManager::CreateEmptyFrame() const’ is private within this context
+  271 |         return CreateEmptyFrame();
+      |                ^~~~~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.h:177:11: note: declared private here
+  177 |     Frame CreateEmptyFrame() const;
+      |           ^~~~~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.cpp:271:32: error: ‘Frame CameraManager::CreateEmptyFrame() const’ is private within this context
+  271 |         return CreateEmptyFrame();
+      |                ~~~~~~~~~~~~~~~~^~
+/home/habib/surveillance-system/vision-service/src/camera_manager.h:177:11: note: declared private here
+  177 |     Frame CreateEmptyFrame() const;
+      |           ^~~~~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.cpp:280:13: error: ‘CameraType CameraManager::camera_type_’ is private within this context
+  280 |         if (camera_type_ == CameraType::FILE_VIDEO) {
+      |             ^~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.h:124:16: note: declared private here
+  124 |     CameraType camera_type_;
+      |                ^~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.cpp:287:16: error: ‘Frame CameraManager::CreateEmptyFrame() const’ is private within this context
+  287 |         return CreateEmptyFrame();
+      |                ^~~~~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.h:177:11: note: declared private here
+  177 |     Frame CreateEmptyFrame() const;
+      |           ^~~~~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.cpp:287:32: error: ‘Frame CameraManager::CreateEmptyFrame() const’ is private within this context
+  287 |         return CreateEmptyFrame();
+      |                ~~~~~~~~~~~~~~~~^~
+/home/habib/surveillance-system/vision-service/src/camera_manager.h:177:11: note: declared private here
+  177 |     Frame CreateEmptyFrame() const;
+      |           ^~~~~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.cpp: In member function ‘Frame OpenCVCaptureManager::CaptureWebcamFrame()’:
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.cpp:296:16: error: ‘Frame CameraManager::CreateEmptyFrame() const’ is private within this context
+  296 |         return CreateEmptyFrame();
+      |                ^~~~~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.h:177:11: note: declared private here
+  177 |     Frame CreateEmptyFrame() const;
+      |           ^~~~~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.cpp:296:32: error: ‘Frame CameraManager::CreateEmptyFrame() const’ is private within this context
+  296 |         return CreateEmptyFrame();
+      |                ~~~~~~~~~~~~~~~~^~
+/home/habib/surveillance-system/vision-service/src/camera_manager.h:177:11: note: declared private here
+  177 |     Frame CreateEmptyFrame() const;
+      |           ^~~~~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.cpp:302:16: error: ‘Frame CameraManager::CreateEmptyFrame() const’ is private within this context
+  302 |         return CreateEmptyFrame();
+      |                ^~~~~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.h:177:11: note: declared private here
+  177 |     Frame CreateEmptyFrame() const;
+      |           ^~~~~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.cpp:302:32: error: ‘Frame CameraManager::CreateEmptyFrame() const’ is private within this context
+  302 |         return CreateEmptyFrame();
+      |                ~~~~~~~~~~~~~~~~^~
+/home/habib/surveillance-system/vision-service/src/camera_manager.h:177:11: note: declared private here
+  177 |     Frame CreateEmptyFrame() const;
+      |           ^~~~~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.cpp:307:16: error: ‘Frame CameraManager::CreateEmptyFrame() const’ is private within this context
+  307 |         return CreateEmptyFrame();
+      |                ^~~~~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.h:177:11: note: declared private here
+  177 |     Frame CreateEmptyFrame() const;
+      |           ^~~~~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.cpp:307:32: error: ‘Frame CameraManager::CreateEmptyFrame() const’ is private within this context
+  307 |         return CreateEmptyFrame();
+      |                ~~~~~~~~~~~~~~~~^~
+/home/habib/surveillance-system/vision-service/src/camera_manager.h:177:11: note: declared private here
+  177 |     Frame CreateEmptyFrame() const;
+      |           ^~~~~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.cpp: In member function ‘Frame OpenCVCaptureManager::CaptureRtspFrame()’:
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.cpp:316:16: error: ‘Frame CameraManager::CreateEmptyFrame() const’ is private within this context
+  316 |         return CreateEmptyFrame();
+      |                ^~~~~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.h:177:11: note: declared private here
+  177 |     Frame CreateEmptyFrame() const;
+      |           ^~~~~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.cpp:316:32: error: ‘Frame CameraManager::CreateEmptyFrame() const’ is private within this context
+  316 |         return CreateEmptyFrame();
+      |                ~~~~~~~~~~~~~~~~^~
+/home/habib/surveillance-system/vision-service/src/camera_manager.h:177:11: note: declared private here
+  177 |     Frame CreateEmptyFrame() const;
+      |           ^~~~~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.cpp:324:13: error: ‘bool CameraManager::ShouldAttemptReconnect() const’ is private within this context
+  324 |         if (ShouldAttemptReconnect()) {
+      |             ^~~~~~~~~~~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.h:159:10: note: declared private here
+  159 |     bool ShouldAttemptReconnect() const;
+      |          ^~~~~~~~~~~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.cpp:324:35: error: ‘bool CameraManager::ShouldAttemptReconnect() const’ is private within this context
+  324 |         if (ShouldAttemptReconnect()) {
+      |             ~~~~~~~~~~~~~~~~~~~~~~^~
+/home/habib/surveillance-system/vision-service/src/camera_manager.h:159:10: note: declared private here
+  159 |     bool ShouldAttemptReconnect() const;
+      |          ^~~~~~~~~~~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.cpp:329:39: error: ‘std::string CameraManager::camera_url_’ is private within this context
+  329 |             if (opencv_capture_->open(camera_url_)) {
+      |                                       ^~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.h:123:17: note: declared private here
+  123 |     std::string camera_url_;
+      |                 ^~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.cpp:336:16: error: ‘Frame CameraManager::CreateEmptyFrame() const’ is private within this context
+  336 |         return CreateEmptyFrame();
+      |                ^~~~~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.h:177:11: note: declared private here
+  177 |     Frame CreateEmptyFrame() const;
+      |           ^~~~~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.cpp:336:32: error: ‘Frame CameraManager::CreateEmptyFrame() const’ is private within this context
+  336 |         return CreateEmptyFrame();
+      |                ~~~~~~~~~~~~~~~~^~
+/home/habib/surveillance-system/vision-service/src/camera_manager.h:177:11: note: declared private here
+  177 |     Frame CreateEmptyFrame() const;
+      |           ^~~~~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.cpp: In member function ‘Frame OpenCVCaptureManager::ConvertMatToFrame(const cv::Mat&) const’:
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.cpp:344:16: error: ‘Frame CameraManager::CreateEmptyFrame() const’ is private within this context
+  344 |         return CreateEmptyFrame();
+      |                ^~~~~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.h:177:11: note: declared private here
+  177 |     Frame CreateEmptyFrame() const;
+      |           ^~~~~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.cpp:344:32: error: ‘Frame CameraManager::CreateEmptyFrame() const’ is private within this context
+  344 |         return CreateEmptyFrame();
+      |                ~~~~~~~~~~~~~~~~^~
+/home/habib/surveillance-system/vision-service/src/camera_manager.h:177:11: note: declared private here
+  177 |     Frame CreateEmptyFrame() const;
+      |           ^~~~~~~~~~~~~~~~
+In file included from /home/habib/surveillance-system/vision-service/src/camera_manager.cpp:7:
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.h:19:10: error: ‘bool OpenCVCaptureManager::Initialize(const CameraConfig&)’ marked ‘override’, but does not override
+   19 |     bool Initialize(const CameraConfig& config) override;
+      |          ^~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.h:20:10: error: ‘void OpenCVCaptureManager::Cleanup()’ marked ‘override’, but does not override
+   20 |     void Cleanup() override;
+      |          ^~~~~~~
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.h:21:10: error: ‘bool OpenCVCaptureManager::IsCapturing() const’ marked ‘override’, but does not override
+   21 |     bool IsCapturing() const override;
+      |          ^~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.h:30:11: error: ‘Frame OpenCVCaptureManager::CaptureFileFrame()’ marked ‘override’, but does not override
+   30 |     Frame CaptureFileFrame() override;
+      |           ^~~~~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.h:31:11: error: ‘Frame OpenCVCaptureManager::CaptureWebcamFrame()’ marked ‘override’, but does not override
+   31 |     Frame CaptureWebcamFrame() override;
+      |           ^~~~~~~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.h:32:11: error: ‘Frame OpenCVCaptureManager::CaptureRtspFrame()’ marked ‘override’, but does not override
+   32 |     Frame CaptureRtspFrame() override;
+      |           ^~~~~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:13:32: error: no declaration matches ‘std::unique_ptr<CameraManager> CameraManager::CreateManager(const std::string&)’
+   13 | std::unique_ptr<CameraManager> CameraManager::CreateManager(const std::string& camera_url) {
+      |                                ^~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:13:32: note: no functions named ‘std::unique_ptr<CameraManager> CameraManager::CreateManager(const std::string&)’
+In file included from /home/habib/surveillance-system/vision-service/src/camera_manager.cpp:1:
+/home/habib/surveillance-system/vision-service/src/camera_manager.h:85:7: note: ‘class CameraManager’ defined here
+   85 | class CameraManager {
+      |       ^~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp: In constructor ‘CameraManager::CameraManager(const std::string&)’:
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:25:7: error: class ‘CameraManager’ does not have any field named ‘is_initialized_’
+   25 |       is_initialized_(false),
+      |       ^~~~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:26:7: error: class ‘CameraManager’ does not have any field named ‘capture_active_’
+   26 |       capture_active_(false),
+      |       ^~~~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:27:7: error: class ‘CameraManager’ does not have any field named ‘current_config_’
+   27 |       current_config_{},
+      |       ^~~~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:28:7: error: class ‘CameraManager’ does not have any field named ‘total_frames_captured_’
+   28 |       total_frames_captured_(0),
+      |       ^~~~~~~~~~~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:29:7: error: class ‘CameraManager’ does not have any field named ‘capture_start_time_’
+   29 |       capture_start_time_(std::chrono::steady_clock::now()) {
+      |       ^~~~~~~~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:31:5: error: ‘LOG_INFO’ was not declared in this scope
+   31 |     LOG_INFO("Creating CameraManager for URL: " + camera_url);
+      |     ^~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:32:5: error: ‘DetermineSourceType’ was not declared in this scope
+   32 |     DetermineSourceType();
+      |     ^~~~~~~~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp: In destructor ‘virtual CameraManager::~CameraManager()’:
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:37:5: error: ‘LOG_INFO’ was not declared in this scope
+   37 |     LOG_INFO("CameraManager destroyed");
+      |     ^~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp: In member function ‘bool CameraManager::Initialize(const CameraConfig&)’:
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:43:5: error: ‘LOG_INFO’ was not declared in this scope
+   43 |     LOG_INFO("Initializing CameraManager with config");
+      |     ^~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:44:5: error: ‘current_config_’ was not declared in this scope
+   44 |     current_config_ = config;
+      |     ^~~~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:46:10: error: ‘ValidateConfig’ was not declared in this scope
+   46 |     if (!ValidateConfig(config)) {
+      |          ^~~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:47:9: error: ‘LOG_ERROR’ was not declared in this scope
+   47 |         LOG_ERROR("Invalid camera configuration");
+      |         ^~~~~~~~~
+In file included from /home/habib/surveillance-system/vision-service/src/camera_manager.cpp:7:
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.h:19:10: error: ‘bool OpenCVCaptureManager::Initialize(const CameraConfig&)’ marked ‘override’, but does not override
+   19 |     bool Initialize(const CameraConfig& config) override;
+      |          ^~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.h:20:10: error: ‘void OpenCVCaptureManager::Cleanup()’ marked ‘override’, but does not override
+   20 |     void Cleanup() override;
+      |          ^~~~~~~
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.h:21:10: error: ‘bool OpenCVCaptureManager::IsCapturing() const’ marked ‘override’, but does not override
+   21 |     bool IsCapturing() const override;
+      |          ^~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.h:30:11: error: ‘Frame OpenCVCaptureManager::CaptureFileFrame()’ marked ‘override’, but does not override
+   30 |     Frame CaptureFileFrame() override;
+      |           ^~~~~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.h:31:11: error: ‘Frame OpenCVCaptureManager::CaptureWebcamFrame()’ marked ‘override’, but does not override
+   31 |     Frame CaptureWebcamFrame() override;
+      |           ^~~~~~~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/opencv_capture_manager.h:32:11: error: ‘Frame OpenCVCaptureManager::CaptureRtspFrame()’ marked ‘override’, but does not override
+   32 |     Frame CaptureRtspFrame() override;
+      |           ^~~~~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:13:32: error: no declaration matches ‘std::unique_ptr<CameraManager> CameraManager::CreateManager(const std::string&)’
+   13 | std::unique_ptr<CameraManager> CameraManager::CreateManager(const std::string& camera_url) {
+      |                                ^~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:13:32: note: no functions named ‘std::unique_ptr<CameraManager> CameraManager::CreateManager(const std::string&)’
+In file included from /home/habib/surveillance-system/vision-service/src/camera_manager.cpp:1:
+/home/habib/surveillance-system/vision-service/src/camera_manager.h:85:7: note: ‘class CameraManager’ defined here
+   85 | class CameraManager {
+      |       ^~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp: In constructor ‘CameraManager::CameraManager(const std::string&)’:
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:25:7: error: class ‘CameraManager’ does not have any field named ‘is_initialized_’
+   25 |       is_initialized_(false),
+      |       ^~~~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:26:7: error: class ‘CameraManager’ does not have any field named ‘capture_active_’
+   26 |       capture_active_(false),
+      |       ^~~~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:27:7: error: class ‘CameraManager’ does not have any field named ‘current_config_’
+   27 |       current_config_{},
+      |       ^~~~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:28:7: error: class ‘CameraManager’ does not have any field named ‘total_frames_captured_’
+   28 |       total_frames_captured_(0),
+      |       ^~~~~~~~~~~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:29:7: error: class ‘CameraManager’ does not have any field named ‘capture_start_time_’
+   29 |       capture_start_time_(std::chrono::steady_clock::now()) {
+      |       ^~~~~~~~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:52:5: error: ‘is_initialized_’ was not declared in this scope; did you mean ‘Initialize’?
+   52 |     is_initialized_ = true;
+      |     ^~~~~~~~~~~~~~~
+      |     Initialize
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:31:5: error: ‘LOG_INFO’ was not declared in this scope
+   31 |     LOG_INFO("Creating CameraManager for URL: " + camera_url);
+      |     ^~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:53:5: error: ‘capture_active_’ was not declared in this scope
+   53 |     capture_active_ = false;
+      |     ^~~~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:32:5: error: ‘DetermineSourceType’ was not declared in this scope
+   32 |     DetermineSourceType();
+      |     ^~~~~~~~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:54:5: error: ‘total_frames_captured_’ was not declared in this scope
+   54 |     total_frames_captured_ = 0;
+      |     ^~~~~~~~~~~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp: In destructor ‘virtual CameraManager::~CameraManager()’:
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:37:5: error: ‘LOG_INFO’ was not declared in this scope
+   37 |     LOG_INFO("CameraManager destroyed");
+      |     ^~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp: In member function ‘bool CameraManager::Initialize(const CameraConfig&)’:
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:43:5: error: ‘LOG_INFO’ was not declared in this scope
+   43 |     LOG_INFO("Initializing CameraManager with config");
+      |     ^~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:55:5: error: ‘capture_start_time_’ was not declared in this scope
+   55 |     capture_start_time_ = std::chrono::steady_clock::now();
+      |     ^~~~~~~~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:44:5: error: ‘current_config_’ was not declared in this scope
+   44 |     current_config_ = config;
+      |     ^~~~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp: In member function ‘void CameraManager::Cleanup()’:
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:64:9: error: ‘capture_active_’ was not declared in this scope
+   64 |     if (capture_active_) {
+      |         ^~~~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:46:10: error: ‘ValidateConfig’ was not declared in this scope
+   46 |     if (!ValidateConfig(config)) {
+      |          ^~~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:68:5: error: ‘is_initialized_’ was not declared in this scope; did you mean ‘Initialize’?
+   68 |     is_initialized_ = false;
+      |     ^~~~~~~~~~~~~~~
+      |     Initialize
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:47:9: error: ‘LOG_ERROR’ was not declared in this scope
+   47 |         LOG_ERROR("Invalid camera configuration");
+      |         ^~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:69:5: error: ‘LOG_INFO’ was not declared in this scope
+   69 |     LOG_INFO("CameraManager cleanup completed");
+      |     ^~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp: In member function ‘bool CameraManager::StartCapture()’:
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:75:10: error: ‘is_initialized_’ was not declared in this scope; did you mean ‘Initialize’?
+   75 |     if (!is_initialized_) {
+      |          ^~~~~~~~~~~~~~~
+      |          Initialize
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:52:5: error: ‘is_initialized_’ was not declared in this scope; did you mean ‘Initialize’?
+   52 |     is_initialized_ = true;
+      |     ^~~~~~~~~~~~~~~
+      |     Initialize
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:76:9: error: ‘LOG_ERROR’ was not declared in this scope
+   76 |         LOG_ERROR("Cannot start capture: CameraManager not initialized");
+      |         ^~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:53:5: error: ‘capture_active_’ was not declared in this scope
+   53 |     capture_active_ = false;
+      |     ^~~~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:80:9: error: ‘capture_active_’ was not declared in this scope
+   80 |     if (capture_active_) {
+      |         ^~~~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:54:5: error: ‘total_frames_captured_’ was not declared in this scope
+   54 |     total_frames_captured_ = 0;
+      |     ^~~~~~~~~~~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:81:9: error: ‘LOG_WARNING’ was not declared in this scope
+   81 |         LOG_WARNING("Capture already active");
+      |         ^~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:55:5: error: ‘capture_start_time_’ was not declared in this scope
+   55 |     capture_start_time_ = std::chrono::steady_clock::now();
+      |     ^~~~~~~~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:85:5: error: ‘capture_active_’ was not declared in this scope
+   85 |     capture_active_ = true;
+      |     ^~~~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp: In member function ‘void CameraManager::Cleanup()’:
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:64:9: error: ‘capture_active_’ was not declared in this scope
+   64 |     if (capture_active_) {
+      |         ^~~~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:86:5: error: ‘capture_start_time_’ was not declared in this scope
+   86 |     capture_start_time_ = std::chrono::steady_clock::now();
+      |     ^~~~~~~~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:68:5: error: ‘is_initialized_’ was not declared in this scope; did you mean ‘Initialize’?
+   68 |     is_initialized_ = false;
+      |     ^~~~~~~~~~~~~~~
+      |     Initialize
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:69:5: error: ‘LOG_INFO’ was not declared in this scope
+   69 |     LOG_INFO("CameraManager cleanup completed");
+      |     ^~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:87:5: error: ‘total_frames_captured_’ was not declared in this scope
+   87 |     total_frames_captured_ = 0;
+      |     ^~~~~~~~~~~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:89:5: error: ‘LOG_INFO’ was not declared in this scope
+   89 |     LOG_INFO("Capture started (simulation mode)");
+      |     ^~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp: At global scope:
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:93:6: error: no declaration matches ‘void CameraManager::StopCapture()’
+   93 | void CameraManager::StopCapture() {
+      |      ^~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.h:96:10: note: candidate is: ‘bool CameraManager::StopCapture()’
+   96 |     bool StopCapture();
+      |          ^~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.h:85:7: note: ‘class CameraManager’ defined here
+   85 | class CameraManager {
+      |       ^~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:105:7: error: no declaration matches ‘Frame CameraManager::CaptureFrame()’
+  105 | Frame CameraManager::CaptureFrame() {
+      |       ^~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.h:156:10: note: candidate is: ‘bool CameraManager::CaptureFrame()’
+  156 |     bool CaptureFrame();
+      |          ^~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.h:85:7: note: ‘class CameraManager’ defined here
+   85 | class CameraManager {
+      |       ^~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp: In member function ‘bool CameraManager::StartCapture()’:
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:75:10: error: ‘is_initialized_’ was not declared in this scope; did you mean ‘Initialize’?
+   75 |     if (!is_initialized_) {
+      |          ^~~~~~~~~~~~~~~
+      |          Initialize
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp: In member function ‘Frame CameraManager::CaptureFileFrame()’:
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:139:5: error: ‘LOG_DEBUG’ was not declared in this scope
+  139 |     LOG_DEBUG("CaptureFileFrame: returning simulated frame");
+      |     ^~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:76:9: error: ‘LOG_ERROR’ was not declared in this scope
+   76 |         LOG_ERROR("Cannot start capture: CameraManager not initialized");
+      |         ^~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:141:9: error: ‘current_config_’ was not declared in this scope
+  141 |         current_config_.width,
+      |         ^~~~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:80:9: error: ‘capture_active_’ was not declared in this scope
+   80 |     if (capture_active_) {
+      |         ^~~~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp: In member function ‘Frame CameraManager::CaptureWebcamFrame()’:
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:149:5: error: ‘LOG_DEBUG’ was not declared in this scope
+  149 |     LOG_DEBUG("CaptureWebcamFrame: returning simulated frame");
+      |     ^~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:81:9: error: ‘LOG_WARNING’ was not declared in this scope
+   81 |         LOG_WARNING("Capture already active");
+      |         ^~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:151:9: error: ‘current_config_’ was not declared in this scope
+  151 |         current_config_.width,
+      |         ^~~~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:85:5: error: ‘capture_active_’ was not declared in this scope
+   85 |     capture_active_ = true;
+      |     ^~~~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp: In member function ‘Frame CameraManager::CaptureRtspFrame()’:
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:159:5: error: ‘LOG_DEBUG’ was not declared in this scope
+  159 |     LOG_DEBUG("CaptureRtspFrame: returning simulated frame");
+      |     ^~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:86:5: error: ‘capture_start_time_’ was not declared in this scope
+   86 |     capture_start_time_ = std::chrono::steady_clock::now();
+      |     ^~~~~~~~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:161:9: error: ‘current_config_’ was not declared in this scope
+  161 |         current_config_.width,
+      |         ^~~~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:87:5: error: ‘total_frames_captured_’ was not declared in this scope
+   87 |     total_frames_captured_ = 0;
+      |     ^~~~~~~~~~~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp: In member function ‘Frame CameraManager::CaptureTestFrame()’:
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:168:5: error: ‘LOG_DEBUG’ was not declared in this scope
+  168 |     LOG_DEBUG("CaptureTestFrame: creating test pattern");
+      |     ^~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:89:5: error: ‘LOG_INFO’ was not declared in this scope
+   89 |     LOG_INFO("Capture started (simulation mode)");
+      |     ^~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp: At global scope:
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:93:6: error: no declaration matches ‘void CameraManager::StopCapture()’
+   93 | void CameraManager::StopCapture() {
+      |      ^~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.h:96:10: note: candidate is: ‘bool CameraManager::StopCapture()’
+   96 |     bool StopCapture();
+      |          ^~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.h:85:7: note: ‘class CameraManager’ defined here
+   85 | class CameraManager {
+      |       ^~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:105:7: error: no declaration matches ‘Frame CameraManager::CaptureFrame()’
+  105 | Frame CameraManager::CaptureFrame() {
+      |       ^~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.h:156:10: note: candidate is: ‘bool CameraManager::CaptureFrame()’
+  156 |     bool CaptureFrame();
+      |          ^~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.h:85:7: note: ‘class CameraManager’ defined here
+   85 | class CameraManager {
+      |       ^~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:170:9: error: ‘current_config_’ was not declared in this scope
+  170 |         current_config_.width,
+      |         ^~~~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp: In member function ‘Frame CameraManager::CaptureFileFrame()’:
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:139:5: error: ‘LOG_DEBUG’ was not declared in this scope
+  139 |     LOG_DEBUG("CaptureFileFrame: returning simulated frame");
+      |     ^~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp: In member function ‘bool CameraManager::IsCapturing() const’:
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:178:12: error: ‘is_initialized_’ was not declared in this scope; did you mean ‘Initialize’?
+  178 |     return is_initialized_ && capture_active_;
+      |            ^~~~~~~~~~~~~~~
+      |            Initialize
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:141:9: error: ‘current_config_’ was not declared in this scope
+  141 |         current_config_.width,
+      |         ^~~~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:178:31: error: ‘capture_active_’ was not declared in this scope
+  178 |     return is_initialized_ && capture_active_;
+      |                               ^~~~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp: At global scope:
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:181:6: error: no declaration matches ‘bool CameraManager::IsInitialized() const’
+  181 | bool CameraManager::IsInitialized() const {
+      |      ^~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:181:6: note: no functions named ‘bool CameraManager::IsInitialized() const’
+/home/habib/surveillance-system/vision-service/src/camera_manager.h:85:7: note: ‘class CameraManager’ defined here
+   85 | class CameraManager {
+      |       ^~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp: In member function ‘Frame CameraManager::CaptureWebcamFrame()’:
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:149:5: error: ‘LOG_DEBUG’ was not declared in this scope
+  149 |     LOG_DEBUG("CaptureWebcamFrame: returning simulated frame");
+      |     ^~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp: In member function ‘CameraConfig CameraManager::GetConfig() const’:
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:188:12: error: ‘current_config_’ was not declared in this scope
+  188 |     return current_config_;
+      |            ^~~~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp: At global scope:
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:191:13: error: no declaration matches ‘CameraStats CameraManager::GetStats() const’
+  191 | CameraStats CameraManager::GetStats() const {
+      |             ^~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.h:104:24: note: candidate is: ‘const CameraStats& CameraManager::GetStats() const’
+  104 |     const CameraStats& GetStats() const;
+      |                        ^~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.h:85:7: note: ‘class CameraManager’ defined here
+   85 | class CameraManager {
+      |       ^~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:218:1: error: ‘SourceType’ does not name a type
+  218 | SourceType CameraManager::GetSourceType() const {
+      | ^~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:222:6: error: no declaration matches ‘void CameraManager::DetermineSourceType()’
+  222 | void CameraManager::DetermineSourceType() {
+      |      ^~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:222:6: note: no functions named ‘void CameraManager::DetermineSourceType()’
+/home/habib/surveillance-system/vision-service/src/camera_manager.h:85:7: note: ‘class CameraManager’ defined here
+   85 | class CameraManager {
+      |       ^~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:244:6: error: no declaration matches ‘bool CameraManager::ValidateConfig(const CameraConfig&) const’
+  244 | bool CameraManager::ValidateConfig(const CameraConfig& config) const {
+      |      ^~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:244:6: note: no functions named ‘bool CameraManager::ValidateConfig(const CameraConfig&) const’
+/home/habib/surveillance-system/vision-service/src/camera_manager.h:85:7: note: ‘class CameraManager’ defined here
+   85 | class CameraManager {
+      |       ^~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:262:6: error: no declaration matches ‘void CameraManager::IncrementFrameCount()’
+  262 | void CameraManager::IncrementFrameCount() {
+      |      ^~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:262:6: note: no functions named ‘void CameraManager::IncrementFrameCount()’
+/home/habib/surveillance-system/vision-service/src/camera_manager.h:85:7: note: ‘class CameraManager’ defined here
+   85 | class CameraManager {
+      |       ^~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:266:13: error: ‘std::string CameraManager::SourceTypeToString’ is not a static data member of ‘class CameraManager’
+  266 | std::string CameraManager::SourceTypeToString(SourceType type) const {
+      |             ^~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:151:9: error: ‘current_config_’ was not declared in this scope
+  151 |         current_config_.width,
+      |         ^~~~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:266:47: error: ‘SourceType’ was not declared in this scope
+  266 | std::string CameraManager::SourceTypeToString(SourceType type) const {
+      |                                               ^~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp: In member function ‘Frame CameraManager::CaptureRtspFrame()’:
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:159:5: error: ‘LOG_DEBUG’ was not declared in this scope
+  159 |     LOG_DEBUG("CaptureRtspFrame: returning simulated frame");
+      |     ^~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:266:64: error: expected ‘,’ or ‘;’ before ‘const’
+  266 | std::string CameraManager::SourceTypeToString(SourceType type) const {
+      |                                                                ^~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:161:9: error: ‘current_config_’ was not declared in this scope
+  161 |         current_config_.width,
+      |         ^~~~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp: In member function ‘Frame CameraManager::CaptureTestFrame()’:
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:168:5: error: ‘LOG_DEBUG’ was not declared in this scope
+  168 |     LOG_DEBUG("CaptureTestFrame: creating test pattern");
+      |     ^~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:170:9: error: ‘current_config_’ was not declared in this scope
+  170 |         current_config_.width,
+      |         ^~~~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp: In member function ‘bool CameraManager::IsCapturing() const’:
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:178:12: error: ‘is_initialized_’ was not declared in this scope; did you mean ‘Initialize’?
+  178 |     return is_initialized_ && capture_active_;
+      |            ^~~~~~~~~~~~~~~
+      |            Initialize
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:178:31: error: ‘capture_active_’ was not declared in this scope
+  178 |     return is_initialized_ && capture_active_;
+      |                               ^~~~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp: At global scope:
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:181:6: error: no declaration matches ‘bool CameraManager::IsInitialized() const’
+  181 | bool CameraManager::IsInitialized() const {
+      |      ^~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:181:6: note: no functions named ‘bool CameraManager::IsInitialized() const’
+/home/habib/surveillance-system/vision-service/src/camera_manager.h:85:7: note: ‘class CameraManager’ defined here
+   85 | class CameraManager {
+      |       ^~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp: In member function ‘CameraConfig CameraManager::GetConfig() const’:
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:188:12: error: ‘current_config_’ was not declared in this scope
+  188 |     return current_config_;
+      |            ^~~~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp: At global scope:
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:191:13: error: no declaration matches ‘CameraStats CameraManager::GetStats() const’
+  191 | CameraStats CameraManager::GetStats() const {
+      |             ^~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.h:104:24: note: candidate is: ‘const CameraStats& CameraManager::GetStats() const’
+  104 |     const CameraStats& GetStats() const;
+      |                        ^~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.h:85:7: note: ‘class CameraManager’ defined here
+   85 | class CameraManager {
+      |       ^~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:218:1: error: ‘SourceType’ does not name a type
+  218 | SourceType CameraManager::GetSourceType() const {
+      | ^~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:222:6: error: no declaration matches ‘void CameraManager::DetermineSourceType()’
+  222 | void CameraManager::DetermineSourceType() {
+      |      ^~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:222:6: note: no functions named ‘void CameraManager::DetermineSourceType()’
+/home/habib/surveillance-system/vision-service/src/camera_manager.h:85:7: note: ‘class CameraManager’ defined here
+   85 | class CameraManager {
+      |       ^~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:244:6: error: no declaration matches ‘bool CameraManager::ValidateConfig(const CameraConfig&) const’
+  244 | bool CameraManager::ValidateConfig(const CameraConfig& config) const {
+      |      ^~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:244:6: note: no functions named ‘bool CameraManager::ValidateConfig(const CameraConfig&) const’
+/home/habib/surveillance-system/vision-service/src/camera_manager.h:85:7: note: ‘class CameraManager’ defined here
+   85 | class CameraManager {
+      |       ^~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:262:6: error: no declaration matches ‘void CameraManager::IncrementFrameCount()’
+  262 | void CameraManager::IncrementFrameCount() {
+      |      ^~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:262:6: note: no functions named ‘void CameraManager::IncrementFrameCount()’
+/home/habib/surveillance-system/vision-service/src/camera_manager.h:85:7: note: ‘class CameraManager’ defined here
+   85 | class CameraManager {
+      |       ^~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:266:13: error: ‘std::string CameraManager::SourceTypeToString’ is not a static data member of ‘class CameraManager’
+  266 | std::string CameraManager::SourceTypeToString(SourceType type) const {
+      |             ^~~~~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:266:47: error: ‘SourceType’ was not declared in this scope
+  266 | std::string CameraManager::SourceTypeToString(SourceType type) const {
+      |                                               ^~~~~~~~~~
+/home/habib/surveillance-system/vision-service/src/camera_manager.cpp:266:64: error: expected ‘,’ or ‘;’ before ‘const’
+  266 | std::string CameraManager::SourceTypeToString(SourceType type) const {
+      |                                                                ^~~~~
+make[3]: *** [CMakeFiles/vision-service.dir/build.make:188: CMakeFiles/vision-service.dir/src/opencv_capture_manager.cpp.o] Error 1
+make[3]: *** Waiting for unfinished jobs....
+[ 82%] Building CXX object CMakeFiles/vision-service-tests.dir/vision.grpc.pb.cc.o
+make[3]: *** [CMakeFiles/vision-service-tests.dir/build.make:146: CMakeFiles/vision-service-tests.dir/src/camera_manager.cpp.o] Error 1
+make[3]: *** Waiting for unfinished jobs....
+make[3]: *** [CMakeFiles/vision-service.dir/build.make:146: CMakeFiles/vision-service.dir/src/camera_manager.cpp.o] Error 1
+make[3]: Leaving directory '/home/habib/surveillance-system/vision-service/build'
+make[2]: *** [CMakeFiles/Makefile2:85: CMakeFiles/vision-service.dir/all] Error 2
+make[2]: *** Waiting for unfinished jobs....
+make[3]: Leaving directory '/home/habib/surveillance-system/vision-service/build'
+make[2]: *** [CMakeFiles/Makefile2:111: CMakeFiles/vision-service-tests.dir/all] Error 2
+make[2]: Leaving directory '/home/habib/surveillance-system/vision-service/build'
+make[1]: *** [Makefile:146: all] Error 2
+make[1]: Leaving directory '/home/habib/surveillance-system/vision-service/build'
+make: *** [Makefile:305: build-opencv] Error 2

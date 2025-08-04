@@ -332,3 +332,24 @@ opencv-info:
 	@echo ""
 	@echo "Libraries:"
 	@pkg-config --libs opencv4 2>/dev/null || pkg-config --libs opencv 2>/dev/null || echo "Not found"
+
+# Add target for OpenCV development
+.PHONY: dev-opencv
+dev-opencv: clean build-opencv test-opencv
+	@echo "✅ OpenCV development build complete"
+
+# Test with OpenCV
+.PHONY: test-opencv
+test-opencv:
+	@if [ -f "build/vision-service-tests" ]; then \
+	    echo "🧪 Running OpenCV tests..."; \
+	    cd build && ./vision-service-tests; \
+	else \
+	    echo "❌ No test executable found. Run 'make build-opencv' first."; \
+	fi
+
+# Run with OpenCV
+.PHONY: run-opencv
+run-opencv: build-opencv
+	@echo "🚀 Starting Vision Service with OpenCV..."
+	cd build && ./vision-service

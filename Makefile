@@ -455,3 +455,29 @@ run: run-go
 	@echo "⚠️  Note: 'make run' now runs Go service only."
 	@echo "   Use 'make run-all' to run both services."
 	@echo "   Use 'make dev' for development mode."
+
+# Add OpenCV-specific targets
+.PHONY: build-opencv test-opencv run-opencv
+
+build-opencv:
+    @echo "🔨 Building with OpenCV support..."
+    cd vision-service && make build-opencv
+
+test-opencv: build-opencv
+    @echo "🧪 Testing OpenCV integration..."
+    cd vision-service && make test-opencv
+
+run-opencv: build-opencv
+    @echo "🚀 Running with OpenCV..."
+    cd vision-service && make run-opencv
+
+# Update integration tests to support OpenCV
+test-integration-opencv: build-opencv
+    @echo "Running OpenCV integration tests..."
+    @echo "Starting C++ service with OpenCV..."
+    cd vision-service && make run-opencv &
+    @sleep 3
+    @echo "Running Go integration tests..."
+    VISION_CLIENT_TYPE=grpc VISION_SERVICE_ADDRESS=localhost:50051 $(GOTEST) -v -timeout $(TEST_TIMEOUT) -tags=integration ./...
+    @echo "Stopping C++ service..."
+    @pkill -f vision-service || true

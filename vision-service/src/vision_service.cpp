@@ -62,6 +62,12 @@ Status VisionServiceImpl::StartStream(ServerContext* context,
         stream_state->camera_manager = std::make_unique<OpenCVCaptureManager>(camera_url);
         stream_state->frame_processor = std::make_unique<FrameProcessor>();
         
+        // Configurer le camera_id pour les événements de détection
+        auto* opencv_manager = dynamic_cast<OpenCVCaptureManager*>(stream_state->camera_manager.get());
+        if (opencv_manager) {
+            opencv_manager->SetCameraId(camera_id);
+        }
+        
         // Préparer la configuration
         CameraConfig camera_config;
         camera_config.width = request->has_config() ? request->config().width() : 640;

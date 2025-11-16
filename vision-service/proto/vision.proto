@@ -146,3 +146,18 @@ message ProcessingStats {
   float cpu_usage = 3;
   int64 memory_usage_mb = 4;
 }
+// Request pour streamer les détections
+message DetectionStreamRequest {
+  string camera_id = 1;
+  bool include_frames = 2;  // Inclure les frames avec détections
+}
+
+// Événement de détection (stream)
+message DetectionEvent {
+  string camera_id = 1;
+  string detection_id = 2;
+  Detection detection = 3;
+  int64 frame_number = 4;
+  int32 motion_pixels = 5;  // Nombre de pixels en mouvement
+  int64 timestamp = 6;
+}

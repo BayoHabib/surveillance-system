@@ -7,6 +7,8 @@
 #include <string>
 #include <chrono>
 #include <atomic>
+#include <functional>
+#include <mutex>
 
 #ifdef HAVE_OPENCV
 #include <opencv2/opencv.hpp>
@@ -16,6 +18,25 @@
 
 using surveillance::vision::Detection;
 using surveillance::vision::BoundingBox;
+
+// Event de détection de mouvement
+struct DetectionEvent {
+    std::string camera_id;
+    std::string detection_id;
+    std::string detection_type;  // "motion", "object", etc.
+    float confidence;
+    int motion_pixels;
+    BoundingBox bounding_box;
+    std::chrono::steady_clock::time_point timestamp;
+    int64_t frame_number;
+    
+    DetectionEvent() 
+        : confidence(0.0f), motion_pixels(0), frame_number(0),
+          timestamp(std::chrono::steady_clock::now()) {}
+};
+
+// Callback pour les événements de détection
+using DetectionCallback = std::function<void(const DetectionEvent& event)>;
 
 // Structure pour une frame interne
 struct Frame {
@@ -106,6 +127,10 @@ public:
     int64_t GetTotalDetections() const;
     double GetAverageProcessingTime() const;
     
+    // Callbacks pour événements de détection
+    void SetDetectionCallback(DetectionCallback callback);
+    void ClearDetectionCallback();
+    
 private:
     std::vector<std::unique_ptr<Detector>> detectors_;
     bool initialized_;
@@ -119,6 +144,10 @@ private:
     double motion_threshold_;
     int min_detection_area_;
     int max_detections_per_frame_;
+    
+    // Callback pour événements
+    DetectionCallback detection_callback_;
+    std::mutex callback_mutex_;
     
     // Méthodes privées
     bool ValidateFrame(const Frame& frame) const;

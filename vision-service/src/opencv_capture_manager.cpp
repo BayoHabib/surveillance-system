@@ -502,6 +502,7 @@ void OpenCVCaptureManager::CaptureThreadLoop() {
             frame_count++;
             total_frames_captured_++;
             stats_.frames_captured++;
+            frame_number_++;
             
             // Log périodique (toutes les 5 secondes)
             auto now = std::chrono::steady_clock::now();
@@ -559,6 +560,11 @@ void OpenCVCaptureManager::SetMotionSensitivity(double sensitivity) {
         std::cerr << "[OpenCVCaptureManager] Motion sensitivity set to " 
                   << sensitivity << " (threshold: " << motion_detection_threshold_ << ")" << std::endl;
     }
+}
+
+void OpenCVCaptureManager::SetCameraId(const std::string& camera_id) {
+    camera_id_ = camera_id;
+    std::cerr << "[OpenCVCaptureManager] Camera ID set to: " << camera_id << std::endl;
 }
 
 void OpenCVCaptureManager::InitializeMotionDetector() {
@@ -623,6 +629,9 @@ bool OpenCVCaptureManager::DetectMotion(const cv::Mat& frame) {
             std::cerr << "[OpenCVCaptureManager] Motion detected! Pixels: " 
                       << motion_pixels << " (threshold: " << motion_detection_threshold_ 
                       << "), frame #" << motion_frames_count_.load() << std::endl;
+            
+            // Générer un événement de détection
+            GenerateDetectionEvent(motion_pixels);
         }
         
         return motion_detected;
@@ -647,3 +656,19 @@ int OpenCVCaptureManager::CountMotionPixels(const cv::Mat& mask) const {
     }
     return cv::countNonZero(mask);
 }
+
+void OpenCVCaptureManager::GenerateDetectionEvent(int motion_pixels) {
+    // Notifier via le callback de frame si disponible
+    // Le frame_callback_ peut être utilisé par le FrameProcessor
+    // pour recevoir les événements de détection
+    
+    // Log l'événement pour debug
+    std::cerr << "[OpenCVCaptureManager] Detection event generated: "
+              << "camera=" << camera_id_ 
+              << ", pixels=" << motion_pixels
+              << ", frame=" << frame_number_.load() << std::endl;
+    
+    // TODO: Créer un DetectionEvent et le passer au FrameProcessor
+    // via un callback dédié quand il sera intégré avec le service vision
+}
+

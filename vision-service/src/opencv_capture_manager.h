@@ -31,6 +31,7 @@ public:
     void EnableMotionDetection(bool enable = true);
     bool IsMotionDetectionEnabled() const;
     void SetMotionSensitivity(double sensitivity);
+    void SetCameraId(const std::string& camera_id);
     
 protected:
     // Méthodes de capture spécialisées OpenCV
@@ -52,6 +53,8 @@ private:
     std::atomic<bool> is_capturing_{false};
     std::unique_ptr<std::thread> capture_thread_;
     std::atomic<bool> should_stop_capture_{false};
+    std::string camera_id_;  // ID de la caméra pour les événements
+    std::atomic<int64_t> frame_number_{0};
     
     // Détection de mouvement avec MOG2
     cv::Ptr<cv::BackgroundSubtractorMOG2> background_subtractor_;
@@ -81,6 +84,7 @@ private:
     void InitializeMotionDetector();
     void ProcessMotionDetection(const cv::Mat& frame);
     int CountMotionPixels(const cv::Mat& mask) const;
+    void GenerateDetectionEvent(int motion_pixels);
     
     // Thread de capture
     void CaptureThreadLoop();

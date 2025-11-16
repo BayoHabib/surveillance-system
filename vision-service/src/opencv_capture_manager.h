@@ -41,8 +41,7 @@ private:
     cv::Mat current_frame_;
     mutable std::mutex capture_mutex_;
     
-    // État de capture
-    std::atomic<bool> is_initialized_{false};
+    // État de capture (is_initialized_ hérité de CameraManager)
     std::atomic<bool> is_capturing_{false};
     
     // Métriques de performance

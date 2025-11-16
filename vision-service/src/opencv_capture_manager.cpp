@@ -55,6 +55,11 @@ bool OpenCVCaptureManager::Initialize(const CameraConfig& config) {
         SetState(CameraState::READY);
         CameraManager::is_initialized_ = true;  // Explicitement le membre de la classe de base
         stats_.start_time = std::chrono::steady_clock::now();
+        
+        // Activer la détection de mouvement par défaut
+        EnableMotionDetection(true);
+        SetMotionSensitivity(0.7);  // Sensibilité moyenne
+        
         std::cerr << "[OpenCVCaptureManager] OpenCV initialization successful" << std::endl;
         return true;
 
@@ -282,10 +287,19 @@ Frame OpenCVCaptureManager::CaptureFileFrame() {
             opencv_capture_->set(CAP_PROP_POS_FRAMES, 0); // Revenir au début
             if (opencv_capture_->read(frame)) {
                 std::cerr << "[OpenCVCaptureManager] File looped successfully" << std::endl;
+                // Appliquer détection de mouvement si activée
+                if (!frame.empty()) {
+                    ProcessMotionDetection(frame);
+                }
                 return ConvertMatToFrame(frame);
             }
         }
         return CreateEmptyFrame();
+    }
+
+    // Appliquer détection de mouvement si activée
+    if (!frame.empty()) {
+        ProcessMotionDetection(frame);
     }
 
     return ConvertMatToFrame(frame);
@@ -307,6 +321,9 @@ Frame OpenCVCaptureManager::CaptureWebcamFrame() {
         std::cerr << "[OpenCVCaptureManager] Webcam returned empty frame" << std::endl;
         return CreateEmptyFrame();
     }
+
+    // Appliquer détection de mouvement si activée
+    ProcessMotionDetection(frame);
 
     return ConvertMatToFrame(frame);
 }
@@ -330,11 +347,20 @@ Frame OpenCVCaptureManager::CaptureRtspFrame() {
             if (opencv_capture_->open(camera_url_)) {
                 std::cerr << "[OpenCVCaptureManager] RTSP reconnection successful" << std::endl;
                 if (opencv_capture_->read(frame)) {
+                    // Appliquer détection de mouvement si activée
+                    if (!frame.empty()) {
+                        ProcessMotionDetection(frame);
+                    }
                     return ConvertMatToFrame(frame);
                 }
             }
         }
         return CreateEmptyFrame();
+    }
+
+    // Appliquer détection de mouvement si activée
+    if (!frame.empty()) {
+        ProcessMotionDetection(frame);
     }
 
     return ConvertMatToFrame(frame);
@@ -385,4 +411,239 @@ Mat OpenCVCaptureManager::ConvertFrameToMat(const Frame& frame) const {
 
 bool OpenCVCaptureManager::IsCapturing() const {
     return opencv_capture_ && opencv_capture_->isOpened() && is_capturing_.load();
+}
+
+bool OpenCVCaptureManager::StartCapture() {
+    std::lock_guard<std::mutex> lock(config_mutex_);
+    
+    if (!CameraManager::is_initialized_) {
+        LOG_ERROR("Cannot start OpenCV capture: not initialized");
+        return false;
+    }
+    
+    if (is_capturing_.load()) {
+        LOG_WARNING("OpenCV capture already active");
+        return true;
+    }
+    
+    if (!opencv_capture_ || !opencv_capture_->isOpened()) {
+        LOG_ERROR("OpenCV VideoCapture not ready");
+        return false;
+    }
+    
+    // Démarrer le thread de capture
+    should_stop_capture_.store(false);
+    is_capturing_.store(true);
+    capture_active_ = true;
+    
+    capture_thread_ = std::make_unique<std::thread>(
+        &OpenCVCaptureManager::CaptureThreadLoop, this
+    );
+    
+    SetState(CameraState::CAPTURING);
+    std::cerr << "[OpenCVCaptureManager] OpenCV capture thread started" << std::endl;
+    LOG_INFO("OpenCV capture started with motion detection");
+    
+    return true;
+}
+
+bool OpenCVCaptureManager::StopCapture() {
+    std::cerr << "[OpenCVCaptureManager] Stopping OpenCV capture" << std::endl;
+    
+    should_stop_capture_.store(true);
+    is_capturing_.store(false);
+    capture_active_ = false;
+    
+    // Attendre la fin du thread
+    if (capture_thread_ && capture_thread_->joinable()) {
+        capture_thread_->join();
+        capture_thread_.reset();
+        std::cerr << "[OpenCVCaptureManager] Capture thread stopped" << std::endl;
+    }
+    
+    SetState(CameraState::READY);
+    LOG_INFO("OpenCV capture stopped");
+    
+    return true;
+}
+
+void OpenCVCaptureManager::CaptureThreadLoop() {
+    std::cerr << "[OpenCVCaptureManager] Capture thread loop started" << std::endl;
+    
+    int frame_count = 0;
+    auto last_log_time = std::chrono::steady_clock::now();
+    
+    while (!should_stop_capture_.load()) {
+        try {
+            // Capturer une frame selon le type de source
+            Frame frame;
+            switch (camera_type_) {
+                case CameraType::FILE_VIDEO:
+                    frame = CaptureFileFrame();
+                    break;
+                case CameraType::WEBCAM:
+                    frame = CaptureWebcamFrame();
+                    break;
+                case CameraType::RTSP_STREAM:
+                    frame = CaptureRtspFrame();
+                    break;
+                default:
+                    std::cerr << "[OpenCVCaptureManager] Unsupported camera type" << std::endl;
+                    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+                    continue;
+            }
+            
+            if (frame.data.empty()) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(33)); // ~30fps
+                continue;
+            }
+            
+            // Incrémenter compteur
+            frame_count++;
+            total_frames_captured_++;
+            stats_.frames_captured++;
+            
+            // Log périodique (toutes les 5 secondes)
+            auto now = std::chrono::steady_clock::now();
+            auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(now - last_log_time);
+            if (elapsed.count() >= 5) {
+                double fps = frame_count / static_cast<double>(elapsed.count());
+                std::cerr << "[OpenCVCaptureManager] Captured " << frame_count 
+                          << " frames in " << elapsed.count() << "s"
+                          << " (FPS: " << fps << ")"
+                          << " | Motion frames: " << motion_frames_count_.load() << std::endl;
+                frame_count = 0;
+                last_log_time = now;
+            }
+            
+            // Notifier via callback si disponible
+            if (frame_callback_) {
+                NotifyFrameAvailable(frame);
+            }
+            
+            // Contrôler le framerate (environ 30 FPS max)
+            std::this_thread::sleep_for(std::chrono::milliseconds(33));
+            
+        } catch (const std::exception& e) {
+            std::cerr << "[OpenCVCaptureManager] Exception in capture loop: " 
+                      << e.what() << std::endl;
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        }
+    }
+    
+    std::cerr << "[OpenCVCaptureManager] Capture thread loop ended" << std::endl;
+}
+
+// ============================================================================
+// Détection de Mouvement avec BackgroundSubtractorMOG2
+// ============================================================================
+
+void OpenCVCaptureManager::EnableMotionDetection(bool enable) {
+    motion_detection_enabled_.store(enable);
+    if (enable && !background_subtractor_) {
+        InitializeMotionDetector();
+    }
+    std::cerr << "[OpenCVCaptureManager] Motion detection " 
+              << (enable ? "enabled" : "disabled") << std::endl;
+}
+
+bool OpenCVCaptureManager::IsMotionDetectionEnabled() const {
+    return motion_detection_enabled_.load();
+}
+
+void OpenCVCaptureManager::SetMotionSensitivity(double sensitivity) {
+    if (sensitivity >= 0.0 && sensitivity <= 1.0) {
+        motion_sensitivity_.store(sensitivity);
+        // Ajuster le seuil : plus sensible = seuil plus bas
+        motion_detection_threshold_ = static_cast<int>(50 * (1.0 - sensitivity));
+        std::cerr << "[OpenCVCaptureManager] Motion sensitivity set to " 
+                  << sensitivity << " (threshold: " << motion_detection_threshold_ << ")" << std::endl;
+    }
+}
+
+void OpenCVCaptureManager::InitializeMotionDetector() {
+    std::cerr << "[OpenCVCaptureManager] Initializing MOG2 background subtractor" << std::endl;
+    
+    // Créer le détecteur MOG2 avec paramètres optimisés
+    int history = 500;  // Nombre de frames pour l'historique
+    double varThreshold = 16;  // Seuil de variance (plus bas = plus sensible)
+    bool detectShadows = true;  // Détecter et ignorer les ombres
+    
+    background_subtractor_ = cv::createBackgroundSubtractorMOG2(
+        history, 
+        varThreshold, 
+        detectShadows
+    );
+    
+    if (detectShadows) {
+        // Valeur des pixels d'ombre (127 en grayscale)
+        background_subtractor_->setShadowValue(0);
+        background_subtractor_->setShadowThreshold(0.5);
+    }
+    
+    // Paramètres supplémentaires
+    background_subtractor_->setNMixtures(5);  // Nombre de gaussiennes
+    background_subtractor_->setBackgroundRatio(0.9);
+    background_subtractor_->setComplexityReductionThreshold(0.05);
+    
+    std::cerr << "[OpenCVCaptureManager] MOG2 initialized with history=" << history 
+              << ", varThreshold=" << varThreshold << std::endl;
+}
+
+bool OpenCVCaptureManager::DetectMotion(const cv::Mat& frame) {
+    if (!motion_detection_enabled_.load() || frame.empty()) {
+        return false;
+    }
+    
+    if (!background_subtractor_) {
+        InitializeMotionDetector();
+    }
+    
+    try {
+        // Appliquer le background subtractor
+        background_subtractor_->apply(frame, foreground_mask_);
+        
+        // Réduire le bruit avec un blur
+        if (motion_detection_blur_ > 0) {
+            cv::GaussianBlur(foreground_mask_, foreground_mask_, 
+                            cv::Size(motion_detection_blur_, motion_detection_blur_), 0);
+        }
+        
+        // Binariser le masque
+        cv::threshold(foreground_mask_, foreground_mask_, 127, 255, cv::THRESH_BINARY);
+        
+        // Compter les pixels de mouvement
+        int motion_pixels = CountMotionPixels(foreground_mask_);
+        
+        // Détecter si mouvement significatif
+        bool motion_detected = motion_pixels > motion_detection_threshold_;
+        
+        if (motion_detected) {
+            motion_frames_count_++;
+            std::cerr << "[OpenCVCaptureManager] Motion detected! Pixels: " 
+                      << motion_pixels << " (threshold: " << motion_detection_threshold_ 
+                      << "), frame #" << motion_frames_count_.load() << std::endl;
+        }
+        
+        return motion_detected;
+        
+    } catch (const cv::Exception& e) {
+        std::cerr << "[OpenCVCaptureManager] OpenCV exception in motion detection: " 
+                  << e.what() << std::endl;
+        return false;
+    }
+}
+
+void OpenCVCaptureManager::ProcessMotionDetection(const cv::Mat& frame) {
+    if (DetectMotion(frame)) {
+        // Motion détecté - notifier via callback si disponible
+        // Le frame avec mouvement sera traité par le FrameProcessor
+    }
+}
+
+int OpenCVCaptureManager::CountMotionPixels(const cv::Mat& mask) const {
+    if (mask.empty()) {
+        return 0;
+    }
+    return cv::countNonZero(mask);
 }

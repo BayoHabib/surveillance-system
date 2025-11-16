@@ -110,8 +110,8 @@ public:
     virtual bool Initialize(const CameraConfig& config);
     virtual void Cleanup();
     
-    bool StartCapture();
-    bool StopCapture();
+    virtual bool StartCapture();
+    virtual bool StopCapture();
     
     // Frame capture
     Frame CaptureFrame();

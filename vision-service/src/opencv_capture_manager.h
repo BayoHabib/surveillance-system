@@ -19,11 +19,18 @@ public:
     bool Initialize(const CameraConfig& config) override;
     void Cleanup() override;
     bool IsCapturing() const override;
+    bool StartCapture();
+    bool StopCapture();
     
     // Statistiques OpenCV spécifiques
     double GetActualFPS() const;
     cv::Size GetFrameSize() const;
     int GetCodec() const;
+    
+    // Détection de mouvement
+    void EnableMotionDetection(bool enable = true);
+    bool IsMotionDetectionEnabled() const;
+    void SetMotionSensitivity(double sensitivity);
     
 protected:
     // Méthodes de capture spécialisées OpenCV
@@ -43,6 +50,17 @@ private:
     
     // État de capture (is_initialized_ hérité de CameraManager)
     std::atomic<bool> is_capturing_{false};
+    std::unique_ptr<std::thread> capture_thread_;
+    std::atomic<bool> should_stop_capture_{false};
+    
+    // Détection de mouvement avec MOG2
+    cv::Ptr<cv::BackgroundSubtractorMOG2> background_subtractor_;
+    cv::Mat foreground_mask_;
+    std::atomic<bool> motion_detection_enabled_{false};
+    std::atomic<double> motion_sensitivity_{0.7};  // 0.0-1.0
+    int motion_detection_threshold_{25};  // Pixels minimum pour détecter
+    int motion_detection_blur_{5};  // Taille du blur pour réduire bruit
+    std::atomic<int> motion_frames_count_{0};
     
     // Métriques de performance
     mutable std::atomic<double> actual_fps_{0.0};
@@ -57,6 +75,15 @@ private:
     void OptimizeCapture();
     bool ValidateCapture() const;
     void UpdateMetrics();
+    
+    // Détection de mouvement
+    bool DetectMotion(const cv::Mat& frame);
+    void InitializeMotionDetector();
+    void ProcessMotionDetection(const cv::Mat& frame);
+    int CountMotionPixels(const cv::Mat& mask) const;
+    
+    // Thread de capture
+    void CaptureThreadLoop();
     
     // Gestion d'erreurs spécifique OpenCV
     void HandleCaptureError(const std::string& operation) const;

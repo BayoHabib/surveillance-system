@@ -1,0 +1,1138 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎥 Surveillance Dashboard - Modern</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: #f0f2f5;
+            color: #1c1e21;
+            min-height: 100vh;
+        }
+
+        /* Header - Facebook/Instagram Style */
+        .header {
+            background: white;
+            padding: 0.75rem 1.5rem;
+            border-bottom: 1px solid #e4e6eb;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1877f2;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        /* Notification Toggle */
+        .notification-toggle {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: #e4e6eb;
+            padding: 0.5rem 0.75rem;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: background 0.2s;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #65676b;
+        }
+
+        .notification-toggle:hover {
+            background: #d8dadf;
+        }
+
+        .notification-toggle.active {
+            background: #e7f3ff;
+            color: #1877f2;
+        }
+
+        .toggle-switch {
+            width: 40px;
+            height: 20px;
+            background: #bcc0c4;
+            border-radius: 10px;
+            position: relative;
+            transition: background 0.2s;
+        }
+
+        .notification-toggle.active .toggle-switch {
+            background: #1877f2;
+        }
+
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            background: white;
+            border-radius: 50%;
+            top: 2px;
+            left: 2px;
+            transition: transform 0.2s;
+        }
+
+        .notification-toggle.active .toggle-switch::after {
+            transform: translateX(20px);
+        }
+
+        /* Notification Bell - Instagram Style */
+        .notification-bell {
+            background: #e4e6eb;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background 0.2s;
+            position: relative;
+        }
+
+        .notification-bell:hover {
+            background: #d8dadf;
+        }
+
+        .notification-bell.has-alerts {
+            animation: ring 2s ease-in-out infinite;
+        }
+
+        @keyframes ring {
+            0%, 100% { transform: rotate(0deg); }
+            5%, 15% { transform: rotate(-15deg); }
+            10%, 20% { transform: rotate(15deg); }
+            25% { transform: rotate(0deg); }
+        }
+
+        .notification-badge {
+            position: absolute;
+            top: -2px;
+            right: -2px;
+            background: #fa3e3e;
+            color: white;
+            border-radius: 50%;
+            min-width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            font-weight: 700;
+            padding: 0 4px;
+            border: 2px solid white;
+        }
+
+        .notification-icon {
+            font-size: 1.25rem;
+        }
+
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.875rem;
+            color: #65676b;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #42b72a;
+        }
+
+        .status-dot.disconnected {
+            background: #fa3e3e;
+        }
+
+        /* Main Container */
+        .main-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1.5rem;
+        }
+
+        /* Video Grid - Instagram Grid Style */
+        .video-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .video-card {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+        }
+
+        .video-card:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            transform: translateY(-2px);
+        }
+
+        /* Alert States */
+        .video-card.alert-critical {
+            box-shadow: 0 0 0 3px #fa3e3e;
+            animation: pulse-critical 2s infinite;
+        }
+
+        .video-card.alert-warning {
+            box-shadow: 0 0 0 3px #ff9800;
+        }
+
+        .video-card.alert-info {
+            box-shadow: 0 0 0 3px #1877f2;
+        }
+
+        @keyframes pulse-critical {
+            0%, 100% {
+                box-shadow: 0 0 0 3px #fa3e3e, 0 4px 12px rgba(250, 62, 62, 0.2);
+            }
+            50% {
+                box-shadow: 0 0 0 3px #fa3e3e, 0 8px 24px rgba(250, 62, 62, 0.4);
+            }
+        }
+
+        .card-header {
+            padding: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #e4e6eb;
+        }
+
+        .camera-info {
+            flex: 1;
+        }
+
+        .camera-name {
+            font-weight: 600;
+            font-size: 1rem;
+            color: #1c1e21;
+            margin-bottom: 0.25rem;
+        }
+
+        .camera-location {
+            font-size: 0.875rem;
+            color: #65676b;
+        }
+
+        .alert-indicator {
+            padding: 0.35rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+        }
+
+        .alert-indicator.safe {
+            background: #e7f3ff;
+            color: #1877f2;
+        }
+
+        .alert-indicator.info {
+            background: #e7f3ff;
+            color: #1877f2;
+        }
+
+        .alert-indicator.warning {
+            background: #fff3e0;
+            color: #ff9800;
+        }
+
+        .alert-indicator.critical {
+            background: #ffebee;
+            color: #fa3e3e;
+            animation: pulse-text 1.5s infinite;
+        }
+
+        @keyframes pulse-text {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .video-container {
+            position: relative;
+            width: 100%;
+            padding-top: 56.25%; /* 16:9 */
+            background: #000;
+            overflow: hidden;
+        }
+
+        .video-container img {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            image-rendering: -webkit-optimize-contrast;
+            image-rendering: crisp-edges;
+            will-change: auto;
+        }
+
+        .video-placeholder {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #65676b;
+            text-align: center;
+        }
+
+        .card-actions {
+            padding: 0.75rem 1rem;
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 0.5rem;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: #1877f2;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #166fe5;
+        }
+
+        .btn-secondary {
+            background: #e4e6eb;
+            color: #1c1e21;
+        }
+
+        .btn-secondary:hover {
+            background: #d8dadf;
+        }
+
+        .btn-danger {
+            background: #fa3e3e;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #e02828;
+        }
+
+        /* Modern Toast - Facebook/Instagram Notification Style */
+        .toast-container {
+            position: fixed;
+            top: 5rem;
+            right: 1rem;
+            z-index: 9999;
+            width: 360px;
+            max-width: calc(100vw - 2rem);
+        }
+
+        .toast {
+            background: white;
+            padding: 1rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+            margin-bottom: 0.75rem;
+            animation: slideInRight 0.3s ease;
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+            border-left: 4px solid;
+        }
+
+        .toast.critical {
+            border-left-color: #fa3e3e;
+        }
+
+        .toast.warning {
+            border-left-color: #ff9800;
+        }
+
+        .toast.info {
+            border-left-color: #1877f2;
+        }
+
+        .toast-icon {
+            font-size: 1.25rem;
+            flex-shrink: 0;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+        }
+
+        .toast.critical .toast-icon {
+            background: #ffebee;
+        }
+
+        .toast.warning .toast-icon {
+            background: #fff3e0;
+        }
+
+        .toast.info .toast-icon {
+            background: #e7f3ff;
+        }
+
+        .toast-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .toast-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 0.25rem;
+        }
+
+        .toast-title {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #1c1e21;
+        }
+
+        .toast-time {
+            font-size: 0.7rem;
+            color: #65676b;
+        }
+
+        .toast-body {
+            font-size: 0.8125rem;
+            color: #65676b;
+            line-height: 1.3;
+        }
+
+        .toast-close {
+            background: none;
+            border: none;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.25rem;
+            color: #65676b;
+            transition: background 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .toast-close:hover {
+            background: #f0f2f5;
+        }
+
+        @keyframes slideInRight {
+            from {
+                transform: translateX(120%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideOutRight {
+            to {
+                transform: translateX(120%);
+                opacity: 0;
+            }
+        }
+
+        /* Activity Feed - Facebook Feed Style */
+        .activity-section {
+            background: white;
+            border-radius: 12px;
+            padding: 1rem;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+            margin-bottom: 1.5rem;
+            display: none;
+        }
+
+        .activity-section.visible {
+            display: block;
+        }
+
+        .activity-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid #e4e6eb;
+        }
+
+        .activity-title {
+            font-size: 1.125rem;
+            font-weight: 700;
+            color: #1c1e21;
+        }
+
+        .activity-stats {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .stat-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.8125rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+        }
+
+        .stat-badge.critical {
+            background: #ffebee;
+            color: #fa3e3e;
+        }
+
+        .stat-badge.warning {
+            background: #fff3e0;
+            color: #ff9800;
+        }
+
+        .stat-badge.info {
+            background: #e7f3ff;
+            color: #1877f2;
+        }
+
+        .activity-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .activity-item {
+            padding: 0.75rem;
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+            transition: background 0.2s;
+            cursor: pointer;
+        }
+
+        .activity-item:hover {
+            background: #f0f2f5;
+        }
+
+        .activity-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.25rem;
+        }
+
+        .activity-camera {
+            font-weight: 600;
+            font-size: 0.9375rem;
+            color: #1c1e21;
+        }
+
+        .activity-time {
+            font-size: 0.75rem;
+            color: #65676b;
+        }
+
+        .activity-message {
+            font-size: 0.875rem;
+            color: #65676b;
+            line-height: 1.4;
+        }
+
+        .no-activity {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: #65676b;
+            font-size: 0.9375rem;
+        }
+
+        /* Loading Spinner */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #e4e6eb;
+            border-radius: 50%;
+            border-top-color: #1877f2;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .video-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .toast-container {
+                width: calc(100vw - 2rem);
+                right: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <div class="header-left">
+            <div class="logo">
+                <span>🎥</span>
+                <span>Surveillance</span>
+            </div>
+        </div>
+        <div class="header-right">
+            <div class="notification-toggle" id="notificationToggle" title="Activer/Désactiver les notifications">
+                <span>Notifications</span>
+                <div class="toggle-switch"></div>
+            </div>
+            <div class="connection-status">
+                <div class="status-dot" id="statusDot"></div>
+                <span id="statusText">Connexion...</span>
+            </div>
+            <div class="notification-bell" id="notificationBell" style="display: none;">
+                <div class="notification-icon">🔔</div>
+                <div class="notification-badge" id="notificationBadge" style="display: none;">0</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Container -->
+    <div class="main-container">
+        <!-- Activity Feed -->
+        <div class="activity-section" id="activitySection">
+            <div class="activity-header">
+                <div class="activity-title">Activité Récente</div>
+                <div class="activity-stats">
+                    <div class="stat-badge critical">
+                        <span id="criticalCount">0</span>
+                        <span>Critique</span>
+                    </div>
+                    <div class="stat-badge warning">
+                        <span id="warningCount">0</span>
+                        <span>Attention</span>
+                    </div>
+                    <div class="stat-badge info">
+                        <span id="infoCount">0</span>
+                        <span>Info</span>
+                    </div>
+                </div>
+            </div>
+            <div class="activity-list" id="activityList">
+                <div class="no-activity">Aucune activité récente</div>
+            </div>
+        </div>
+
+        <!-- Video Grid -->
+        <div class="video-grid" id="videoGrid">
+            <!-- Video cards will be dynamically generated -->
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script>
+        class ModernSurveillanceDashboard {
+            constructor() {
+                this.ws = null;
+                this.cameras = [];
+                this.alerts = [];
+                this.cameraStates = {}; // {camera_id: {level, lastAlert, count}}
+                this.alertCounts = { critical: 0, warning: 0, info: 0 };
+                this.unreadCount = 0;
+                this.maxToasts = 1;
+                this.activeToasts = 0;
+                this.alertTimeout = 30000; // 30 secondes
+                this.lastToastTime = 0;
+                this.toastCooldown = 3000; // 3 secondes entre chaque toast
+                
+                // Notifications désactivées par défaut
+                this.notificationsEnabled = false;
+                
+                // Batching
+                this.alertQueue = [];
+                this.uiUpdateInterval = 2000; // 2 secondes pour réduire la fréquence
+                
+                // DOM elements
+                this.videoGrid = document.getElementById('videoGrid');
+                this.activityList = document.getElementById('activityList');
+                this.activitySection = document.getElementById('activitySection');
+                this.toastContainer = document.getElementById('toastContainer');
+                this.notificationBell = document.getElementById('notificationBell');
+                this.notificationBadge = document.getElementById('notificationBadge');
+                this.notificationToggle = document.getElementById('notificationToggle');
+                this.statusDot = document.getElementById('statusDot');
+                this.statusText = document.getElementById('statusText');
+                
+                this.init();
+            }
+
+            async init() {
+                console.log('🚀 Initializing Modern Surveillance Dashboard...');
+                
+                await this.loadCameras();
+                this.initWebSocket();
+                this.startAlertProcessor();
+                this.startCameraMonitor();
+                
+                // Notification toggle handler
+                this.notificationToggle.addEventListener('click', () => {
+                    this.toggleNotifications();
+                });
+                
+                // Bell click handler
+                this.notificationBell.addEventListener('click', () => {
+                    this.clearUnreadCount();
+                });
+            }
+
+            toggleNotifications() {
+                this.notificationsEnabled = !this.notificationsEnabled;
+                
+                if (this.notificationsEnabled) {
+                    this.notificationToggle.classList.add('active');
+                    this.notificationBell.style.display = 'flex';
+                    this.activitySection.classList.add('visible');
+                    console.log('✅ Notifications activées');
+                } else {
+                    this.notificationToggle.classList.remove('active');
+                    this.notificationBell.style.display = 'none';
+                    this.activitySection.classList.remove('visible');
+                    // Nettoyer les toasts existants
+                    this.toastContainer.innerHTML = '';
+                    this.activeToasts = 0;
+                    console.log('🔇 Notifications désactivées');
+                }
+            }
+
+            async loadCameras() {
+                try {
+                    const response = await fetch('/api/v1/cameras');
+                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                    
+                    const data = await response.json();
+                    this.cameras = Array.isArray(data.cameras) ? data.cameras : [];
+                    
+                    console.log('📹 Caméras chargées:', this.cameras.length);
+                    this.renderCameras();
+                    
+                    // Auto-démarrer les streams actifs
+                    this.cameras.forEach(camera => {
+                        if (camera.status === 'streaming') {
+                            setTimeout(() => this.startVideoStream(camera.id), 500);
+                        }
+                    });
+                } catch (error) {
+                    console.error('❌ Erreur chargement caméras:', error);
+                }
+            }
+
+            renderCameras() {
+                if (!this.cameras || this.cameras.length === 0) {
+                    this.videoGrid.innerHTML = '<div class="no-activity">Aucune caméra disponible</div>';
+                    return;
+                }
+
+                this.videoGrid.innerHTML = '';
+                this.cameras.forEach(camera => {
+                    const card = this.createVideoCard(camera);
+                    this.videoGrid.appendChild(card);
+                });
+            }
+
+            createVideoCard(camera) {
+                const card = document.createElement('div');
+                card.className = 'video-card alert-safe';
+                card.dataset.cameraId = camera.id;
+
+                const alertState = this.cameraStates[camera.id] || { level: 'safe', count: 0 };
+                const icons = { safe: '✓', info: 'ℹ️', warning: '⚠️', critical: '🚨' };
+                const labels = { safe: 'Sécurisé', info: 'Activité', warning: 'Attention', critical: 'ALERTE' };
+
+                card.innerHTML = `
+                    <div class="card-header">
+                        <div class="camera-info">
+                            <div class="camera-name">${camera.name || 'Caméra'}</div>
+                            <div class="camera-location">${camera.location || camera.url || 'Aucun emplacement'}</div>
+                        </div>
+                        <div class="alert-indicator ${alertState.level}">
+                            <span>${icons[alertState.level]}</span>
+                            <span>${labels[alertState.level]}</span>
+                            ${alertState.count > 0 ? `<span>(${alertState.count})</span>` : ''}
+                        </div>
+                    </div>
+                    <div class="video-container">
+                        <img id="stream_${camera.id}" style="display: none;" alt="${camera.name}">
+                        <div class="video-placeholder">
+                            <div class="loading"></div>
+                            <div style="margin-top: 1rem;">Chargement du flux...</div>
+                        </div>
+                    </div>
+                    <div class="card-actions">
+                        <button class="btn btn-primary" onclick="dashboard.startVideoStream('${camera.id}')">
+                            ▶️ Démarrer
+                        </button>
+                        <button class="btn btn-secondary" onclick="dashboard.stopVideoStream('${camera.id}')">
+                            ⏸️ Arrêter
+                        </button>
+                    </div>
+                `;
+
+                return card;
+            }
+
+            startVideoStream(cameraId) {
+                console.log('▶️ Démarrage du flux:', cameraId);
+                const img = document.getElementById(`stream_${cameraId}`);
+                if (img) {
+                    // Optimisations pour un meilleur streaming
+                    img.src = `/api/v1/cameras/${cameraId}/stream?t=${Date.now()}`;
+                    img.style.display = 'block';
+                    
+                    // Gestion de chargement optimisée
+                    img.onload = () => {
+                        const placeholder = img.parentElement.querySelector('.video-placeholder');
+                        if (placeholder) placeholder.style.display = 'none';
+                        console.log(`✅ Flux ${cameraId} chargé`);
+                    };
+                    
+                    img.onerror = () => {
+                        console.error(`❌ Erreur chargement flux ${cameraId}`);
+                        setTimeout(() => {
+                            if (img.src) img.src = `/api/v1/cameras/${cameraId}/stream?t=${Date.now()}`;
+                        }, 2000);
+                    };
+                }
+            }
+
+            stopVideoStream(cameraId) {
+                console.log('⏸️ Arrêt du flux:', cameraId);
+                const img = document.getElementById(`stream_${cameraId}`);
+                if (img) {
+                    img.src = '';
+                    img.style.display = 'none';
+                    const placeholder = img.parentElement.querySelector('.video-placeholder');
+                    if (placeholder) placeholder.style.display = 'block';
+                }
+            }
+
+            initWebSocket() {
+                const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                const wsUrl = `${protocol}//${window.location.host}/ws`;
+
+                console.log('🔌 Connexion WebSocket:', wsUrl);
+                this.ws = new WebSocket(wsUrl);
+
+                this.ws.onopen = () => {
+                    console.log('✅ WebSocket connecté');
+                    this.statusDot.classList.remove('disconnected');
+                    this.statusText.textContent = 'Connecté';
+                };
+
+                this.ws.onmessage = (event) => {
+                    try {
+                        const data = JSON.parse(event.data);
+                        if (data.type === 'alert' || data.type === 'motion_detected') {
+                            this.alertQueue.push(data);
+                        }
+                    } catch (error) {
+                        console.error('❌ Erreur parsing WebSocket:', error);
+                    }
+                };
+
+                this.ws.onclose = () => {
+                    console.log('🔌 WebSocket déconnecté');
+                    this.statusDot.classList.add('disconnected');
+                    this.statusText.textContent = 'Déconnecté';
+                    setTimeout(() => this.initWebSocket(), 3000);
+                };
+
+                this.ws.onerror = (error) => {
+                    console.error('❌ Erreur WebSocket:', error);
+                };
+            }
+
+            startAlertProcessor() {
+                setInterval(() => {
+                    if (this.alertQueue.length > 0) {
+                        const batch = this.alertQueue.splice(0, this.alertQueue.length);
+                        this.processBatchAlerts(batch);
+                    }
+                }, this.uiUpdateInterval);
+            }
+
+            processBatchAlerts(batch) {
+                console.log(`📊 Traitement batch: ${batch.length} alertes`);
+                
+                // Grouper par caméra + niveau
+                const grouped = {};
+                batch.forEach(alert => {
+                    const level = this.mapAlertLevel(alert.level);
+                    const key = `${alert.camera_id}_${level}`;
+                    if (!grouped[key]) {
+                        grouped[key] = {
+                            camera_id: alert.camera_id,
+                            level,
+                            count: 0,
+                            latest: alert
+                        };
+                    }
+                    grouped[key].count++;
+                    
+                    // Compter par type
+                    this.alertCounts[level]++;
+                });
+
+                // Mettre à jour les compteurs
+                this.updateAlertCounts();
+
+                // Traiter chaque groupe
+                Object.values(grouped).forEach(group => {
+                    this.updateCameraAlertState(group.camera_id, group.level, group.count);
+                    
+                    // Ajouter à l'activité seulement si notifications activées
+                    if (this.notificationsEnabled) {
+                        this.addActivityItem(group.latest, group.count);
+                        
+                        // Afficher toast UNIQUEMENT pour les alertes critiques et respecter le cooldown
+                        const now = Date.now();
+                        if (group.level === 'critical' && (now - this.lastToastTime) > this.toastCooldown) {
+                            this.showToast(group.latest, group.count);
+                            this.lastToastTime = now;
+                        }
+                    }
+                });
+
+                // Mettre à jour le badge de notification seulement si activé
+                if (this.notificationsEnabled) {
+                    const criticalCount = Object.values(grouped).filter(g => g.level === 'critical').length;
+                    this.unreadCount += criticalCount;
+                    this.updateNotificationBadge();
+                }
+            }
+
+            mapAlertLevel(level) {
+                if (!level) return 'info';
+                const l = level.toLowerCase();
+                if (l.includes('critical') || l.includes('high')) return 'critical';
+                if (l.includes('warning') || l.includes('medium')) return 'warning';
+                return 'info';
+            }
+
+            updateCameraAlertState(cameraId, level, count) {
+                if (!this.cameraStates[cameraId]) {
+                    this.cameraStates[cameraId] = {
+                        level: 'safe',
+                        count: 0,
+                        startTime: Date.now()
+                    };
+                }
+
+                const state = this.cameraStates[cameraId];
+                state.level = level;
+                state.count += count;
+                state.startTime = Date.now();
+
+                this.updateCameraVisual(cameraId);
+            }
+
+            updateCameraVisual(cameraId) {
+                const card = document.querySelector(`[data-camera-id="${cameraId}"]`);
+                if (!card) return;
+
+                const state = this.cameraStates[cameraId];
+                if (!state) return;
+
+                // Mettre à jour la classe de la carte
+                card.classList.remove('alert-safe', 'alert-info', 'alert-warning', 'alert-critical');
+                card.classList.add(`alert-${state.level}`);
+
+                // Mettre à jour l'indicateur
+                const indicator = card.querySelector('.alert-indicator');
+                if (indicator) {
+                    const icons = { safe: '✓', info: 'ℹ️', warning: '⚠️', critical: '🚨' };
+                    const labels = { safe: 'Sécurisé', info: 'Activité', warning: 'Attention', critical: 'ALERTE' };
+                    
+                    indicator.className = `alert-indicator ${state.level}`;
+                    indicator.innerHTML = `
+                        <span>${icons[state.level]}</span>
+                        <span>${labels[state.level]}</span>
+                        ${state.count > 0 ? `<span>(${state.count})</span>` : ''}
+                    `;
+                }
+            }
+
+            startCameraMonitor() {
+                setInterval(() => {
+                    const now = Date.now();
+                    Object.keys(this.cameraStates).forEach(cameraId => {
+                        const state = this.cameraStates[cameraId];
+                        const elapsed = now - state.startTime;
+                        
+                        // Retour à safe après 30 secondes
+                        if (elapsed >= this.alertTimeout && state.level !== 'safe') {
+                            state.level = 'safe';
+                            state.count = 0;
+                            this.updateCameraVisual(cameraId);
+                        }
+                    });
+                }, 1000);
+            }
+
+            updateAlertCounts() {
+                document.getElementById('criticalCount').textContent = this.alertCounts.critical;
+                document.getElementById('warningCount').textContent = this.alertCounts.warning;
+                document.getElementById('infoCount').textContent = this.alertCounts.info;
+            }
+
+            updateNotificationBadge() {
+                if (this.unreadCount > 0) {
+                    this.notificationBadge.style.display = 'flex';
+                    this.notificationBadge.textContent = this.unreadCount > 99 ? '99+' : this.unreadCount;
+                    this.notificationBell.classList.add('has-alerts');
+                } else {
+                    this.notificationBadge.style.display = 'none';
+                    this.notificationBell.classList.remove('has-alerts');
+                }
+            }
+
+            clearUnreadCount() {
+                this.unreadCount = 0;
+                this.updateNotificationBadge();
+            }
+
+            addActivityItem(alert, count) {
+                // Supprimer le message "Aucune activité"
+                const noActivity = this.activityList.querySelector('.no-activity');
+                if (noActivity) noActivity.remove();
+
+                const item = document.createElement('div');
+                item.className = 'activity-item';
+                
+                const level = this.mapAlertLevel(alert.level);
+                const now = new Date();
+                const timeStr = now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+
+                item.innerHTML = `
+                    <div class="activity-item-header">
+                        <div class="activity-camera">${alert.camera_id || 'Caméra inconnue'}</div>
+                        <div class="activity-time">${timeStr}</div>
+                    </div>
+                    <div class="activity-message">
+                        ${count > 1 ? `${count} alertes détectées` : alert.message || 'Mouvement détecté'}
+                    </div>
+                `;
+
+                this.activityList.insertBefore(item, this.activityList.firstChild);
+
+                // Limiter à 50 éléments
+                while (this.activityList.children.length > 50) {
+                    this.activityList.removeChild(this.activityList.lastChild);
+                }
+
+                this.alerts.unshift(alert);
+            }
+
+            showToast(alert, count) {
+                if (this.activeToasts >= this.maxToasts) return;
+
+                this.activeToasts++;
+                const level = this.mapAlertLevel(alert.level);
+                const toast = document.createElement('div');
+                toast.className = `toast ${level}`;
+
+                const icons = { critical: '🚨', warning: '⚠️', info: 'ℹ️' };
+                const now = new Date();
+                const timeStr = now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+
+                toast.innerHTML = `
+                    <div class="toast-icon">${icons[level]}</div>
+                    <div class="toast-content">
+                        <div class="toast-header">
+                            <div class="toast-title">${alert.camera_id || 'Caméra'}</div>
+                            <div class="toast-time">${timeStr}</div>
+                        </div>
+                        <div class="toast-body">
+                            ${count > 1 ? `${count} alertes détectées` : alert.message || 'Mouvement détecté'}
+                        </div>
+                    </div>
+                    <button class="toast-close">✕</button>
+                `;
+
+                const closeBtn = toast.querySelector('.toast-close');
+                closeBtn.addEventListener('click', () => {
+                    this.activeToasts--;
+                    toast.style.animation = 'slideOutRight 0.3s ease';
+                    setTimeout(() => toast.remove(), 300);
+                });
+
+                this.toastContainer.appendChild(toast);
+
+                // Auto-remove après 3 secondes
+                setTimeout(() => {
+                    if (toast.parentElement) {
+                        this.activeToasts--;
+                        toast.style.animation = 'slideOutRight 0.3s ease';
+                        setTimeout(() => toast.remove(), 300);
+                    }
+                }, 3000);
+            }
+        }
+
+        // Initialiser le dashboard
+        let dashboard;
+        document.addEventListener('DOMContentLoaded', () => {
+            dashboard = new ModernSurveillanceDashboard();
+        });
+    </script>
+</body>
+</html>

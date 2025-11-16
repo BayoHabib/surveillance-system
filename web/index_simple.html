@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎥 Surveillance - Simple & Efficace</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #1a1a1a;
+            color: #fff;
+            padding: 1rem;
+        }
+
+        .header {
+            background: #2d2d2d;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .status {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #4CAF50;
+        }
+
+        .status-dot.offline {
+            background: #f44336;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 1rem;
+        }
+
+        .camera-card {
+            background: #2d2d2d;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 2px solid transparent;
+            transition: border-color 0.3s;
+        }
+
+        .camera-card.streaming {
+            border-color: #4CAF50;
+        }
+
+        .camera-header {
+            padding: 1rem;
+            background: #1a1a1a;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .camera-name {
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        .camera-status {
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .camera-status.streaming {
+            background: rgba(76, 175, 80, 0.2);
+            color: #4CAF50;
+        }
+
+        .camera-status.offline {
+            background: rgba(244, 67, 54, 0.2);
+            color: #f44336;
+        }
+
+        .video-wrapper {
+            position: relative;
+            width: 100%;
+            padding-top: 56.25%; /* 16:9 */
+            background: #000;
+        }
+
+        .video-wrapper img {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .video-placeholder {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            color: #666;
+        }
+
+        .controls {
+            padding: 1rem;
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        button {
+            flex: 1;
+            padding: 0.75rem;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        button:hover {
+            opacity: 0.8;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-start {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .btn-stop {
+            background: #f44336;
+            color: white;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #444;
+            border-radius: 50%;
+            border-top-color: #4CAF50;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .error {
+            color: #f44336;
+            text-align: center;
+            padding: 1rem;
+        }
+
+        @media (max-width: 768px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🎥 Surveillance</h1>
+        <div class="status">
+            <div class="status-dot" id="statusDot"></div>
+            <span id="statusText">Connexion...</span>
+        </div>
+    </div>
+
+    <div class="grid" id="cameraGrid">
+        <div class="camera-card">
+            <div class="camera-header">
+                <div class="camera-name">Chargement...</div>
+            </div>
+            <div class="video-wrapper">
+                <div class="video-placeholder">
+                    <div class="loading"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class SimpleDashboard {
+            constructor() {
+                this.cameras = [];
+                this.statusDot = document.getElementById('statusDot');
+                this.statusText = document.getElementById('statusText');
+                this.cameraGrid = document.getElementById('cameraGrid');
+                
+                this.init();
+            }
+
+            async init() {
+                console.log('🚀 Chargement du dashboard...');
+                await this.loadCameras();
+                setInterval(() => this.checkStatus(), 5000);
+            }
+
+            async checkStatus() {
+                try {
+                    const response = await fetch('/api/v1/health');
+                    if (response.ok) {
+                        this.statusDot.classList.remove('offline');
+                        this.statusText.textContent = 'En ligne';
+                    } else {
+                        throw new Error('Serveur hors ligne');
+                    }
+                } catch (error) {
+                    this.statusDot.classList.add('offline');
+                    this.statusText.textContent = 'Hors ligne';
+                }
+            }
+
+            async loadCameras() {
+                try {
+                    const response = await fetch('/api/v1/cameras');
+                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                    
+                    const data = await response.json();
+                    this.cameras = Array.isArray(data.cameras) ? data.cameras : [];
+                    
+                    console.log(`📹 ${this.cameras.length} caméras chargées`);
+                    this.renderCameras();
+                    this.checkStatus();
+                } catch (error) {
+                    console.error('❌ Erreur:', error);
+                    this.cameraGrid.innerHTML = '<div class="error">❌ Erreur de connexion au serveur</div>';
+                }
+            }
+
+            renderCameras() {
+                if (this.cameras.length === 0) {
+                    this.cameraGrid.innerHTML = '<div class="error">Aucune caméra disponible</div>';
+                    return;
+                }
+
+                this.cameraGrid.innerHTML = '';
+                
+                this.cameras.forEach(camera => {
+                    const card = this.createCameraCard(camera);
+                    this.cameraGrid.appendChild(card);
+                });
+            }
+
+            createCameraCard(camera) {
+                const card = document.createElement('div');
+                card.className = 'camera-card';
+                card.dataset.cameraId = camera.id;
+                
+                if (camera.status === 'streaming') {
+                    card.classList.add('streaming');
+                }
+
+                const statusClass = camera.status === 'streaming' ? 'streaming' : 'offline';
+                const statusText = camera.status === 'streaming' ? '🟢 En ligne' : '🔴 Hors ligne';
+
+                card.innerHTML = `
+                    <div class="camera-header">
+                        <div class="camera-name">${camera.name || camera.id}</div>
+                        <div class="camera-status ${statusClass}">${statusText}</div>
+                    </div>
+                    <div class="video-wrapper">
+                        <img id="stream_${camera.id}" style="display: none;" alt="${camera.name}">
+                        <div class="video-placeholder" id="placeholder_${camera.id}">
+                            <div>📹</div>
+                            <div style="margin-top: 0.5rem;">Prêt à démarrer</div>
+                        </div>
+                    </div>
+                    <div class="controls">
+                        <button class="btn-start" onclick="dashboard.startStream('${camera.id}')">
+                            ▶️ Démarrer
+                        </button>
+                        <button class="btn-stop" onclick="dashboard.stopStream('${camera.id}')">
+                            ⏸️ Arrêter
+                        </button>
+                    </div>
+                `;
+
+                return card;
+            }
+
+            startStream(cameraId) {
+                console.log(`▶️ Démarrage: ${cameraId}`);
+                
+                const img = document.getElementById(`stream_${cameraId}`);
+                const placeholder = document.getElementById(`placeholder_${cameraId}`);
+                
+                if (!img) return;
+
+                // Ajouter timestamp pour éviter le cache
+                img.src = `/api/v1/cameras/${cameraId}/stream?t=${Date.now()}`;
+                
+                img.onload = () => {
+                    img.style.display = 'block';
+                    if (placeholder) placeholder.style.display = 'none';
+                    console.log(`✅ Flux ${cameraId} démarré`);
+                };
+
+                img.onerror = () => {
+                    console.error(`❌ Erreur flux ${cameraId}`);
+                    if (placeholder) {
+                        placeholder.innerHTML = '<div style="color: #f44336;">❌ Erreur de connexion</div>';
+                    }
+                };
+            }
+
+            stopStream(cameraId) {
+                console.log(`⏸️ Arrêt: ${cameraId}`);
+                
+                const img = document.getElementById(`stream_${cameraId}`);
+                const placeholder = document.getElementById(`placeholder_${cameraId}`);
+                
+                if (img) {
+                    img.src = '';
+                    img.style.display = 'none';
+                }
+                
+                if (placeholder) {
+                    placeholder.style.display = 'flex';
+                    placeholder.innerHTML = '<div>📹</div><div style="margin-top: 0.5rem;">Arrêté</div>';
+                }
+            }
+        }
+
+        // Initialiser
+        let dashboard;
+        document.addEventListener('DOMContentLoaded', () => {
+            dashboard = new SimpleDashboard();
+        });
+    </script>
+</body>
+</html>

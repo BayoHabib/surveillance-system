@@ -327,10 +327,12 @@ func setupRouter(app *App) *gin.Engine {
 
 	// Static file serving with security headers
 	router.Static("/static", "./web/static")
-	router.StaticFile("/", "./web/index_video.html")
+	router.StaticFile("/", "./web/index_simple.html")
+	router.StaticFile("/modern", "./web/index_modern.html")
 	router.StaticFile("/internet", "./web/internet_streaming.html")
 	router.StaticFile("/test-notifications", "./web/test_notifications.html")
 	router.StaticFile("/explorer", "./web/alert_explorer.html")
+	router.StaticFile("/classic", "./web/index_video.html")
 
 	// 404 handler
 	router.NoRoute(func(c *gin.Context) {

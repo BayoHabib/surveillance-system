@@ -1,5 +1,6 @@
 // src/vision_service.cpp
 #include "vision_service.h"
+#include "opencv_capture_manager.h"
 #include <iostream>
 #include <sstream>
 #include <regex>
@@ -57,12 +58,18 @@ Status VisionServiceImpl::StartStream(ServerContext* context,
         // Créer un nouveau stream state
         auto stream_state = std::make_unique<StreamState>(camera_id, camera_url);
         
-        // Créer les composants (pour l'instant, simulés)
-        stream_state->camera_manager = std::make_unique<CameraManager>(camera_url);
+        // Créer les composants avec OpenCV
+        stream_state->camera_manager = std::make_unique<OpenCVCaptureManager>(camera_url);
         stream_state->frame_processor = std::make_unique<FrameProcessor>();
         
+        // Préparer la configuration
+        CameraConfig camera_config;
+        camera_config.width = request->has_config() ? request->config().width() : 640;
+        camera_config.height = request->has_config() ? request->config().height() : 480;
+        camera_config.fps = request->has_config() ? request->config().fps() : 30;
+        
         // Initialiser le camera manager
-        if (!stream_state->camera_manager->Initialize()) {
+        if (!stream_state->camera_manager->Initialize(camera_config)) {
             LogError("Failed to initialize camera manager for: " + camera_id);
             response->set_status(STATUS_ERROR);
             response->set_message("Failed to initialize camera for " + camera_id);

@@ -493,9 +493,11 @@ func createCameraHandler(app *App) gin.HandlerFunc {
 		
 		// Validate URL
 		if !isValidURL(req.URL) {
+			app.Logger.Printf("❌ Invalid URL rejected: '%s'", req.URL)
 			c.JSON(400, gin.H{"error": "Invalid camera URL format"})
 			return
 		}
+		app.Logger.Printf("✅ URL accepted: '%s'", req.URL)
 		
 		cameraID := fmt.Sprintf("cam_%d", time.Now().Unix())
 		

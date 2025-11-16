@@ -53,6 +53,7 @@ bool OpenCVCaptureManager::Initialize(const CameraConfig& config) {
         }
 
         SetState(CameraState::READY);
+        CameraManager::is_initialized_ = true;  // Explicitement le membre de la classe de base
         stats_.start_time = std::chrono::steady_clock::now();
         std::cerr << "[OpenCVCaptureManager] OpenCV initialization successful" << std::endl;
         return true;

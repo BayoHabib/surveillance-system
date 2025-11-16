@@ -6,7 +6,12 @@
 #include <memory>
 #include <mutex>
 #include <atomic>
+#include <functional>
 #include "camera_manager.h"
+#include "vision.pb.h"
+
+// Callback pour les événements de détection gRPC
+using GrpcDetectionCallback = std::function<bool(const surveillance::vision::DetectionEvent&)>;
 
 // Gestionnaire de capture spécialisé OpenCV pour Phase 2.3
 // Hérite de CameraManager et fournit une capture vidéo réelle
@@ -32,6 +37,7 @@ public:
     bool IsMotionDetectionEnabled() const;
     void SetMotionSensitivity(double sensitivity);
     void SetCameraId(const std::string& camera_id);
+    void SetDetectionCallback(GrpcDetectionCallback callback);
     
 protected:
     // Méthodes de capture spécialisées OpenCV
@@ -55,6 +61,10 @@ private:
     std::atomic<bool> should_stop_capture_{false};
     std::string camera_id_;  // ID de la caméra pour les événements
     std::atomic<int64_t> frame_number_{0};
+    
+    // Callback pour les événements de détection
+    GrpcDetectionCallback detection_callback_;
+    std::mutex callback_mutex_;
     
     // Détection de mouvement avec MOG2
     cv::Ptr<cv::BackgroundSubtractorMOG2> background_subtractor_;

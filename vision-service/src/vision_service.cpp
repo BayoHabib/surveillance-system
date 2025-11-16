@@ -351,6 +351,72 @@ Status VisionServiceImpl::ValidateStreamRequest(const StreamRequest* request) co
     return Status::OK;
 }
 
+Status VisionServiceImpl::StreamDetections(ServerContext* context,
+                                           const DetectionStreamRequest* request,
+                                           ServerWriter<surveillance::vision::DetectionEvent>* writer) {
+    const std::string& camera_id = request->camera_id();
+    LogInfo("StreamDetections called for camera: " + camera_id);
+    
+    // Vérifier que le stream existe
+    auto lock = LockStreams();
+    StreamState* stream_state = GetStreamState(camera_id);
+    
+    if (!stream_state) {
+        LogError("No active stream found for camera: " + camera_id);
+        return Status(grpc::StatusCode::NOT_FOUND, "Camera stream not found");
+    }
+    
+    // Récupérer le manager OpenCV
+    auto* opencv_manager = dynamic_cast<OpenCVCaptureManager*>(stream_state->camera_manager.get());
+    if (!opencv_manager) {
+        LogError("Camera manager is not an OpenCV manager for: " + camera_id);
+        return Status(grpc::StatusCode::FAILED_PRECONDITION, "OpenCV manager required");
+    }
+    
+    lock.unlock(); // Libérer le lock avant la boucle
+    
+    // Créer un compteur partagé pour l'état du stream
+    auto event_count = std::make_shared<std::atomic<int>>(0);
+    auto stream_active = std::make_shared<std::atomic<bool>>(true);
+    
+    // Créer un callback pour recevoir les événements de détection
+    GrpcDetectionCallback callback = [writer, context, event_count, stream_active, camera_id](const surveillance::vision::DetectionEvent& event) -> bool {
+        // Vérifier si le stream est toujours actif
+        if (!stream_active->load() || context->IsCancelled()) {
+            return false; // Arrêter le callback
+        }
+        
+        // Envoyer l'événement au client
+        if (!writer->Write(event)) {
+            std::cerr << "[VisionService] Failed to write detection event to stream for camera: " << camera_id << std::endl;
+            return false;
+        }
+        
+        int count = ++(*event_count);
+        if (count % 10 == 0) {
+            std::cerr << "[VisionService] Sent " << count << " detection events for camera: " << camera_id << std::endl;
+        }
+        
+        return true; // Continuer à recevoir des événements
+    };
+    
+    opencv_manager->SetDetectionCallback(callback);
+    
+    LogInfo("Detection stream established for camera: " + camera_id);
+    
+    // Attendre que le client se déconnecte
+    while (!context->IsCancelled()) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+    
+    // Marquer le stream comme inactif et nettoyer le callback
+    stream_active->store(false);
+    opencv_manager->SetDetectionCallback(nullptr);
+    
+    LogInfo("StreamDetections completed for camera: " + camera_id + ", total events sent: " + std::to_string(event_count->load()));
+    return Status::OK;
+}
+
 Status VisionServiceImpl::ValidateStopRequest(const StopRequest* request) const {
     if (request->camera_id().empty()) {
         return Status(grpc::StatusCode::INVALID_ARGUMENT, "Camera ID cannot be empty");

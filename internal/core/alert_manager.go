@@ -4,6 +4,7 @@ package core
 import (
 	"errors"
 	"log"
+	"sort"
 	"sync"
 	"time"
 )
@@ -26,16 +27,23 @@ type AlertStats struct {
 }
 
 type alertManager struct {
-	alerts    []Alert
-	retention time.Duration
-	mutex     sync.RWMutex
+	alerts         []Alert
+	alertsByCamera map[string][]int // Index: cameraID -> indices dans alerts
+	alertQueue     chan Alert        // Canal bufferisé pour ajout asynchrone
+	retention      time.Duration
+	mutex          sync.RWMutex
 }
 
 func NewAlertManager(retention time.Duration) AlertManager {
 	am := &alertManager{
-		alerts:    make([]Alert, 0),
-		retention: retention,
+		alerts:         make([]Alert, 0, 5000), // Pré-allouer pour 5000 alertes
+		alertsByCamera: make(map[string][]int),
+		alertQueue:     make(chan Alert, 10000), // Buffer de 10000 alertes
+		retention:      retention,
 	}
+
+	// Goroutine pour traitement des alertes en batch
+	go am.processAlertQueue()
 
 	// Nettoyage périodique des anciennes alertes
 	go am.periodicCleanup()
@@ -47,44 +55,134 @@ func (am *alertManager) AddAlert(alert Alert) {
 	// Sanitizer et valider
 	SanitizeAlert(&alert)
 	if validation := ValidateAlert(&alert); validation.HasErrors() {
-		log.Printf("Invalid alert: %v", validation.Errors)
+		log.Printf("❌ Invalid alert rejected: %v (ID: %s, Type: %s)", validation.Errors, alert.ID, alert.Type)
 		return
 	}
+	
+	// Envoi non-bloquant dans le canal
+	select {
+	case am.alertQueue <- alert:
+		// Ajouté au canal avec succès
+	default:
+		// Canal plein - forcer l'ajout synchrone
+		log.Printf("⚠️  Alert queue full, adding synchronously")
+		am.addAlertDirect(alert)
+	}
+}
+
+// Ajout direct dans le slice (utilisé en cas de queue pleine)
+func (am *alertManager) addAlertDirect(alert Alert) {
 	am.mutex.Lock()
 	defer am.mutex.Unlock()
 
-	// Insertion triée par timestamp (plus récent en premier)
-	insertIndex := 0
-	for i, existingAlert := range am.alerts {
-		if alert.Timestamp.After(existingAlert.Timestamp) {
-			insertIndex = i
-			break
-		}
-		insertIndex = i + 1
+	index := len(am.alerts)
+	am.alerts = append(am.alerts, alert)
+	
+	if alert.CameraID != "" {
+		am.alertsByCamera[alert.CameraID] = append(am.alertsByCamera[alert.CameraID], index)
 	}
+}
 
-	// Insertion à l'index calculé
-	am.alerts = append(am.alerts, Alert{})
-	copy(am.alerts[insertIndex+1:], am.alerts[insertIndex:])
-	am.alerts[insertIndex] = alert
+// Traitement des alertes en batch depuis le canal
+func (am *alertManager) processAlertQueue() {
+	ticker := time.NewTicker(500 * time.Millisecond) // Batch toutes les 500ms
+	defer ticker.Stop()
+	
+	batch := make([]Alert, 0, 200)
+	
+	for {
+		select {
+		case alert := <-am.alertQueue:
+			batch = append(batch, alert)
+			
+			// Si le batch est plein, l'écrire immédiatement
+			if len(batch) >= 200 {
+				am.writeBatch(batch)
+				batch = batch[:0]
+			}
+			
+		case <-ticker.C:
+			// Écrire le batch périodiquement même s'il n'est pas plein
+			if len(batch) > 0 {
+				am.writeBatch(batch)
+				batch = batch[:0]
+			}
+		}
+	}
+}
+
+// Écriture d'un batch d'alertes
+func (am *alertManager) writeBatch(batch []Alert) {
+	if len(batch) == 0 {
+		return
+	}
+	
+	am.mutex.Lock()
+	defer am.mutex.Unlock()
+	
+	startIndex := len(am.alerts)
+	am.alerts = append(am.alerts, batch...)
+	
+	// Mettre à jour l'index par caméra
+	for i, alert := range batch {
+		if alert.CameraID != "" {
+			index := startIndex + i
+			am.alertsByCamera[alert.CameraID] = append(am.alertsByCamera[alert.CameraID], index)
+		}
+	}
+	
+	// Log tous les 100 alertes
+	if len(am.alerts)%100 < len(batch) {
+		log.Printf("✅ Alerts: %d total (%d in this batch)", len(am.alerts), len(batch))
+	}
 }
 
 func (am *alertManager) GetAlerts(limit int, offset int) []Alert {
 	am.mutex.RLock()
 	defer am.mutex.RUnlock()
 
-	if offset >= len(am.alerts) {
+	totalAlerts := len(am.alerts)
+	if totalAlerts == 0 || offset >= totalAlerts {
+		return []Alert{}
+	}
+
+	// Optimisation: copier seulement la fenêtre dont on a besoin pour le tri
+	// Au lieu de trier TOUTES les alertes, trier seulement les N dernières
+	windowSize := offset + limit
+	if windowSize > totalAlerts {
+		windowSize = totalAlerts
+	}
+	// Limiter la fenêtre à un maximum raisonnable
+	if windowSize > 1000 {
+		windowSize = 1000
+	}
+
+	// Copier seulement la fenêtre récente
+	startIdx := totalAlerts - windowSize
+	if startIdx < 0 {
+		startIdx = 0
+	}
+	
+	window := make([]Alert, totalAlerts-startIdx)
+	copy(window, am.alerts[startIdx:])
+	
+	// Tri rapide avec sort.Slice - O(n log n) sur la fenêtre seulement
+	sort.Slice(window, func(i, j int) bool {
+		return window[i].Timestamp.After(window[j].Timestamp)
+	})
+
+	// Appliquer offset et limit sur la fenêtre triée
+	if offset >= len(window) {
 		return []Alert{}
 	}
 
 	end := offset + limit
-	if end > len(am.alerts) {
-		end = len(am.alerts)
+	if end > len(window) {
+		end = len(window)
 	}
 
-	// Copie pour éviter les races conditions
 	result := make([]Alert, end-offset)
-	copy(result, am.alerts[offset:end])
+	copy(result, window[offset:end])
 
 	return result
 }
@@ -93,10 +191,15 @@ func (am *alertManager) GetAlertsByCamera(cameraID string) []Alert {
 	am.mutex.RLock()
 	defer am.mutex.RUnlock()
 
-	var result []Alert
-	for _, alert := range am.alerts {
-		if alert.CameraID == cameraID {
-			result = append(result, alert)
+	indices, exists := am.alertsByCamera[cameraID]
+	if !exists || len(indices) == 0 {
+		return []Alert{}
+	}
+
+	result := make([]Alert, 0, len(indices))
+	for _, idx := range indices {
+		if idx < len(am.alerts) {
+			result = append(result, am.alerts[idx])
 		}
 	}
 
@@ -150,19 +253,26 @@ func (am *alertManager) CleanupOldAlerts() {
 
 	cutoff := time.Now().Add(-am.retention)
 
-	// Filtrer les alertes récentes
+	// Filtrer les alertes récentes et reconstruire l'index
 	filtered := make([]Alert, 0)
+	newIndexByCamera := make(map[string][]int)
+	
 	for _, alert := range am.alerts {
 		if alert.Timestamp.After(cutoff) {
+			newIdx := len(filtered)
 			filtered = append(filtered, alert)
+			if alert.CameraID != "" {
+				newIndexByCamera[alert.CameraID] = append(newIndexByCamera[alert.CameraID], newIdx)
+			}
 		}
 	}
 
 	removed := len(am.alerts) - len(filtered)
 	am.alerts = filtered
+	am.alertsByCamera = newIndexByCamera
 
 	if removed > 0 {
-		log.Printf("Nettoyage: %d alertes supprimées", removed)
+		log.Printf("🧹 Cleanup: %d alerts removed, %d retained", removed, len(filtered))
 	}
 }
 

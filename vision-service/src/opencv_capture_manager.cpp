@@ -113,10 +113,17 @@ bool OpenCVCaptureManager::SetupCapture() {
 }
 
 bool OpenCVCaptureManager::SetupFileCapture() {
-    std::cerr << "[OpenCVCaptureManager] Setting up file capture: " << camera_url_ << std::endl;
+    // Remove file:// prefix if present
+    std::string file_path = camera_url_;
+    if (file_path.find("file://") == 0) {
+        file_path = file_path.substr(7); // Remove "file://"
+        std::cerr << "[OpenCVCaptureManager] Cleaned URL from " << camera_url_ << " to " << file_path << std::endl;
+    }
     
-    if (!opencv_capture_->open(camera_url_)) {
-        SetError("Failed to open video file: " + camera_url_);
+    std::cerr << "[OpenCVCaptureManager] Setting up file capture: " << file_path << std::endl;
+    
+    if (!opencv_capture_->open(file_path)) {
+        SetError("Failed to open video file: " + file_path);
         return false;
     }
 
@@ -567,6 +574,16 @@ void OpenCVCaptureManager::SetCameraId(const std::string& camera_id) {
     std::cerr << "[OpenCVCaptureManager] Camera ID set to: " << camera_id << std::endl;
 }
 
+void OpenCVCaptureManager::SetDetectionCallback(GrpcDetectionCallback callback) {
+    std::lock_guard<std::mutex> lock(callback_mutex_);
+    detection_callback_ = callback;
+    if (callback) {
+        std::cerr << "[OpenCVCaptureManager] Detection callback registered for camera: " << camera_id_ << std::endl;
+    } else {
+        std::cerr << "[OpenCVCaptureManager] Detection callback cleared for camera: " << camera_id_ << std::endl;
+    }
+}
+
 void OpenCVCaptureManager::InitializeMotionDetector() {
     std::cerr << "[OpenCVCaptureManager] Initializing MOG2 background subtractor" << std::endl;
     
@@ -658,17 +675,35 @@ int OpenCVCaptureManager::CountMotionPixels(const cv::Mat& mask) const {
 }
 
 void OpenCVCaptureManager::GenerateDetectionEvent(int motion_pixels) {
-    // Notifier via le callback de frame si disponible
-    // Le frame_callback_ peut être utilisé par le FrameProcessor
-    // pour recevoir les événements de détection
+    // Créer l'événement proto
+    surveillance::vision::DetectionEvent event;
+    event.set_camera_id(camera_id_);
+    event.set_detection_id(camera_id_ + "_" + std::to_string(frame_number_.load()));
+    event.set_frame_number(frame_number_.load());
+    event.set_motion_pixels(motion_pixels);
+    
+    // Créer une détection basique
+    auto* detection = event.mutable_detection();
+    detection->set_type("motion");
+    detection->set_confidence(motion_pixels > 5000 ? 0.9f : 0.7f);
+    detection->set_timestamp(std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::system_clock::now().time_since_epoch()).count());
+    
+    // Appeler le callback si disponible
+    {
+        std::lock_guard<std::mutex> lock(callback_mutex_);
+        if (detection_callback_) {
+            if (!detection_callback_(event)) {
+                std::cerr << "[OpenCVCaptureManager] Detection callback returned false, stopping notifications" << std::endl;
+                detection_callback_ = nullptr;
+            }
+        }
+    }
     
     // Log l'événement pour debug
-    std::cerr << "[OpenCVCaptureManager] Detection event generated: "
+    std::cerr << "[OpenCVCaptureManager] Detection event sent: "
               << "camera=" << camera_id_ 
               << ", pixels=" << motion_pixels
               << ", frame=" << frame_number_.load() << std::endl;
-    
-    // TODO: Créer un DetectionEvent et le passer au FrameProcessor
-    // via un callback dédié quand il sera intégré avec le service vision
 }
 

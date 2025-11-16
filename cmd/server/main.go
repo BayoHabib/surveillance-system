@@ -10,8 +10,10 @@ import (
 	"net/url"
 	"os"
 	"os/signal"
+	"strconv"
 	"surveillance-core/internal/core"
 	"surveillance-core/internal/vision"
+	pb "surveillance-core/internal/vision/proto"
 	wsHub "surveillance-core/internal/websocket"
 	"sync"
 	"syscall"
@@ -22,13 +24,14 @@ import (
 )
 
 type App struct {
-	VisionClient   vision.Client
-	EventProcessor core.EventProcessor
-	WSHub          *wsHub.Hub
-	AlertManager   core.AlertManager
-	Config         *core.Config
-	ActiveStreams  sync.Map // map[string]*StreamInfo
-	Logger         *log.Logger
+	VisionClient        vision.Client
+	EventProcessor      core.EventProcessor
+	WSHub               *wsHub.Hub
+	AlertManager        core.AlertManager
+	DetectionStreamMgr  *vision.DetectionStreamManager
+	Config              *core.Config
+	ActiveStreams       sync.Map // map[string]*StreamInfo
+	Logger              *log.Logger
 }
 
 type StreamInfo struct {
@@ -141,9 +144,18 @@ func initializeApp(config *core.Config, logger *log.Logger) (*App, error) {
 
 	// Initialize vision client with proper error handling
 	visionClient := vision.NewClient(vision.DefaultClientConfig())
-	if !visionClient.IsConnected() {
-		logger.Printf("⚠️  Vision service not connected, using mock client")
-		visionClient = vision.NewMockClient()
+	
+	// Get gRPC client for detection streams
+	var grpcClient pb.VisionServiceClient
+	if provider, ok := visionClient.(vision.GRPCClientProvider); ok {
+		grpcClient = provider.GetGRPCClient()
+		if grpcClient != nil {
+			logger.Printf("✅ Using gRPC client for detection streams")
+		} else {
+			logger.Printf("⚠️  gRPC client is nil, detection streams disabled")
+		}
+	} else {
+		logger.Printf("⚠️  Vision service not connected, detection streams disabled (type: %T)", visionClient)
 	}
 
 	// Initialize other components
@@ -151,6 +163,13 @@ func initializeApp(config *core.Config, logger *log.Logger) (*App, error) {
 	alertManager := core.NewAlertManager(config.Alerts.Retention)
 	hub := wsHub.NewHub()
 
+	// Initialize detection stream manager if gRPC client available
+	var detectionStreamMgr *vision.DetectionStreamManager
+	if grpcClient != nil {
+		detectionStreamMgr = vision.NewDetectionStreamManager(grpcClient, alertManager)
+		logger.Printf("✅ Detection stream manager initialized")
+	}
+	
 	// Set up event processing pipeline
 	eventProcessor.SetAlertCallback(func(alert core.Alert) {
 		logger.Printf("🚨 Alert generated: %s", alert.Message)
@@ -161,12 +180,13 @@ func initializeApp(config *core.Config, logger *log.Logger) (*App, error) {
 	})
 
 	app := &App{
-		VisionClient:   visionClient,
-		EventProcessor: eventProcessor,
-		WSHub:          hub,
-		AlertManager:   alertManager,
-		Config:         config,
-		Logger:         logger,
+		VisionClient:        visionClient,
+		EventProcessor:      eventProcessor,
+		WSHub:               hub,
+		AlertManager:        alertManager,
+		DetectionStreamMgr:  detectionStreamMgr,
+		Config:              config,
+		Logger:              logger,
 	}
 
 	logger.Printf("✅ Application components initialized successfully")
@@ -212,7 +232,13 @@ func getEnvironment() string {
 func cleanup(app *App, logger *log.Logger) {
 	logger.Printf("🧹 Starting cleanup process...")
 	
-	// Stop all active streams
+	// Stop all detection streams first
+	if app.DetectionStreamMgr != nil {
+		logger.Printf("🛑 Stopping all detection streams...")
+		app.DetectionStreamMgr.StopAll()
+	}
+	
+	// Stop all active video streams
 	app.ActiveStreams.Range(func(key, value interface{}) bool {
 		if streamInfo, ok := value.(*StreamInfo); ok {
 			logger.Printf("🛑 Stopping stream: %s", streamInfo.ID)
@@ -588,6 +614,15 @@ func startCameraHandler(app *App) gin.HandlerFunc {
 		}
 		app.ActiveStreams.Store(cameraID, streamInfo)
 		
+		// Start detection stream if manager available
+		if app.DetectionStreamMgr != nil {
+			if err := app.DetectionStreamMgr.StartDetectionStream(cameraID); err != nil {
+				app.Logger.Printf("⚠️  Failed to start detection stream for %s: %v", cameraID, err)
+			} else {
+				app.Logger.Printf("🔍 Detection stream started for camera: %s", cameraID)
+			}
+		}
+		
 		app.Logger.Printf("▶️  Started camera stream: %s", cameraID)
 		
 		c.JSON(200, gin.H{
@@ -610,6 +645,12 @@ func stopCameraHandler(app *App) gin.HandlerFunc {
 		}
 		
 		app.ActiveStreams.Delete(cameraID)
+		
+		// Stop detection stream if manager available
+		if app.DetectionStreamMgr != nil {
+			app.DetectionStreamMgr.StopDetectionStream(cameraID)
+			app.Logger.Printf("🔍 Detection stream stopped for camera: %s", cameraID)
+		}
 		
 		app.Logger.Printf("⏹️  Stopped camera stream: %s", cameraID)
 		
@@ -676,32 +717,44 @@ func addInternetCameraHandler(app *App) gin.HandlerFunc {
 
 		cameraID := fmt.Sprintf("internet_%d", time.Now().Unix())
 
-		// Start internet stream
-		framesChan, err := app.VisionClient.StartStreamWithURL(cameraID, req.URL)
-		if err != nil {
-			c.JSON(500, gin.H{"error": fmt.Sprintf("Failed to start stream: %v", err)})
-			return
+	// Start internet stream (this also starts the stream on vision service for detection)
+	framesChan, err := app.VisionClient.StartStreamWithURL(cameraID, req.URL)
+	if err != nil {
+		c.JSON(500, gin.H{"error": fmt.Sprintf("Failed to start stream: %v", err)})
+		return
+	}
+
+	// Wait for camera initialization in C++
+	time.Sleep(2 * time.Second)
+
+	// Store stream info
+	streamInfo := &StreamInfo{
+		ID:        cameraID,
+		Name:      req.Name,
+		URL:       req.URL,
+		Status:    "streaming",
+		StartTime: time.Now(),
+		FramesCh:  framesChan,
+	}
+	app.ActiveStreams.Store(cameraID, streamInfo)
+
+	// Start detection stream if manager available
+	if app.DetectionStreamMgr != nil {
+		if err := app.DetectionStreamMgr.StartDetectionStream(cameraID); err != nil {
+			app.Logger.Printf("⚠️  Failed to start detection stream for %s: %v", cameraID, err)
+		} else {
+			app.Logger.Printf("🔍 Detection stream started for camera: %s", cameraID)
 		}
+	}
 
-		// Store stream info
-		streamInfo := &StreamInfo{
-			ID:        cameraID,
-			Name:      req.Name,
-			URL:       req.URL,
-			Status:    "streaming",
-			StartTime: time.Now(),
-			FramesCh:  framesChan,
-		}
-		app.ActiveStreams.Store(cameraID, streamInfo)
+	app.Logger.Printf("🌐 Internet camera added: %s (%s) from URL: %s", req.Name, cameraID, req.URL)
 
-		app.Logger.Printf("🌐 Internet camera added: %s (%s) from URL: %s", req.Name, cameraID, req.URL)
-
-		c.JSON(201, gin.H{
-			"message":          "Internet camera added successfully",
-			"camera_id":        cameraID,
-			"name":             req.Name,
-			"url":              req.URL,
-			"status":           "streaming",
+	c.JSON(201, gin.H{
+		"message":          "Internet camera added successfully",
+		"camera_id":        cameraID,
+		"name":             req.Name,
+		"url":              req.URL,
+		"status":           "streaming",
 			"resolution":       "1280x720",
 			"fps":              30,
 			"frames_available": len(framesChan) > 0,
@@ -730,10 +783,39 @@ func streamFormatsHandler(app *App) gin.HandlerFunc {
 
 func getAlertsHandler(app *App) gin.HandlerFunc {
 	return gin.HandlerFunc(func(c *gin.Context) {
-		// In production, fetch from AlertManager
+		app.Logger.Printf("📊 GET /api/v1/alerts - Start")
+		
+		// Paramètres de pagination
+		limitStr := c.DefaultQuery("limit", "50")
+		offsetStr := c.DefaultQuery("offset", "0")
+		cameraID := c.Query("camera_id")
+
+		limit, _ := strconv.Atoi(limitStr)
+		offset, _ := strconv.Atoi(offsetStr)
+
+		app.Logger.Printf("📊 Fetching alerts: limit=%d, offset=%d, camera=%s", limit, offset, cameraID)
+
+		var alerts []core.Alert
+		if cameraID != "" {
+			alerts = app.AlertManager.GetAlertsByCamera(cameraID)
+		} else {
+			alerts = app.AlertManager.GetAlerts(limit, offset)
+		}
+
+		app.Logger.Printf("📊 Retrieved %d alerts", len(alerts))
+
+		stats := app.AlertManager.GetAlertStats()
+
+		app.Logger.Printf("📊 Stats: total=%d", stats.Total)
+
 		c.JSON(200, gin.H{
-			"alerts": []gin.H{},
-			"total":  0,
+			"alerts": alerts,
+			"stats":  stats,
+			"pagination": gin.H{
+				"limit":  limit,
+				"offset": offset,
+				"total":  stats.Total,
+			},
 		})
 	})
 }

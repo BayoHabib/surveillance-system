@@ -38,14 +38,25 @@ type grpcStream struct {
 func NewGRPCClient(config *ClientConfig) Client {
 	ctx, cancel := context.WithCancel(context.Background())
 
-	client := &grpcClient{
-		address: config.GRPCAddress,
-		streams: make(map[string]*grpcStream),
-		ctx:     ctx,
-		cancel:  cancel,
+	// Create connection immediately (non-blocking)
+	conn, err := grpc.Dial(config.GRPCAddress,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	)
+	if err != nil {
+		log.Printf("⚠️  Failed to dial vision service: %v", err)
 	}
 
-	// Try to connect immediately
+	client := &grpcClient{
+		address:   config.GRPCAddress,
+		conn:      conn,
+		client:    pb.NewVisionServiceClient(conn),
+		streams:   make(map[string]*grpcStream),
+		ctx:       ctx,
+		cancel:    cancel,
+		connected: false,
+	}
+
+	// Try to connect in background
 	go client.connect()
 
 	return client
@@ -168,12 +179,31 @@ func (gc *grpcClient) StartStream(cameraID string) (<-chan core.Frame, error) {
 func (gc *grpcClient) StartStreamWithURL(cameraID, videoURL string) (<-chan core.Frame, error) {
 	log.Printf("🌐 Starting internet stream for camera %s with URL: %s", cameraID, videoURL)
 	
-	// For internet streaming, we'll create a mock stream that simulates internet video
-	// This provides a working foundation for the internet streaming feature
+	// For internet streaming, we also need to start the stream on the vision service
+	// so that detection and processing can work properly
 	if !gc.IsConnected() {
 		if err := gc.connect(); err != nil {
 			return nil, fmt.Errorf("failed to connect to vision service: %w", err)
 		}
+	}
+
+	// First, start the stream on the vision service with the URL
+	req := &pb.StreamRequest{
+		CameraId:  cameraID,
+		CameraUrl: videoURL,
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	resp, err := gc.client.StartStream(ctx, req)
+	cancel()
+
+	if err != nil {
+		log.Printf("⚠️  Warning: failed to start stream on vision service: %v", err)
+		// Continue anyway for backward compatibility
+	} else if resp.Status != "success" {
+		log.Printf("⚠️  Warning: vision service returned status: %s - %s", resp.Status, resp.Message)
+	} else {
+		log.Printf("✅ Vision service stream started for camera: %s", cameraID)
 	}
 
 	gc.mutex.Lock()
@@ -188,19 +218,19 @@ func (gc *grpcClient) StartStreamWithURL(cameraID, videoURL string) (<-chan core
 	}
 
 	// Create stream state for internet URL
-	ctx, cancel := context.WithCancel(gc.ctx)
+	ctx2, cancel2 := context.WithCancel(gc.ctx)
 	stream := &grpcStream{
 		cameraID:   cameraID,
 		framesChan: make(chan core.Frame, 10),
 		stopChan:   make(chan struct{}),
 		status:     core.StreamStatusActive,
-		cancel:     cancel,
+		cancel:     cancel2,
 	}
 
 	gc.streams[cameraID] = stream
 
 	// Start internet frame streaming goroutine with URL-specific handling
-	go gc.streamInternetFrames(ctx, stream, videoURL)
+	go gc.streamInternetFrames(ctx2, stream, videoURL)
 
 	log.Printf("✅ Internet stream started for camera: %s with URL: %s", cameraID, videoURL)
 
@@ -474,4 +504,9 @@ func (gc *grpcClient) HealthCheck() error {
 		resp.Status, resp.UptimeSeconds, resp.ActiveStreams)
 
 	return nil
+}
+
+// GetGRPCClient returns the underlying gRPC client for advanced operations
+func (gc *grpcClient) GetGRPCClient() pb.VisionServiceClient {
+	return gc.client
 }

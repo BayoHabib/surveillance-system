@@ -20,6 +20,9 @@ service VisionService {
   
   // Stream de frames (bidirectionnel)
   rpc ProcessFrames(stream FrameRequest) returns (stream FrameResponse);
+  
+  // Stream des événements de détection (server-side streaming)
+  rpc StreamDetections(DetectionStreamRequest) returns (stream DetectionEvent);
 }
 
 // Configuration d'un stream

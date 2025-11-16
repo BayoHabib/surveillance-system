@@ -32,6 +32,8 @@ using surveillance::vision::HealthRequest;
 using surveillance::vision::HealthResponse;
 using surveillance::vision::FrameRequest;
 using surveillance::vision::FrameResponse;
+using surveillance::vision::DetectionStreamRequest;
+// Note: DetectionEvent est utilisé avec le namespace complet pour éviter conflit
 
 // Structure pour suivre l'état d'un stream
 struct StreamState {
@@ -75,6 +77,10 @@ public:
     
     Status ProcessFrames(ServerContext* context,
                         ServerReaderWriter<FrameResponse, FrameRequest>* stream) override;
+    
+    Status StreamDetections(ServerContext* context,
+                           const DetectionStreamRequest* request,
+                           ServerWriter<surveillance::vision::DetectionEvent>* writer) override;
     
     // Méthodes utilitaires publiques
     int GetActiveStreamsCount() const;

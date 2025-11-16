@@ -125,6 +125,9 @@ target_include_directories(vision-service PRIVATE ${RE2_INCLUDE_DIRS})
 # Lier OpenCV si disponible
 if(OpenCV_FOUND)
     target_link_libraries(vision-service ${OpenCV_LIBS})
+    # Ajouter curl pour résoudre les dépendances GDAL/HDF5
+    find_package(CURL REQUIRED)
+    target_link_libraries(vision-service CURL::libcurl)
 endif()
 
 # Installation
@@ -177,6 +180,8 @@ if(BUILD_TESTS)
         # Lier OpenCV si disponible
         if(OpenCV_FOUND)
             target_link_libraries(vision-service-tests ${OpenCV_LIBS})
+            # Ajouter curl pour résoudre les dépendances GDAL/HDF5
+            target_link_libraries(vision-service-tests CURL::libcurl)
         endif()
         
         # Registrer les tests

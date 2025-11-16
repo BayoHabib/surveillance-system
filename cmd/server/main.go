@@ -841,7 +841,7 @@ func isValidURL(urlStr string) bool {
 	}
 	
 	// Check for valid schemes
-	validSchemes := []string{"http", "https", "rtsp", "rtmp"}
+	validSchemes := []string{"http", "https", "rtsp", "rtmp", "file"}
 	for _, scheme := range validSchemes {
 		if parsedURL.Scheme == scheme {
 			return true

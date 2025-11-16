@@ -1,0 +1,1013 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔍 Alert Explorer - Surveillance System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+            color: #ffffff;
+            min-height: 100vh;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2d2d2d 0%, #404040 100%);
+            padding: 1.5rem 2rem;
+            border-bottom: 3px solid #4CAF50;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+
+        .header h1 {
+            color: #4CAF50;
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            margin-top: 1rem;
+        }
+
+        .btn {
+            padding: 0.5rem 1.5rem;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #45a049;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
+        }
+
+        .btn-secondary {
+            background: #666;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #555;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: #2d2d2d;
+            padding: 1.5rem;
+            border-radius: 12px;
+            border: 2px solid #404040;
+            transition: all 0.3s;
+        }
+
+        .stat-card:hover {
+            border-color: #4CAF50;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.2);
+        }
+
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-number.critical { color: #f44336; }
+        .stat-number.warning { color: #ff9800; }
+        .stat-number.info { color: #2196F3; }
+        .stat-number.total { color: #4CAF50; }
+
+        .stat-label {
+            color: #aaa;
+            font-size: 0.9rem;
+        }
+
+        .filters {
+            background: #2d2d2d;
+            padding: 1.5rem;
+            border-radius: 12px;
+            border: 2px solid #404040;
+            margin-bottom: 2rem;
+        }
+
+        .filter-row {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .filter-group {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .filter-label {
+            display: block;
+            color: #aaa;
+            font-size: 0.85rem;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+
+        .filter-input {
+            width: 100%;
+            padding: 0.75rem;
+            background: #1a1a1a;
+            border: 1px solid #404040;
+            border-radius: 6px;
+            color: white;
+            font-size: 0.9rem;
+        }
+
+        .filter-input:focus {
+            outline: none;
+            border-color: #4CAF50;
+        }
+
+        .checkbox-group {
+            display: flex;
+            gap: 1.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+            color: #ccc;
+        }
+
+        .checkbox-label input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .alerts-container {
+            background: #2d2d2d;
+            border-radius: 12px;
+            border: 2px solid #404040;
+            padding: 1.5rem;
+        }
+
+        .alert-card {
+            background: #1a1a1a;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            border-left: 4px solid #4CAF50;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .alert-card:hover {
+            transform: translateX(5px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+
+        .alert-card.critical { border-left-color: #f44336; background: rgba(244, 67, 54, 0.05); }
+        .alert-card.warning { border-left-color: #ff9800; background: rgba(255, 152, 0, 0.05); }
+        .alert-card.info { border-left-color: #2196F3; background: rgba(33, 150, 243, 0.05); }
+        .alert-card.selected { border: 2px solid #4CAF50; background: rgba(76, 175, 80, 0.1); }
+
+        .alert-header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .alert-camera {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #4CAF50;
+        }
+
+        .alert-level-badge {
+            padding: 0.35rem 1rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .alert-level-badge.critical { background: #f44336; color: white; }
+        .alert-level-badge.warning { background: #ff9800; color: #1a1a1a; }
+        .alert-level-badge.info { background: #2196F3; color: white; }
+
+        .alert-message {
+            color: #ccc;
+            margin-bottom: 1rem;
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+
+        .alert-meta {
+            display: flex;
+            gap: 2rem;
+            font-size: 0.85rem;
+            color: #888;
+            margin-bottom: 1rem;
+        }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .alert-actions {
+            display: flex;
+            gap: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid #404040;
+        }
+
+        .action-btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 600;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-feedback {
+            background: #2196F3;
+            color: white;
+        }
+
+        .btn-feedback:hover {
+            background: #1976D2;
+        }
+
+        .btn-acknowledge {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .btn-acknowledge:hover {
+            background: #45a049;
+        }
+
+        .btn-false-positive {
+            background: #ff9800;
+            color: white;
+        }
+
+        .btn-false-positive:hover {
+            background: #f57c00;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: #2d2d2d;
+            border-radius: 12px;
+            padding: 2rem;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            border: 2px solid #4CAF50;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .modal-header h2 {
+            color: #4CAF50;
+            font-size: 1.5rem;
+        }
+
+        .modal-close {
+            background: transparent;
+            border: none;
+            color: white;
+            font-size: 2rem;
+            cursor: pointer;
+            padding: 0;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: all 0.3s;
+        }
+
+        .modal-close:hover {
+            background: rgba(255,255,255,0.1);
+            transform: rotate(90deg);
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+            display: block;
+            color: #ccc;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .form-input, .form-textarea {
+            width: 100%;
+            padding: 0.75rem;
+            background: #1a1a1a;
+            border: 1px solid #404040;
+            border-radius: 6px;
+            color: white;
+            font-size: 0.95rem;
+            font-family: inherit;
+        }
+
+        .form-textarea {
+            min-height: 120px;
+            resize: vertical;
+        }
+
+        .form-input:focus, .form-textarea:focus {
+            outline: none;
+            border-color: #4CAF50;
+        }
+
+        .feedback-type {
+            display: flex;
+            gap: 1rem;
+            margin-top: 0.5rem;
+        }
+
+        .feedback-option {
+            flex: 1;
+            padding: 1rem;
+            background: #1a1a1a;
+            border: 2px solid #404040;
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .feedback-option:hover {
+            border-color: #4CAF50;
+        }
+
+        .feedback-option.selected {
+            border-color: #4CAF50;
+            background: rgba(76, 175, 80, 0.1);
+        }
+
+        .feedback-option .icon {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .feedback-option .label {
+            font-size: 0.9rem;
+            color: #ccc;
+        }
+
+        .no-alerts {
+            text-align: center;
+            padding: 3rem;
+            color: #666;
+            font-size: 1.1rem;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: #4CAF50;
+            font-size: 1.1rem;
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-top: 2rem;
+        }
+
+        .page-btn {
+            padding: 0.5rem 1rem;
+            background: #404040;
+            border: none;
+            border-radius: 6px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .page-btn:hover:not(:disabled) {
+            background: #4CAF50;
+        }
+
+        .page-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .page-btn.active {
+            background: #4CAF50;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🔍 Alert Explorer</h1>
+        <p style="color: #aaa; margin-top: 0.5rem;">Explorez, filtrez et fournissez des feedbacks sur les alertes du système</p>
+        <div class="header-actions">
+            <button class="btn btn-primary" onclick="window.location.href='/'">
+                ← Retour au Dashboard
+            </button>
+            <button class="btn btn-secondary" onclick="explorer.exportAlerts()">
+                📊 Exporter CSV
+            </button>
+            <button class="btn btn-secondary" onclick="explorer.loadAlerts()">
+                🔄 Rafraîchir
+            </button>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Statistics -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-number total" id="totalAlerts">0</div>
+                <div class="stat-label">Total Alerts</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number critical" id="criticalAlerts">0</div>
+                <div class="stat-label">Critical</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number warning" id="warningAlerts">0</div>
+                <div class="stat-label">Warning</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number info" id="infoAlerts">0</div>
+                <div class="stat-label">Info</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="feedbackCount" style="color: #2196F3;">0</div>
+                <div class="stat-label">Feedbacks</div>
+            </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="filters">
+            <h3 style="color: #4CAF50; margin-bottom: 1rem;">🔍 Filtres</h3>
+            <div class="filter-row">
+                <div class="filter-group">
+                    <label class="filter-label">Recherche</label>
+                    <input type="text" class="filter-input" id="searchInput" placeholder="Rechercher dans les messages...">
+                </div>
+                <div class="filter-group">
+                    <label class="filter-label">Caméra</label>
+                    <select class="filter-input" id="cameraFilter">
+                        <option value="">Toutes les caméras</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label class="filter-label">Date</label>
+                    <input type="date" class="filter-input" id="dateFilter">
+                </div>
+            </div>
+            <div class="filter-row" style="margin-top: 1rem;">
+                <div class="filter-group">
+                    <label class="filter-label">Niveaux</label>
+                    <div class="checkbox-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="filterCritical" checked>
+                            🚨 Critical
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="filterWarning" checked>
+                            ⚠️ Warning
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="filterInfo" checked>
+                            ℹ️ Info
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Alerts List -->
+        <div class="alerts-container">
+            <h3 style="color: #4CAF50; margin-bottom: 1rem;">📋 Alertes</h3>
+            <div id="alertsList">
+                <div class="loading">🔄 Chargement des alertes...</div>
+            </div>
+            <div class="pagination" id="pagination"></div>
+        </div>
+    </div>
+
+    <!-- Feedback Modal -->
+    <div class="modal" id="feedbackModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>💬 Feedback sur l'alerte</h2>
+                <button class="modal-close" onclick="explorer.closeFeedbackModal()">×</button>
+            </div>
+            <form id="feedbackForm">
+                <div class="form-group">
+                    <label class="form-label">Type de feedback</label>
+                    <div class="feedback-type">
+                        <div class="feedback-option" data-type="correct" onclick="explorer.selectFeedbackType('correct')">
+                            <div class="icon">✅</div>
+                            <div class="label">Correct</div>
+                        </div>
+                        <div class="feedback-option" data-type="false_positive" onclick="explorer.selectFeedbackType('false_positive')">
+                            <div class="icon">⚠️</div>
+                            <div class="label">Faux Positif</div>
+                        </div>
+                        <div class="feedback-option" data-type="missed" onclick="explorer.selectFeedbackType('missed')">
+                            <div class="icon">❌</div>
+                            <div class="label">Manqué</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Commentaire</label>
+                    <textarea class="form-textarea" id="feedbackComment" placeholder="Ajoutez vos observations..."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Niveau de confiance (optionnel)</label>
+                    <input type="range" class="filter-input" id="confidenceLevel" min="0" max="100" value="50">
+                    <div style="text-align: center; color: #aaa; margin-top: 0.5rem;">
+                        <span id="confidenceValue">50</span>%
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 1rem;">
+                    <button type="submit" class="btn btn-primary" style="flex: 1;">
+                        💾 Enregistrer
+                    </button>
+                    <button type="button" class="btn btn-secondary" onclick="explorer.closeFeedbackModal()">
+                        Annuler
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        class AlertExplorer {
+            constructor() {
+                this.alerts = [];
+                this.filteredAlerts = [];
+                this.currentPage = 1;
+                this.itemsPerPage = 20;
+                this.selectedAlert = null;
+                this.feedbackType = null;
+                this.feedbacks = this.loadFeedbacks();
+
+                this.initializeEventListeners();
+                this.loadAlerts();
+            }
+
+            initializeEventListeners() {
+                // Search
+                document.getElementById('searchInput').addEventListener('input', () => this.applyFilters());
+                
+                // Camera filter
+                document.getElementById('cameraFilter').addEventListener('change', () => this.applyFilters());
+                
+                // Date filter
+                document.getElementById('dateFilter').addEventListener('input', () => this.applyFilters());
+                
+                // Level filters
+                ['filterCritical', 'filterWarning', 'filterInfo'].forEach(id => {
+                    document.getElementById(id).addEventListener('change', () => this.applyFilters());
+                });
+
+                // Confidence slider
+                document.getElementById('confidenceLevel').addEventListener('input', (e) => {
+                    document.getElementById('confidenceValue').textContent = e.target.value;
+                });
+
+                // Feedback form
+                document.getElementById('feedbackForm').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.submitFeedback();
+                });
+            }
+
+            async loadAlerts() {
+                try {
+                    document.getElementById('alertsList').innerHTML = '<div class="loading">🔄 Chargement des alertes...</div>';
+                    
+                    const response = await fetch('/api/v1/alerts?limit=1000');
+                    if (!response.ok) throw new Error('Failed to load alerts');
+                    
+                    const data = await response.json();
+                    this.alerts = data.alerts || [];
+                    
+                    this.updateStatistics();
+                    this.populateCameraFilter();
+                    this.applyFilters();
+                } catch (error) {
+                    console.error('Error loading alerts:', error);
+                    document.getElementById('alertsList').innerHTML = 
+                        '<div class="no-alerts">❌ Erreur de chargement des alertes</div>';
+                }
+            }
+
+            updateStatistics() {
+                const stats = {
+                    total: this.alerts.length,
+                    critical: this.alerts.filter(a => this.mapLevel(a.level) === 'critical').length,
+                    warning: this.alerts.filter(a => this.mapLevel(a.level) === 'warning').length,
+                    info: this.alerts.filter(a => this.mapLevel(a.level) === 'info').length
+                };
+
+                document.getElementById('totalAlerts').textContent = stats.total;
+                document.getElementById('criticalAlerts').textContent = stats.critical;
+                document.getElementById('warningAlerts').textContent = stats.warning;
+                document.getElementById('infoAlerts').textContent = stats.info;
+                document.getElementById('feedbackCount').textContent = Object.keys(this.feedbacks).length;
+            }
+
+            populateCameraFilter() {
+                const cameras = [...new Set(this.alerts.map(a => a.camera_id))];
+                const select = document.getElementById('cameraFilter');
+                
+                cameras.forEach(camera => {
+                    const option = document.createElement('option');
+                    option.value = camera;
+                    option.textContent = camera;
+                    select.appendChild(option);
+                });
+            }
+
+            applyFilters() {
+                const search = document.getElementById('searchInput').value.toLowerCase();
+                const camera = document.getElementById('cameraFilter').value;
+                const date = document.getElementById('dateFilter').value;
+                const showCritical = document.getElementById('filterCritical').checked;
+                const showWarning = document.getElementById('filterWarning').checked;
+                const showInfo = document.getElementById('filterInfo').checked;
+
+                this.filteredAlerts = this.alerts.filter(alert => {
+                    // Search filter
+                    if (search && !alert.message.toLowerCase().includes(search)) return false;
+                    
+                    // Camera filter
+                    if (camera && alert.camera_id !== camera) return false;
+                    
+                    // Date filter
+                    if (date) {
+                        const alertDate = new Date(alert.timestamp).toISOString().split('T')[0];
+                        if (alertDate !== date) return false;
+                    }
+                    
+                    // Level filter
+                    const level = this.mapLevel(alert.level);
+                    if (level === 'critical' && !showCritical) return false;
+                    if (level === 'warning' && !showWarning) return false;
+                    if (level === 'info' && !showInfo) return false;
+                    
+                    return true;
+                });
+
+                this.currentPage = 1;
+                this.renderAlerts();
+            }
+
+            renderAlerts() {
+                const container = document.getElementById('alertsList');
+                
+                if (this.filteredAlerts.length === 0) {
+                    container.innerHTML = '<div class="no-alerts">🔍 Aucune alerte trouvée</div>';
+                    return;
+                }
+
+                const start = (this.currentPage - 1) * this.itemsPerPage;
+                const end = start + this.itemsPerPage;
+                const pageAlerts = this.filteredAlerts.slice(start, end);
+
+                container.innerHTML = pageAlerts.map(alert => {
+                    const level = this.mapLevel(alert.level);
+                    const hasFeedback = this.feedbacks[alert.id] !== undefined;
+                    const feedback = this.feedbacks[alert.id];
+                    
+                    return `
+                        <div class="alert-card ${level}" data-alert-id="${alert.id}">
+                            <div class="alert-header-row">
+                                <span class="alert-camera">${alert.camera_id}</span>
+                                <span class="alert-level-badge ${level}">${level}</span>
+                            </div>
+                            <div class="alert-message">${alert.message}</div>
+                            <div class="alert-meta">
+                                <div class="meta-item">
+                                    🕒 ${new Date(alert.timestamp).toLocaleString()}
+                                </div>
+                                ${alert.detection && alert.detection.metadata ? `
+                                    <div class="meta-item">
+                                        📊 ${alert.detection.metadata.motion_pixels?.toLocaleString() || 'N/A'} pixels
+                                    </div>
+                                ` : ''}
+                                ${hasFeedback ? `
+                                    <div class="meta-item" style="color: #4CAF50;">
+                                        ✓ Feedback: ${this.getFeedbackIcon(feedback.type)}
+                                    </div>
+                                ` : ''}
+                            </div>
+                            <div class="alert-actions">
+                                <button class="action-btn btn-feedback" onclick="explorer.openFeedbackModal('${alert.id}')">
+                                    💬 ${hasFeedback ? 'Modifier' : 'Ajouter'} Feedback
+                                </button>
+                                <button class="action-btn btn-acknowledge" onclick="explorer.acknowledgeAlert('${alert.id}')">
+                                    ✓ Acquitter
+                                </button>
+                                ${!hasFeedback ? `
+                                    <button class="action-btn btn-false-positive" onclick="explorer.quickFeedback('${alert.id}', 'false_positive')">
+                                        ⚠️ Faux Positif
+                                    </button>
+                                ` : ''}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+                this.renderPagination();
+            }
+
+            renderPagination() {
+                const totalPages = Math.ceil(this.filteredAlerts.length / this.itemsPerPage);
+                const container = document.getElementById('pagination');
+                
+                if (totalPages <= 1) {
+                    container.innerHTML = '';
+                    return;
+                }
+
+                let html = `
+                    <button class="page-btn" ${this.currentPage === 1 ? 'disabled' : ''} 
+                        onclick="explorer.goToPage(${this.currentPage - 1})">
+                        ← Précédent
+                    </button>
+                `;
+
+                for (let i = 1; i <= Math.min(totalPages, 5); i++) {
+                    html += `
+                        <button class="page-btn ${i === this.currentPage ? 'active' : ''}" 
+                            onclick="explorer.goToPage(${i})">
+                            ${i}
+                        </button>
+                    `;
+                }
+
+                if (totalPages > 5) {
+                    html += `<span style="color: #666; padding: 0 0.5rem;">...</span>`;
+                    html += `
+                        <button class="page-btn" onclick="explorer.goToPage(${totalPages})">
+                            ${totalPages}
+                        </button>
+                    `;
+                }
+
+                html += `
+                    <button class="page-btn" ${this.currentPage === totalPages ? 'disabled' : ''} 
+                        onclick="explorer.goToPage(${this.currentPage + 1})">
+                        Suivant →
+                    </button>
+                `;
+
+                container.innerHTML = html;
+            }
+
+            goToPage(page) {
+                this.currentPage = page;
+                this.renderAlerts();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+
+            openFeedbackModal(alertId) {
+                this.selectedAlert = this.alerts.find(a => a.id === alertId);
+                const existingFeedback = this.feedbacks[alertId];
+                
+                if (existingFeedback) {
+                    this.selectFeedbackType(existingFeedback.type);
+                    document.getElementById('feedbackComment').value = existingFeedback.comment || '';
+                    document.getElementById('confidenceLevel').value = existingFeedback.confidence || 50;
+                    document.getElementById('confidenceValue').textContent = existingFeedback.confidence || 50;
+                } else {
+                    this.feedbackType = null;
+                    document.getElementById('feedbackComment').value = '';
+                    document.getElementById('confidenceLevel').value = 50;
+                    document.getElementById('confidenceValue').textContent = '50';
+                    document.querySelectorAll('.feedback-option').forEach(opt => opt.classList.remove('selected'));
+                }
+                
+                document.getElementById('feedbackModal').classList.add('active');
+            }
+
+            closeFeedbackModal() {
+                document.getElementById('feedbackModal').classList.remove('active');
+                this.selectedAlert = null;
+                this.feedbackType = null;
+            }
+
+            selectFeedbackType(type) {
+                this.feedbackType = type;
+                document.querySelectorAll('.feedback-option').forEach(opt => {
+                    opt.classList.toggle('selected', opt.dataset.type === type);
+                });
+            }
+
+            submitFeedback() {
+                if (!this.feedbackType) {
+                    alert('Veuillez sélectionner un type de feedback');
+                    return;
+                }
+
+                const comment = document.getElementById('feedbackComment').value;
+                const confidence = document.getElementById('confidenceLevel').value;
+
+                const feedback = {
+                    type: this.feedbackType,
+                    comment: comment,
+                    confidence: parseInt(confidence),
+                    timestamp: new Date().toISOString(),
+                    alert: {
+                        id: this.selectedAlert.id,
+                        camera_id: this.selectedAlert.camera_id,
+                        level: this.selectedAlert.level,
+                        message: this.selectedAlert.message
+                    }
+                };
+
+                this.feedbacks[this.selectedAlert.id] = feedback;
+                this.saveFeedbacks();
+                
+                alert('✅ Feedback enregistré avec succès!');
+                this.closeFeedbackModal();
+                this.renderAlerts();
+                this.updateStatistics();
+            }
+
+            quickFeedback(alertId, type) {
+                const alert = this.alerts.find(a => a.id === alertId);
+                this.feedbacks[alertId] = {
+                    type: type,
+                    comment: 'Marqué rapidement comme faux positif',
+                    confidence: 75,
+                    timestamp: new Date().toISOString(),
+                    alert: {
+                        id: alert.id,
+                        camera_id: alert.camera_id,
+                        level: alert.level,
+                        message: alert.message
+                    }
+                };
+                this.saveFeedbacks();
+                this.renderAlerts();
+                this.updateStatistics();
+            }
+
+            async acknowledgeAlert(alertId) {
+                try {
+                    const response = await fetch(`/api/v1/alerts/${alertId}/acknowledge`, {
+                        method: 'POST'
+                    });
+                    
+                    if (response.ok) {
+                        alert('✅ Alerte acquittée');
+                    } else {
+                        alert('⚠️ Erreur lors de l\'acquittement');
+                    }
+                } catch (error) {
+                    console.error('Error acknowledging alert:', error);
+                }
+            }
+
+            loadFeedbacks() {
+                const stored = localStorage.getItem('alert_feedbacks');
+                return stored ? JSON.parse(stored) : {};
+            }
+
+            saveFeedbacks() {
+                localStorage.setItem('alert_feedbacks', JSON.stringify(this.feedbacks));
+            }
+
+            exportAlerts() {
+                const csv = this.generateCSV();
+                const blob = new Blob([csv], { type: 'text/csv' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `alerts_export_${new Date().toISOString().split('T')[0]}.csv`;
+                a.click();
+            }
+
+            generateCSV() {
+                const headers = ['ID', 'Camera', 'Level', 'Message', 'Timestamp', 'Motion Pixels', 'Feedback Type', 'Feedback Comment'];
+                const rows = [headers.join(',')];
+
+                this.filteredAlerts.forEach(alert => {
+                    const feedback = this.feedbacks[alert.id];
+                    const motionPixels = alert.detection?.metadata?.motion_pixels || 'N/A';
+                    const feedbackType = feedback ? feedback.type : '';
+                    const feedbackComment = feedback ? `"${feedback.comment.replace(/"/g, '""')}"` : '';
+                    
+                    rows.push([
+                        alert.id,
+                        alert.camera_id,
+                        alert.level,
+                        `"${alert.message.replace(/"/g, '""')}"`,
+                        alert.timestamp,
+                        motionPixels,
+                        feedbackType,
+                        feedbackComment
+                    ].join(','));
+                });
+
+                return rows.join('\n');
+            }
+
+            getFeedbackIcon(type) {
+                const icons = {
+                    'correct': '✅',
+                    'false_positive': '⚠️',
+                    'missed': '❌'
+                };
+                return icons[type] || '💬';
+            }
+
+            mapLevel(level) {
+                const levelStr = String(level).toLowerCase();
+                if (levelStr === 'critical' || levelStr === 'high') return 'critical';
+                if (levelStr === 'warning' || levelStr === 'medium') return 'warning';
+                return 'info';
+            }
+        }
+
+        // Initialize
+        const explorer = new AlertExplorer();
+    </script>
+</body>
+</html>

@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔔 Test Notifications WebSocket</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1a1a1a;
+            color: #ffffff;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: #4CAF50;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        .status-panel {
+            background: #2d2d2d;
+            padding: 1.5rem;
+            border-radius: 12px;
+            margin-bottom: 2rem;
+            border: 2px solid #444;
+        }
+
+        .status-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #444;
+        }
+
+        .status-row:last-child {
+            border-bottom: none;
+        }
+
+        .status-label {
+            font-weight: 600;
+            color: #aaa;
+        }
+
+        .status-value {
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+
+        .status-dot {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 0.5rem;
+            background: #ff4444;
+        }
+
+        .status-dot.connected {
+            background: #4CAF50;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .alerts-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+
+        .panel {
+            background: #2d2d2d;
+            padding: 1.5rem;
+            border-radius: 12px;
+            border: 2px solid #444;
+        }
+
+        .panel h2 {
+            color: #4CAF50;
+            margin-bottom: 1rem;
+            font-size: 1.3rem;
+        }
+
+        .alert-item {
+            background: #1a1a1a;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 0.75rem;
+            border-left: 4px solid #4CAF50;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .alert-item.critical {
+            border-left-color: #ff4444;
+            background: rgba(255, 68, 68, 0.1);
+        }
+
+        .alert-item.warning {
+            border-left-color: #ffaa00;
+            background: rgba(255, 170, 0, 0.1);
+        }
+
+        .alert-item.info {
+            border-left-color: #4CAF50;
+            background: rgba(76, 175, 80, 0.1);
+        }
+
+        .alert-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .alert-camera {
+            font-weight: 600;
+            color: #4CAF50;
+        }
+
+        .alert-level {
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .alert-level.critical {
+            background: #ff4444;
+            color: white;
+        }
+
+        .alert-level.warning {
+            background: #ffaa00;
+            color: #1a1a1a;
+        }
+
+        .alert-level.info {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .alert-message {
+            color: #ccc;
+            margin-bottom: 0.5rem;
+            font-size: 0.95rem;
+        }
+
+        .alert-time {
+            color: #888;
+            font-size: 0.85rem;
+        }
+
+        .raw-message {
+            background: #1a1a1a;
+            padding: 0.75rem;
+            border-radius: 6px;
+            margin-bottom: 0.75rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            color: #4CAF50;
+            border: 1px solid #333;
+            word-wrap: break-word;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .stat-box {
+            background: #1a1a1a;
+            padding: 1rem;
+            border-radius: 8px;
+            text-align: center;
+            border: 2px solid #444;
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            display: block;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-number.critical {
+            color: #ff4444;
+        }
+
+        .stat-number.warning {
+            color: #ffaa00;
+        }
+
+        .stat-number.info {
+            color: #4CAF50;
+        }
+
+        .stat-label {
+            color: #888;
+            font-size: 0.9rem;
+        }
+
+        .no-alerts {
+            text-align: center;
+            color: #666;
+            padding: 2rem;
+            font-style: italic;
+        }
+
+        .clear-btn {
+            background: #ff4444;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background 0.3s;
+        }
+
+        .clear-btn:hover {
+            background: #cc0000;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔔 Test Notifications WebSocket - Diagnostics</h1>
+
+        <div class="status-panel">
+            <div class="status-row">
+                <span class="status-label">WebSocket Status:</span>
+                <span class="status-value">
+                    <span class="status-dot" id="statusDot"></span>
+                    <span id="statusText">Disconnected</span>
+                </span>
+            </div>
+            <div class="status-row">
+                <span class="status-label">Connection URL:</span>
+                <span class="status-value" id="wsUrl">-</span>
+            </div>
+            <div class="status-row">
+                <span class="status-label">Client ID:</span>
+                <span class="status-value" id="clientId">-</span>
+            </div>
+            <div class="status-row">
+                <span class="status-label">Messages Received:</span>
+                <span class="status-value" id="msgCount">0</span>
+            </div>
+            <div class="status-row">
+                <span class="status-label">Alerts Received:</span>
+                <span class="status-value" id="alertCount">0</span>
+            </div>
+            <div class="status-row">
+                <span class="status-label">Last Alert:</span>
+                <span class="status-value" id="lastAlert">-</span>
+            </div>
+        </div>
+
+        <div class="alerts-container">
+            <div class="panel">
+                <h2>📨 Raw Messages</h2>
+                <button class="clear-btn" onclick="clearRaw()">Clear</button>
+                <div id="rawMessages">
+                    <div class="no-alerts">Waiting for messages...</div>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h2>🚨 Parsed Alerts</h2>
+                <button class="clear-btn" onclick="clearAlerts()">Clear</button>
+                <div class="stats">
+                    <div class="stat-box">
+                        <span class="stat-number critical" id="criticalCount">0</span>
+                        <span class="stat-label">Critical</span>
+                    </div>
+                    <div class="stat-box">
+                        <span class="stat-number warning" id="warningCount">0</span>
+                        <span class="stat-label">Warning</span>
+                    </div>
+                    <div class="stat-box">
+                        <span class="stat-number info" id="infoCount">0</span>
+                        <span class="stat-label">Info</span>
+                    </div>
+                </div>
+                <div id="alertsPanel">
+                    <div class="no-alerts">Waiting for alerts...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class NotificationTester {
+            constructor() {
+                this.ws = null;
+                this.msgCount = 0;
+                this.alertCount = 0;
+                this.stats = { critical: 0, warning: 0, info: 0 };
+                
+                this.statusDot = document.getElementById('statusDot');
+                this.statusText = document.getElementById('statusText');
+                this.wsUrlElem = document.getElementById('wsUrl');
+                this.clientIdElem = document.getElementById('clientId');
+                this.msgCountElem = document.getElementById('msgCount');
+                this.alertCountElem = document.getElementById('alertCount');
+                this.lastAlertElem = document.getElementById('lastAlert');
+                this.rawMessages = document.getElementById('rawMessages');
+                this.alertsPanel = document.getElementById('alertsPanel');
+                
+                this.initWebSocket();
+            }
+
+            initWebSocket() {
+                const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                const wsUrl = `${protocol}//${window.location.host}/ws`;
+                
+                console.log('🔌 Connecting to WebSocket:', wsUrl);
+                this.wsUrlElem.textContent = wsUrl;
+                
+                try {
+                    this.ws = new WebSocket(wsUrl);
+                    
+                    this.ws.onopen = () => {
+                        console.log('✅ WebSocket connected');
+                        this.statusDot.classList.add('connected');
+                        this.statusText.textContent = 'Connected';
+                        this.statusText.style.color = '#4CAF50';
+                    };
+                    
+                    this.ws.onmessage = (event) => {
+                        console.log('📨 Message received:', event.data);
+                        this.handleMessage(event.data);
+                    };
+                    
+                    this.ws.onclose = () => {
+                        console.log('❌ WebSocket disconnected');
+                        this.statusDot.classList.remove('connected');
+                        this.statusText.textContent = 'Disconnected';
+                        this.statusText.style.color = '#ff4444';
+                        setTimeout(() => this.initWebSocket(), 5000);
+                    };
+                    
+                    this.ws.onerror = (error) => {
+                        console.error('❌ WebSocket error:', error);
+                        this.statusText.textContent = 'Error';
+                        this.statusText.style.color = '#ff4444';
+                    };
+                } catch (error) {
+                    console.error('❌ Failed to create WebSocket:', error);
+                    this.statusText.textContent = 'Failed';
+                    this.statusText.style.color = '#ff4444';
+                }
+            }
+
+            handleMessage(rawData) {
+                this.msgCount++;
+                this.msgCountElem.textContent = this.msgCount;
+                
+                // Add raw message
+                this.addRawMessage(rawData);
+                
+                // Parse and handle
+                try {
+                    const data = JSON.parse(rawData);
+                    console.log('📦 Parsed data:', data);
+                    
+                    if (data.type === 'connection') {
+                        this.clientIdElem.textContent = data.data.client_id || 'Unknown';
+                        console.log('✅ Connection established:', data.data);
+                    } else if (data.type === 'alert') {
+                        this.handleAlert(data.data);
+                    } else {
+                        console.log('ℹ️ Other message type:', data.type);
+                    }
+                } catch (error) {
+                    console.error('❌ Failed to parse message:', error);
+                }
+            }
+
+            addRawMessage(rawData) {
+                const noMsg = this.rawMessages.querySelector('.no-alerts');
+                if (noMsg) noMsg.remove();
+                
+                const div = document.createElement('div');
+                div.className = 'raw-message';
+                div.textContent = rawData;
+                
+                this.rawMessages.insertBefore(div, this.rawMessages.firstChild);
+                
+                // Keep only last 10
+                while (this.rawMessages.children.length > 10) {
+                    this.rawMessages.removeChild(this.rawMessages.lastChild);
+                }
+            }
+
+            handleAlert(alertData) {
+                this.alertCount++;
+                this.alertCountElem.textContent = this.alertCount;
+                
+                const now = new Date().toLocaleTimeString();
+                this.lastAlertElem.textContent = now;
+                
+                console.log('🚨 Alert received:', alertData);
+                
+                // Determine level
+                const level = this.mapLevel(alertData.level);
+                this.stats[level]++;
+                this.updateStats();
+                
+                // Add to alerts panel
+                this.addAlertItem(alertData, level);
+            }
+
+            mapLevel(level) {
+                const levelStr = String(level).toLowerCase();
+                if (levelStr === 'critical' || levelStr === 'high') return 'critical';
+                if (levelStr === 'warning' || levelStr === 'medium') return 'warning';
+                return 'info';
+            }
+
+            updateStats() {
+                document.getElementById('criticalCount').textContent = this.stats.critical;
+                document.getElementById('warningCount').textContent = this.stats.warning;
+                document.getElementById('infoCount').textContent = this.stats.info;
+            }
+
+            addAlertItem(alertData, level) {
+                const noAlerts = this.alertsPanel.querySelector('.no-alerts');
+                if (noAlerts) noAlerts.remove();
+                
+                const div = document.createElement('div');
+                div.className = `alert-item ${level}`;
+                
+                const timestamp = new Date(alertData.timestamp).toLocaleTimeString();
+                const motionPixels = alertData.motion_pixels 
+                    ? ` (${alertData.motion_pixels.toLocaleString()} px)` 
+                    : '';
+                
+                div.innerHTML = `
+                    <div class="alert-header">
+                        <span class="alert-camera">${alertData.camera_id || 'Unknown'}</span>
+                        <span class="alert-level ${level}">${level}</span>
+                    </div>
+                    <div class="alert-message">${alertData.message || 'No message'}${motionPixels}</div>
+                    <div class="alert-time">${timestamp}</div>
+                `;
+                
+                this.alertsPanel.insertBefore(div, this.alertsPanel.firstChild);
+                
+                // Keep only last 15
+                while (this.alertsPanel.children.length > 15) {
+                    this.alertsPanel.removeChild(this.alertsPanel.lastChild);
+                }
+            }
+        }
+
+        function clearRaw() {
+            document.getElementById('rawMessages').innerHTML = '<div class="no-alerts">Cleared</div>';
+        }
+
+        function clearAlerts() {
+            document.getElementById('alertsPanel').innerHTML = '<div class="no-alerts">Cleared</div>';
+        }
+
+        // Initialize
+        const tester = new NotificationTester();
+        console.log('🚀 Notification Tester initialized');
+    </script>
+</body>
+</html>

@@ -1,10 +1,13 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
+	"image"
+	"image/jpeg"
 	"log"
 	"net/http"
 	"net/url"
@@ -326,6 +329,8 @@ func setupRouter(app *App) *gin.Engine {
 	router.Static("/static", "./web/static")
 	router.StaticFile("/", "./web/index_video.html")
 	router.StaticFile("/internet", "./web/internet_streaming.html")
+	router.StaticFile("/test-notifications", "./web/test_notifications.html")
+	router.StaticFile("/explorer", "./web/alert_explorer.html")
 
 	// 404 handler
 	router.NoRoute(func(c *gin.Context) {
@@ -516,11 +521,33 @@ func metricsHandler(app *App) gin.HandlerFunc {
 
 func getCamerasHandler(app *App) gin.HandlerFunc {
 	return gin.HandlerFunc(func(c *gin.Context) {
-		// This would typically fetch from database
-		cameras := []gin.H{
+		cameras := []gin.H{}
+		
+		// Ajouter les caméras statiques en dur (pour rétrocompatibilité)
+		staticCameras := []gin.H{
 			{"id": "camera_1", "name": "Front Camera", "status": "offline", "location": "Entrance"},
 			{"id": "camera_2", "name": "Back Camera", "status": "offline", "location": "Garden"},
 		}
+		cameras = append(cameras, staticCameras...)
+		
+		// Ajouter les caméras actives depuis ActiveStreams
+		app.ActiveStreams.Range(func(key, value interface{}) bool {
+			if streamInfo, ok := value.(*StreamInfo); ok {
+				status := "offline"
+				if streamInfo.Status == "streaming" {
+					status = "streaming"
+				}
+				
+				cameras = append(cameras, gin.H{
+					"id":         streamInfo.ID,
+					"name":       streamInfo.Name,
+					"status":     status,
+					"url":        streamInfo.URL,
+					"start_time": streamInfo.StartTime,
+				})
+			}
+			return true
+		})
 		
 		c.JSON(200, gin.H{
 			"cameras": cameras,
@@ -683,6 +710,41 @@ func stopCameraHandler(app *App) gin.HandlerFunc {
 	})
 }
 
+// convertBGRToJPEG converts BGR raw pixel data to JPEG format
+func convertBGRToJPEG(bgrData []byte, width, height int) ([]byte, error) {
+	// Create RGBA image
+	img := image.NewRGBA(image.Rect(0, 0, width, height))
+	
+	// Convert BGR to RGBA
+	// BGR data is packed as: B, G, R, B, G, R, ...
+	pixelCount := width * height
+	expectedSize := pixelCount * 3
+	
+	if len(bgrData) < expectedSize {
+		return nil, fmt.Errorf("insufficient BGR data: got %d bytes, expected at least %d", len(bgrData), expectedSize)
+	}
+	
+	for i := 0; i < pixelCount; i++ {
+		bgrIdx := i * 3
+		rgbaIdx := i * 4
+		
+		// BGR -> RGBA conversion
+		img.Pix[rgbaIdx+0] = bgrData[bgrIdx+2] // R
+		img.Pix[rgbaIdx+1] = bgrData[bgrIdx+1] // G
+		img.Pix[rgbaIdx+2] = bgrData[bgrIdx+0] // B
+		img.Pix[rgbaIdx+3] = 255               // A (fully opaque)
+	}
+	
+	// Encode to JPEG
+	var buf bytes.Buffer
+	opts := &jpeg.Options{Quality: 85} // Good quality/size balance
+	if err := jpeg.Encode(&buf, img, opts); err != nil {
+		return nil, fmt.Errorf("failed to encode JPEG: %w", err)
+	}
+	
+	return buf.Bytes(), nil
+}
+
 func streamHandler(app *App) gin.HandlerFunc {
 	return gin.HandlerFunc(func(c *gin.Context) {
 		cameraID := c.Param("id")
@@ -703,18 +765,32 @@ func streamHandler(app *App) gin.HandlerFunc {
 
 		app.Logger.Printf("📺 Starting MJPEG stream for camera: %s", cameraID)
 
-		// Stream frames without gocv dependency
-		for range frames {
-			// For now, generate a simple response
-			// In production, you'd convert the frame data to JPEG
-			frameData := []byte("Mock JPEG frame data")
+		// Stream frames and convert BGR to JPEG
+		frameCount := 0
+		for frame := range frames {
+			frameCount++
 			
+			// Convert BGR frame data to JPEG
+			jpegData, err := convertBGRToJPEG(frame.Data, frame.Width, frame.Height)
+			if err != nil {
+				app.Logger.Printf("⚠️ Failed to convert frame %d for camera %s: %v", frameCount, cameraID, err)
+				continue
+			}
+			
+			// Write MJPEG boundary and frame
 			c.Writer.Write([]byte("--frame\r\n"))
 			c.Writer.Write([]byte("Content-Type: image/jpeg\r\n"))
-			c.Writer.Write([]byte(fmt.Sprintf("Content-Length: %d\r\n\r\n", len(frameData))))
-			c.Writer.Write(frameData)
+			c.Writer.Write([]byte(fmt.Sprintf("Content-Length: %d\r\n\r\n", len(jpegData))))
+			c.Writer.Write(jpegData)
 			c.Writer.Write([]byte("\r\n"))
-			c.Writer.Flush()
+			
+			if flusher, ok := c.Writer.(http.Flusher); ok {
+				flusher.Flush()
+			}
+			
+			if frameCount%100 == 0 {
+				app.Logger.Printf("📸 Streamed %d frames for camera %s", frameCount, cameraID)
+			}
 		}
 
 		app.Logger.Printf("📺 MJPEG stream stopped for camera: %s", cameraID)

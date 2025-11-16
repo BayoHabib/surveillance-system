@@ -758,14 +758,27 @@ func streamHandler(app *App) gin.HandlerFunc {
 		c.Header("Pragma", "no-cache")
 		c.Header("Expires", "0")
 
-		frames, err := app.VisionClient.GetStream(cameraID)
-		if err != nil {
-			app.Logger.Printf("❌ Error getting stream for camera %s: %v", cameraID, err)
-			c.JSON(404, gin.H{"error": "Stream not found"})
-			return
+		// Try to get frames from ActiveStreams first (internet cameras)
+		var frames <-chan core.Frame
+		var err error
+		
+		if streamInfo, ok := app.ActiveStreams.Load(cameraID); ok {
+			if info, ok := streamInfo.(*StreamInfo); ok {
+				frames = info.FramesCh
+				app.Logger.Printf("📺 Starting MJPEG stream for internet camera: %s", cameraID)
+			}
 		}
-
-		app.Logger.Printf("📺 Starting MJPEG stream for camera: %s", cameraID)
+		
+		// If not in ActiveStreams, try vision client (local cameras)
+		if frames == nil {
+			frames, err = app.VisionClient.GetStream(cameraID)
+			if err != nil {
+				app.Logger.Printf("❌ Error getting stream for camera %s: %v", cameraID, err)
+				c.JSON(404, gin.H{"error": "Stream not found", "camera_id": cameraID})
+				return
+			}
+			app.Logger.Printf("📺 Starting MJPEG stream for local camera: %s", cameraID)
+		}
 
 		// Stream frames and convert BGR to JPEG
 		frameCount := 0

@@ -96,8 +96,10 @@
         .video-wrapper {
             position: relative;
             width: 100%;
-            padding-top: 56.25%; /* 16:9 */
+            height: 0;
+            padding-bottom: 56.25%; /* 16:9 */
             background: #000;
+            overflow: hidden;
         }
 
         .video-wrapper img {
@@ -107,6 +109,9 @@
             width: 100%;
             height: 100%;
             object-fit: contain;
+            image-rendering: auto;
+            image-rendering: crisp-edges;
+            image-rendering: -webkit-optimize-contrast;
         }
 
         .video-placeholder {
@@ -236,15 +241,26 @@
 
             async loadCameras() {
                 try {
+                    console.log('🔄 Chargement des caméras...');
                     const response = await fetch('/api/v1/cameras');
                     if (!response.ok) throw new Error(`HTTP ${response.status}`);
                     
                     const data = await response.json();
                     this.cameras = Array.isArray(data.cameras) ? data.cameras : [];
                     
-                    console.log(`📹 ${this.cameras.length} caméras chargées`);
+                    console.log(`📹 ${this.cameras.length} caméras chargées:`, this.cameras.map(c => `${c.name} (${c.status})`).join(', '));
                     this.renderCameras();
                     this.checkStatus();
+                    
+                    // Auto-démarrer les caméras en streaming
+                    setTimeout(() => {
+                        this.cameras.forEach(camera => {
+                            if (camera.status === 'streaming') {
+                                console.log(`🎬 Auto-démarrage: ${camera.name}`);
+                                this.startStream(camera.id);
+                            }
+                        });
+                    }, 500);
                 } catch (error) {
                     console.error('❌ Erreur:', error);
                     this.cameraGrid.innerHTML = '<div class="error">❌ Erreur de connexion au serveur</div>';
@@ -307,23 +323,46 @@
                 
                 const img = document.getElementById(`stream_${cameraId}`);
                 const placeholder = document.getElementById(`placeholder_${cameraId}`);
+                const card = document.querySelector(`[data-camera-id="${cameraId}"]`);
                 
-                if (!img) return;
+                if (!img) {
+                    console.error(`❌ Image element non trouvé pour ${cameraId}`);
+                    return;
+                }
+
+                // Afficher le placeholder de chargement
+                if (placeholder) {
+                    placeholder.innerHTML = '<div class="loading"></div><div style="margin-top: 1rem;">Chargement du flux...</div>';
+                }
 
                 // Ajouter timestamp pour éviter le cache
-                img.src = `/api/v1/cameras/${cameraId}/stream?t=${Date.now()}`;
+                const streamUrl = `/api/v1/cameras/${cameraId}/stream?t=${Date.now()}`;
+                console.log(`📡 URL: ${streamUrl}`);
+                img.src = streamUrl;
                 
                 img.onload = () => {
+                    console.log(`✅ Première frame reçue pour ${cameraId}`);
                     img.style.display = 'block';
                     if (placeholder) placeholder.style.display = 'none';
-                    console.log(`✅ Flux ${cameraId} démarré`);
+                    if (card) card.classList.add('streaming');
                 };
 
-                img.onerror = () => {
-                    console.error(`❌ Erreur flux ${cameraId}`);
+                img.onerror = (e) => {
+                    console.error(`❌ Erreur flux ${cameraId}:`, e);
                     if (placeholder) {
-                        placeholder.innerHTML = '<div style="color: #f44336;">❌ Erreur de connexion</div>';
+                        placeholder.innerHTML = `
+                            <div style="color: #f44336; text-align: center;">
+                                <div style="font-size: 2rem;">❌</div>
+                                <div style="margin-top: 0.5rem;">Erreur de connexion</div>
+                                <div style="font-size: 0.85rem; margin-top: 0.5rem; opacity: 0.7;">Vérifier que la caméra est active</div>
+                            </div>
+                        `;
                     }
+                    // Retry après 3 secondes
+                    setTimeout(() => {
+                        console.log(`🔄 Tentative de reconnexion pour ${cameraId}`);
+                        img.src = `/api/v1/cameras/${cameraId}/stream?t=${Date.now()}`;
+                    }, 3000);
                 };
             }
 

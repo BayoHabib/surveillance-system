@@ -64,13 +64,14 @@ CameraManager::is_initialized_ = true;  // Explicitement le membre de la base
 | Composant | Status | Détails |
 |-----------|--------|---------|
 | **OpenCV 4.6.0** | ✅ Installé | 43+ modules, pkg-config OK |
-| **Vision Service** | ✅ Running | PID 48898, 81 MB RAM |
+| **Vision Service** | ✅ Running | PID dynamique, ~68 MB RAM |
 | **Go Server** | ✅ Running | Port 8080, vision_connected: true |
 | **gRPC Communication** | ✅ Fonctionnel | StartStream/StopStream OK |
 | **OpenCV Initialization** | ✅ Validé | Lit propriétés vidéo correctement |
 | **Stream Creation** | ✅ OK | file://, rtsp://, webcam supportés |
-| **Frame Processing** | ⏳ En cours | Boucle de capture à implémenter |
-| **Motion Detection** | ⏳ En cours | MOG2 prêt, pas encore actif |
+| **Frame Processing** | ✅ **FONCTIONNEL** | **26.2 FPS en temps réel** |
+| **Motion Detection** | ✅ **ACTIF** | **MOG2 détecte 262 frames** |
+| **Capture Thread** | ✅ **OPÉRATIONNEL** | Thread dédié avec lifecycle complet |
 
 ---
 
@@ -108,29 +109,39 @@ curl -X PUT http://localhost:8080/api/v1/cameras/opencv_test_001/start
 
 ## 🚀 Prochaines Étapes (Phase 2.3 complète)
 
-### À Implémenter
+### ✅ Terminé
 
-1. **Boucle de Traitement Frames** ⏳
-   - Thread dédié dans `OpenCVCaptureManager`
-   - Appel continu à `opencv_capture_->read()`
-   - Push frames vers buffer ou callback
+1. **Boucle de Traitement Frames** ✅
+   - Thread dédié dans `CaptureThreadLoop()`
+   - Appel continu à `opencv_capture_->read()` à 26.2 FPS
+   - Traitement automatique et stats périodiques
 
-2. **Détection de Mouvement** ⏳
-   - Activation `BackgroundSubtractorMOG2`
-   - Paramètres: history, threshold, detect shadows
-   - Génération d'événements de détection
+2. **Détection de Mouvement** ✅
+   - `BackgroundSubtractorMOG2` actif
+   - Paramètres: history=500, varThreshold=16, shadows
+   - 262 frames de mouvement détectées sur test video
+   - Pixel counting: 363-3912 pixels par frame
 
-3. **Streaming Bidirectionnel** ⏳
-   - Implémenter `ProcessFrames()` réel
-   - Encoder frames en JPEG/PNG pour proto
-   - Statistiques temps réel (FPS, CPU, détections)
+### 🔄 En Cours
+
+3. **Génération d'Événements** ⏳
+   - Créer `DetectionEvent` quand motion > threshold
+   - Passer les événements au `FrameProcessor`
+   - Intégration avec système d'alertes Go
 
 4. **Tests de Charge** 📋
    - Multiple streams concurrents
    - Métriques de performance
    - Stress test mémoire/CPU
 
-5. **Documentation** 📋
+### 📋 À Faire
+
+5. **Streaming Bidirectionnel** 📋
+   - Implémenter `ProcessFrames()` réel
+   - Encoder frames en JPEG/PNG pour proto
+   - Statistiques temps réel (FPS, CPU, détections)
+
+6. **Documentation** 📋
    - API OpenCV utilisée
    - Configuration optimale
    - Troubleshooting guide

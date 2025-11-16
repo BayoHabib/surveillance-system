@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket Alert Monitor - Phase 3</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1a1a2e;
+            color: #eee;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            color: #00d9ff;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #888;
+            margin-bottom: 30px;
+        }
+        .status {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .status.connected {
+            background: #1e4d2b;
+            border-left: 4px solid #4caf50;
+        }
+        .status.disconnected {
+            background: #4d1e1e;
+            border-left: 4px solid #f44336;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .stat-card {
+            background: #16213e;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 3px solid #00d9ff;
+        }
+        .stat-value {
+            font-size: 32px;
+            font-weight: bold;
+            color: #00d9ff;
+        }
+        .stat-label {
+            color: #888;
+            font-size: 14px;
+        }
+        .alerts-container {
+            background: #16213e;
+            border-radius: 8px;
+            padding: 20px;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        .alert-item {
+            padding: 12px;
+            margin-bottom: 10px;
+            border-radius: 6px;
+            border-left: 4px solid;
+            animation: slideIn 0.3s ease-out;
+        }
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        .alert-item.info {
+            background: #1e3a5f;
+            border-color: #2196f3;
+        }
+        .alert-item.warning {
+            background: #5f4d1e;
+            border-color: #ff9800;
+        }
+        .alert-item.critical {
+            background: #5f1e1e;
+            border-color: #f44336;
+        }
+        .alert-time {
+            font-size: 11px;
+            color: #888;
+        }
+        .alert-camera {
+            font-weight: bold;
+            color: #00d9ff;
+        }
+        .alert-message {
+            margin-top: 5px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 WebSocket Alert Monitor</h1>
+        <div class="subtitle">Phase 3 - Real-time Notifications</div>
+        
+        <div id="status" class="status disconnected">
+            <span id="status-text">⚠️ Disconnected</span>
+            <button onclick="connect()">Reconnect</button>
+        </div>
+        
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-value" id="total-alerts">0</div>
+                <div class="stat-label">Total Alerts</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="alert-rate">0.0</div>
+                <div class="stat-label">Alerts/sec</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="critical-count">0</div>
+                <div class="stat-label">Critical</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="warning-count">0</div>
+                <div class="stat-label">Warning</div>
+            </div>
+        </div>
+        
+        <div class="alerts-container" id="alerts">
+            <div style="text-align: center; color: #888;">
+                En attente d'alertes...
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let ws = null;
+        let totalAlerts = 0;
+        let criticalCount = 0;
+        let warningCount = 0;
+        let startTime = Date.now();
+        
+        function connect() {
+            const wsUrl = 'ws://' + window.location.hostname + ':8080/ws';
+            
+            ws = new WebSocket(wsUrl);
+            
+            ws.onopen = () => {
+                document.getElementById('status').className = 'status connected';
+                document.getElementById('status-text').textContent = '✅ Connected';
+                console.log('WebSocket connected');
+            };
+            
+            ws.onclose = () => {
+                document.getElementById('status').className = 'status disconnected';
+                document.getElementById('status-text').textContent = '❌ Disconnected';
+                console.log('WebSocket disconnected');
+            };
+            
+            ws.onerror = (error) => {
+                console.error('WebSocket error:', error);
+            };
+            
+            ws.onmessage = (event) => {
+                try {
+                    const message = JSON.parse(event.data);
+                    
+                    if (message.type === 'connection') {
+                        console.log('Connection message:', message.data);
+                    } else if (message.type === 'alert') {
+                        handleAlert(message.data);
+                    }
+                } catch (e) {
+                    console.error('Parse error:', e);
+                }
+            };
+        }
+        
+        function handleAlert(alert) {
+            totalAlerts++;
+            
+            if (alert.level === 'critical') criticalCount++;
+            if (alert.level === 'warning') warningCount++;
+            
+            // Update stats
+            document.getElementById('total-alerts').textContent = totalAlerts;
+            document.getElementById('critical-count').textContent = criticalCount;
+            document.getElementById('warning-count').textContent = warningCount;
+            
+            const elapsed = (Date.now() - startTime) / 1000;
+            const rate = (totalAlerts / elapsed).toFixed(1);
+            document.getElementById('alert-rate').textContent = rate;
+            
+            // Add alert to list
+            const alertsContainer = document.getElementById('alerts');
+            if (alertsContainer.children[0]?.textContent.includes('En attente')) {
+                alertsContainer.innerHTML = '';
+            }
+            
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert-item ${alert.level}`;
+            
+            const icon = {
+                'info': '💬',
+                'warning': '⚠️',
+                'critical': '🚨'
+            }[alert.level] || '📢';
+            
+            const time = new Date(alert.timestamp).toLocaleTimeString();
+            const cameraShort = (alert.camera_id || 'unknown').substring(0, 25);
+            
+            alertDiv.innerHTML = `
+                <div>
+                    ${icon} <span class="alert-camera">${cameraShort}</span>
+                    <span class="alert-time">${time}</span>
+                </div>
+                <div class="alert-message">
+                    ${alert.message || 'No message'} 
+                    ${alert.motion_pixels ? `(${alert.motion_pixels} px)` : ''}
+                </div>
+            `;
+            
+            alertsContainer.insertBefore(alertDiv, alertsContainer.firstChild);
+            
+            // Keep only last 20 alerts
+            while (alertsContainer.children.length > 20) {
+                alertsContainer.removeChild(alertsContainer.lastChild);
+            }
+        }
+        
+        // Auto-connect on load
+        connect();
+    </script>
+</body>
+</html>

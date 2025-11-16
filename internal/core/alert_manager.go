@@ -9,6 +9,9 @@ import (
 	"time"
 )
 
+// AlertCallback est appelé quand une nouvelle alerte est créée
+type AlertCallback func(alert Alert)
+
 type AlertManager interface {
 	AddAlert(alert Alert)
 	GetAlerts(limit int, offset int) []Alert
@@ -16,6 +19,7 @@ type AlertManager interface {
 	AcknowledgeAlert(alertID, userID string) error
 	GetAlertStats() AlertStats
 	CleanupOldAlerts()
+	SetAlertCallback(callback AlertCallback)
 }
 
 type AlertStats struct {
@@ -32,6 +36,8 @@ type alertManager struct {
 	alertQueue     chan Alert        // Canal bufferisé pour ajout asynchrone
 	retention      time.Duration
 	mutex          sync.RWMutex
+	onAlertCreated AlertCallback     // Callback pour notifications temps réel
+	callbackMutex  sync.RWMutex      // Mutex pour accès thread-safe au callback
 }
 
 func NewAlertManager(retention time.Duration) AlertManager {
@@ -134,6 +140,21 @@ func (am *alertManager) writeBatch(batch []Alert) {
 	// Log tous les 100 alertes
 	if len(am.alerts)%100 < len(batch) {
 		log.Printf("✅ Alerts: %d total (%d in this batch)", len(am.alerts), len(batch))
+	}
+	
+	// Notifier via callback pour chaque alerte du batch
+	am.callbackMutex.RLock()
+	callback := am.onAlertCreated
+	am.callbackMutex.RUnlock()
+	
+	if callback != nil {
+		// Appeler le callback pour chaque alerte (en dehors du mutex principal)
+		for _, alert := range batch {
+			go callback(alert) // Async pour éviter de bloquer
+		}
+		log.Printf("📤 Notified %d alerts via callback", len(batch))
+	} else {
+		log.Printf("⚠️  No callback set, %d alerts not broadcasted", len(batch))
 	}
 }
 
@@ -283,6 +304,13 @@ func (am *alertManager) periodicCleanup() {
 	for range ticker.C {
 		am.CleanupOldAlerts()
 	}
+}
+
+// SetAlertCallback définit le callback appelé pour chaque nouvelle alerte
+func (am *alertManager) SetAlertCallback(callback AlertCallback) {
+	am.callbackMutex.Lock()
+	defer am.callbackMutex.Unlock()
+	am.onAlertCreated = callback
 }
 
 // Erreurs

@@ -111,10 +111,17 @@ func (h *Hub) removeClient(client *Client) {
 }
 
 func (h *Hub) Broadcast(message Message) {
+	h.mutex.RLock()
+	clientCount := len(h.clients)
+	h.mutex.RUnlock()
+	
 	select {
 	case h.broadcast <- message:
+		if clientCount > 0 {
+			log.Printf("📡 Broadcasting %s to %d client(s)", message.Type, clientCount)
+		}
 	default:
-		log.Println("Canal broadcast plein, message abandonné")
+		log.Println("⚠️  Broadcast channel full, message dropped")
 	}
 }
 

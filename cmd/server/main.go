@@ -20,7 +20,6 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/gorilla/websocket"
 )
 
 type App struct {
@@ -176,6 +175,27 @@ func initializeApp(config *core.Config, logger *log.Logger) (*App, error) {
 		hub.Broadcast(wsHub.Message{
 			Type: "alert",
 			Data: alert,
+		})
+	})
+	
+	// Set up AlertManager callback for real-time WebSocket broadcasting
+	alertManager.SetAlertCallback(func(alert core.Alert) {
+		hub.Broadcast(wsHub.Message{
+			Type: "alert",
+			Data: map[string]interface{}{
+				"id":          alert.ID,
+				"camera_id":   alert.CameraID,
+				"type":        alert.Type,
+				"level":       alert.Level,
+				"message":     alert.Message,
+				"timestamp":   alert.Timestamp,
+				"motion_pixels": func() interface{} {
+					if alert.Detection != nil && alert.Detection.Metadata != nil {
+						return alert.Detection.Metadata["motion_pixels"]
+					}
+					return nil
+				}(),
+			},
 		})
 	})
 
@@ -835,81 +855,11 @@ func acknowledgeAlertHandler(app *App) gin.HandlerFunc {
 }
 
 func websocketHandler(app *App) gin.HandlerFunc {
-	upgrader := websocket.Upgrader{
-		CheckOrigin: func(r *http.Request) bool {
-			// In production, check allowed origins
-			if getEnvironment() == "production" {
-				origin := r.Header.Get("Origin")
-				allowedOrigins := []string{
-					"http://localhost:3000",
-					"https://yourdomain.com",
-				}
-				
-				for _, allowedOrigin := range allowedOrigins {
-					if origin == allowedOrigin {
-						return true
-					}
-				}
-				return false
-			}
-			return true // Allow all origins in development
-		},
-	}
-
+	handler := wsHub.NewHandler(app.WSHub)
+	
 	return gin.HandlerFunc(func(c *gin.Context) {
-		conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
-		if err != nil {
-			app.Logger.Printf("❌ WebSocket upgrade failed: %v", err)
-			c.JSON(400, gin.H{"error": "WebSocket upgrade failed"})
-			return
-		}
-		defer conn.Close()
-
-		app.Logger.Printf("🔌 WebSocket client connected from %s", c.ClientIP())
-
-		// Send initial status message
-		statusMsg := map[string]interface{}{
-			"type": "status",
-			"data": map[string]interface{}{
-				"connected":    true,
-				"server_time": time.Now(),
-				"version":     getVersion(),
-			},
-		}
-		
-		if err := conn.WriteJSON(statusMsg); err != nil {
-			app.Logger.Printf("❌ Failed to send initial status: %v", err)
-			return
-		}
-
-		// Handle incoming messages and keep connection alive
-		for {
-			messageType, message, err := conn.ReadMessage()
-			if err != nil {
-				if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-					app.Logger.Printf("❌ WebSocket error: %v", err)
-				}
-				break
-			}
-
-			if messageType == websocket.TextMessage {
-				app.Logger.Printf("📨 WebSocket message received: %s", string(message))
-				
-				// Echo the message back for now
-				response := map[string]interface{}{
-					"type": "echo",
-					"data": string(message),
-					"timestamp": time.Now(),
-				}
-				
-				if err := conn.WriteJSON(response); err != nil {
-					app.Logger.Printf("❌ Failed to send WebSocket response: %v", err)
-					break
-				}
-			}
-		}
-
-		app.Logger.Printf("🔌 WebSocket client disconnected from %s", c.ClientIP())
+		app.Logger.Printf("🔌 WebSocket connection request from %s", c.ClientIP())
+		handler.HandleWebSocket(c.Writer, c.Request)
 	})
 }
 

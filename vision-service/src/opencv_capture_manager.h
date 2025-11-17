@@ -85,6 +85,11 @@ private:
     int motion_detection_blur_{5};  // Taille du blur pour réduire bruit
     std::atomic<int> motion_frames_count_{0};
     
+    // Cooldown pour éviter spam de détections (BUG #3 fix)
+    std::chrono::steady_clock::time_point last_detection_time_;
+    std::mutex detection_mutex_;
+    static constexpr int DETECTION_COOLDOWN_SECONDS = 5;  // 5s entre détections
+    
     // Métriques de performance
     mutable std::atomic<double> actual_fps_{0.0};
     cv::Size frame_size_{0, 0};

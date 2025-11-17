@@ -9,7 +9,8 @@
 using namespace cv;
 
 OpenCVCaptureManager::OpenCVCaptureManager(const std::string& camera_url)
-    : CameraManager(camera_url), opencv_capture_(nullptr) {
+    : CameraManager(camera_url), opencv_capture_(nullptr),
+      last_detection_time_(std::chrono::steady_clock::now() - std::chrono::seconds(DETECTION_COOLDOWN_SECONDS)) {
     std::cerr << "[OpenCVCaptureManager] Constructed with URL: " << camera_url << std::endl;
 }
 
@@ -702,16 +703,34 @@ bool OpenCVCaptureManager::DetectMotion(const cv::Mat& frame) {
         bool motion_detected = motion_pixels > motion_detection_threshold_;
         
         if (motion_detected) {
-            motion_frames_count_++;
-            std::cerr << "[OpenCVCaptureManager] Motion detected! Pixels: " 
-                      << motion_pixels << " (threshold: " << motion_detection_threshold_ 
-                      << "), frame #" << motion_frames_count_.load() << std::endl;
+            // BUG #3 FIX: Vérifier le cooldown avant de générer un événement
+            std::lock_guard<std::mutex> lock(detection_mutex_);
+            auto now = std::chrono::steady_clock::now();
+            auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(
+                now - last_detection_time_).count();
             
-            // Générer un événement de détection
-            GenerateDetectionEvent(motion_pixels);
+            if (elapsed >= DETECTION_COOLDOWN_SECONDS) {
+                motion_frames_count_++;
+                std::cerr << "[OpenCVCaptureManager] Motion detected! Pixels: " 
+                          << motion_pixels << " (threshold: " << motion_detection_threshold_ 
+                          << "), frame #" << motion_frames_count_.load() 
+                          << " [cooldown: " << elapsed << "s]" << std::endl;
+                
+                // Générer un événement de détection
+                GenerateDetectionEvent(motion_pixels);
+                
+                // Mettre à jour le timestamp de la dernière détection
+                last_detection_time_ = now;
+                
+                return true;
+            } else {
+                // Détection ignorée (cooldown actif)
+                // Pas de log pour éviter spam console
+                return false;
+            }
         }
         
-        return motion_detected;
+        return false;
         
     } catch (const cv::Exception& e) {
         std::cerr << "[OpenCVCaptureManager] OpenCV exception in motion detection: " 

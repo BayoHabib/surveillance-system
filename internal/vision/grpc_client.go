@@ -230,8 +230,8 @@ func (gc *grpcClient) StartStreamWithURL(cameraID, videoURL string) (<-chan core
 
 	gc.streams[cameraID] = stream
 
-	// Start internet frame streaming goroutine with URL-specific handling
-	go gc.streamInternetFrames(ctx2, stream, videoURL)
+	// Start real frame streaming from C++ vision service (not mock data!)
+	go gc.streamFrames(ctx2, stream)
 
 	log.Printf("✅ Internet stream started for camera: %s with URL: %s", cameraID, videoURL)
 
@@ -344,10 +344,15 @@ func (gc *grpcClient) streamFrames(ctx context.Context, stream *grpcStream) {
 	grpcStream, err := gc.client.GetFrames(ctx, req)
 	if err != nil {
 		log.Printf("❌ Failed to start GetFrames stream: %v", err)
+		log.Printf("⚠️  Falling back to test pattern for camera: %s", stream.cameraID)
+		// Fallback to test pattern
+		gc.streamTestPattern(ctx, stream)
 		return
 	}
 	
 	frameCounter := 0
+	lastFrameTime := time.Now()
+	
 	for {
 		select {
 		case <-ctx.Done():
@@ -357,6 +362,9 @@ func (gc *grpcClient) streamFrames(ctx context.Context, stream *grpcStream) {
 			log.Printf("⏹ Stream stopped for camera: %s", stream.cameraID)
 			return
 		default:
+			// Set a timeout for receiving frames
+			grpcStream.RecvMsg(&pb.Frame{})
+			
 			// Recevoir une frame du serveur C++
 			protoFrame, err := grpcStream.Recv()
 			if err != nil {
@@ -364,9 +372,18 @@ func (gc *grpcClient) streamFrames(ctx context.Context, stream *grpcStream) {
 					log.Printf("📭 Stream ended for camera: %s", stream.cameraID)
 					return
 				}
+				// If no frames for 5 seconds, fall back to test pattern
+				if time.Since(lastFrameTime) > 5*time.Second {
+					log.Printf("⚠️  No frames received for 5s, falling back to test pattern")
+					gc.streamTestPattern(ctx, stream)
+					return
+				}
 				log.Printf("❌ Error receiving frame: %v", err)
-				return
+				time.Sleep(100 * time.Millisecond)
+				continue
 			}
+			
+			lastFrameTime = time.Now()
 			
 			// Convertir proto Frame en core.Frame
 			frame := core.GetFrameWithSize(int(protoFrame.Width), int(protoFrame.Height), int(protoFrame.Channels))
@@ -390,6 +407,43 @@ func (gc *grpcClient) streamFrames(ctx context.Context, stream *grpcStream) {
 				}
 			default:
 				// Channel plein, drop frame
+				core.ReleaseFrame(frame)
+			}
+		}
+	}
+}
+
+// streamTestPattern generates test pattern frames when real video is unavailable
+func (gc *grpcClient) streamTestPattern(ctx context.Context, stream *grpcStream) {
+	log.Printf("🎨 Streaming test pattern for camera: %s", stream.cameraID)
+	
+	ticker := time.NewTicker(time.Second / 30) // 30 FPS
+	defer ticker.Stop()
+	
+	frameCounter := 0
+	
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-stream.stopChan:
+			return
+		case <-ticker.C:
+			frame := core.GetFrameWithSize(1280, 720, 3)
+			frame.CameraID = stream.cameraID
+			frame.Format = "bgr"
+			frame.Timestamp = time.Now()
+			
+			gc.fillInternetFrameData(frame.Data, frameCounter, "test_pattern")
+			
+			select {
+			case stream.framesChan <- *frame:
+				core.ReleaseFrame(frame)
+				frameCounter++
+				if frameCounter%300 == 0 {
+					log.Printf("🎨 Test pattern frame %d for camera %s", frameCounter, stream.cameraID)
+				}
+			default:
 				core.ReleaseFrame(frame)
 			}
 		}

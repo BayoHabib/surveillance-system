@@ -460,24 +460,24 @@ run: run-go
 .PHONY: build-opencv test-opencv run-opencv
 
 build-opencv:
-    @echo "🔨 Building with OpenCV support..."
-    cd vision-service && make build-opencv
+	@echo "🔨 Building with OpenCV support..."
+	cd vision-service && make build-opencv
 
 test-opencv: build-opencv
-    @echo "🧪 Testing OpenCV integration..."
-    cd vision-service && make test-opencv
+	@echo "🧪 Testing OpenCV integration..."
+	cd vision-service && make test-opencv
 
 run-opencv: build-opencv
-    @echo "🚀 Running with OpenCV..."
-    cd vision-service && make run-opencv
+	@echo "🚀 Running with OpenCV..."
+	cd vision-service && make run-opencv
 
 # Update integration tests to support OpenCV
 test-integration-opencv: build-opencv
-    @echo "Running OpenCV integration tests..."
-    @echo "Starting C++ service with OpenCV..."
-    cd vision-service && make run-opencv &
-    @sleep 3
-    @echo "Running Go integration tests..."
-    VISION_CLIENT_TYPE=grpc VISION_SERVICE_ADDRESS=localhost:50051 $(GOTEST) -v -timeout $(TEST_TIMEOUT) -tags=integration ./...
-    @echo "Stopping C++ service..."
-    @pkill -f vision-service || true
+	@echo "Running OpenCV integration tests..."
+	@echo "Starting C++ service with OpenCV..."
+	cd vision-service && make run-opencv &
+	@sleep 3
+	@echo "Running Go integration tests..."
+	VISION_CLIENT_TYPE=grpc VISION_SERVICE_ADDRESS=localhost:50051 $(GOTEST) -v -timeout $(TEST_TIMEOUT) -tags=integration ./...
+	@echo "Stopping C++ service..."
+	@pkill -f vision-service || true

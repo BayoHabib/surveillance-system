@@ -937,18 +937,28 @@ func wsVideoStreamHandler(app *App) gin.HandlerFunc {
 		// Get frames channel
 		var frames <-chan core.Frame
 		
+		// First, check ActiveStreams
 		if streamInfo, ok := app.ActiveStreams.Load(cameraID); ok {
 			if info, ok := streamInfo.(*StreamInfo); ok {
 				frames = info.FramesCh
+				app.Logger.Printf("✅ Using existing ActiveStreams channel for camera: %s", cameraID)
 			}
 		}
 		
+		// If not in ActiveStreams, try to get from VisionClient
 		if frames == nil {
 			frames, err = app.VisionClient.GetStream(cameraID)
 			if err != nil {
-				app.Logger.Printf("❌ Error getting stream for camera %s: %v", cameraID, err)
-				conn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf(`{"error":"Stream not found","camera_id":"%s"}`, cameraID)))
+				// Stream doesn't exist, need to start it
+				app.Logger.Printf("⚠️ Stream not found for camera %s, checking if we can start it...", cameraID)
+				
+				// We can't automatically start streams without camera URL stored somewhere
+				// For now, return error message
+				app.Logger.Printf("❌ No stream found for camera: %s", cameraID)
+				conn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf(`{"error":"Stream not found. Please start the camera stream first via POST /api/v1/cameras/internet","camera_id":"%s"}`, cameraID)))
 				return
+			} else {
+				app.Logger.Printf("✅ Using existing VisionClient stream for camera: %s", cameraID)
 			}
 		}
 		

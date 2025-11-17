@@ -170,6 +170,18 @@
             <button id="disconnectBtn" onclick="disconnect()" disabled>Disconnect</button>
         </div>
         
+        <div class="controls">
+            <select id="quickSelect" onchange="selectQuickUrl()">
+                <option value="">⚡ Quick Select...</option>
+                <option value="ws://localhost:8080/api/v1/cameras/internet_1763406517/ws-stream">✅ Big Buck Bunny (streaming)</option>
+                <option value="ws://localhost:8080/api/v1/cameras/internet_1763405806/ws-stream">✅ Test Video File (streaming)</option>
+                <option value="ws://localhost:8080/api/v1/cameras/camera_1/ws-stream">❌ camera1 (offline)</option>
+            </select>
+            <button onclick="addTestCamera()">➕ Add Test RTSP Camera</button>
+            <button onclick="testMJPEG()">🎥 Test MJPEG First</button>
+            <button onclick="listCameras()">📋 List All Cameras</button>
+        </div>
+        
         <div class="video-container">
             <div class="video-wrapper">
                 <div class="video-header">
@@ -349,6 +361,118 @@
             if (ws) {
                 log('Disconnecting...');
                 ws.close();
+            }
+        }
+
+        function selectQuickUrl() {
+            const select = document.getElementById('quickSelect');
+            const url = select.value;
+            if (url) {
+                document.getElementById('serverUrl').value = url;
+                log('Selected: ' + url);
+            }
+        }
+
+        async function addTestCamera() {
+            log('Adding test camera...');
+            
+            // Test streams - try RTSP public stream
+            const testStreams = [
+                'rtsp://wowzaec2demo.streamlock.net/vod/mp4:BigBuckBunny_115k.mp4',
+                'file:///mnt/c/Users/Administrator/git_clone/surveillance-system/test_camera_feed.mp4',
+                'rtsp://rtsp.stream/pattern'
+            ];
+            
+            const streamUrl = testStreams[0];  // Use RTSP Big Buck Bunny
+            
+            log('📡 Stream URL: ' + streamUrl);
+            
+            try {
+                log('📤 Sending POST request...');
+                const response = await fetch('http://localhost:8080/api/v1/cameras/internet', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        name: 'Test Camera (Big Buck Bunny)',
+                        url: streamUrl
+                    })
+                });
+                
+                log('📨 Response status: ' + response.status + ' ' + response.statusText);
+                
+                const data = await response.json();
+                
+                log('📥 Server response: ' + JSON.stringify(data).substring(0, 300));
+                
+                if (response.ok && data.camera_id) {
+                    log('✅ Camera added: ' + data.camera_id, 'success');
+                    log('📡 Streaming from: ' + streamUrl);
+                    log('🎥 Camera name: ' + data.name);
+                    log('📊 Status: ' + data.status);
+                    
+                    // Update URL and connect
+                    const wsUrl = `ws://localhost:8080/api/v1/cameras/${data.camera_id}/ws-stream`;
+                    document.getElementById('serverUrl').value = wsUrl;
+                    log('🔗 WebSocket URL: ' + wsUrl);
+                    
+                    // Wait 3 seconds for stream to initialize
+                    log('⏳ Waiting 3 seconds for stream initialization...');
+                    setTimeout(() => {
+                        log('🔌 Connecting to WebSocket...');
+                        connect();
+                    }, 3000);
+                } else {
+                    log('❌ Failed to add camera: ' + (data.error || 'Unknown error'), 'error');
+                    log('Response: ' + JSON.stringify(data), 'error');
+                }
+            } catch (error) {
+                log('❌ Error adding camera: ' + error, 'error');
+                log('💡 Make sure the server is running on http://localhost:8080', 'warning');
+            }
+        }
+
+        async function listCameras() {
+            log('📋 Fetching camera list from API...');
+            try {
+                const response = await fetch('http://localhost:8080/api/v1/cameras');
+                log('📨 Response status: ' + response.status);
+                const data = await response.json();
+                log('📥 Full response: ' + JSON.stringify(data, null, 2));
+                
+                if (data.cameras && data.cameras.length > 0) {
+                    log('✅ Found ' + data.cameras.length + ' camera(s):', 'success');
+                    data.cameras.forEach((cam, i) => {
+                        log('  ' + (i+1) + '. ID: ' + cam.id + ' | Name: ' + cam.name + ' | URL: ' + cam.url);
+                    });
+                } else {
+                    log('❌ No cameras found in system', 'error');
+                }
+            } catch (error) {
+                log('❌ Error: ' + error.message, 'error');
+            }
+        }
+
+        async function testMJPEG() {
+            log('🔍 First checking what cameras exist...');
+            try {
+                const response = await fetch('http://localhost:8080/api/v1/cameras');
+                const data = await response.json();
+                log('📋 API response: ' + JSON.stringify(data, null, 2));
+                
+                if (data.cameras && data.cameras.length > 0) {
+                    const firstCamera = data.cameras[0];
+                    log('✅ Found camera: ' + firstCamera.id);
+                    const mjpegUrl = 'http://localhost:8080/api/v1/cameras/' + firstCamera.id + '/stream';
+                    log('📺 Opening MJPEG URL: ' + mjpegUrl);
+                    window.open(mjpegUrl, '_blank', 'width=800,height=600');
+                } else {
+                    log('❌ No cameras registered! Need to add one first.', 'error');
+                    log('💡 Try the "Add Test RTSP Camera" button', 'warning');
+                }
+            } catch (error) {
+                log('❌ Error checking cameras: ' + error.message, 'error');
             }
         }
 

@@ -97,6 +97,12 @@ private:
     std::mutex detection_mutex_;
     static constexpr int DETECTION_COOLDOWN_SECONDS = 5;  // 5s entre détections
     
+    // RTSP reconnection avec exponential backoff (BUG #8 fix)
+    std::atomic<int> rtsp_reconnect_attempts_{0};
+    std::chrono::steady_clock::time_point last_reconnect_attempt_;
+    static constexpr int MAX_RECONNECT_ATTEMPTS = 10;
+    static constexpr int BASE_RECONNECT_DELAY_MS = 1000;  // 1s base delay
+    
     // Métriques de performance
     mutable std::atomic<double> actual_fps_{0.0};
     cv::Size frame_size_{0, 0};
@@ -117,6 +123,10 @@ private:
     void ProcessMotionDetection(const cv::Mat& frame);
     int CountMotionPixels(const cv::Mat& mask) const;
     void GenerateDetectionEvent(int motion_pixels);
+    
+    // RTSP reconnection avec exponential backoff
+    bool ShouldAttemptReconnect();
+    void ResetReconnectAttempts();
     
     // Thread de capture
     void CaptureThreadLoop();

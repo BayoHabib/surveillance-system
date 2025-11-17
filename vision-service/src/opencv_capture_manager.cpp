@@ -343,26 +343,48 @@ Frame OpenCVCaptureManager::CaptureRtspFrame() {
     }
 
     Mat frame;
-    if (!opencv_capture_->read(frame)) {
+    
+    // BUG #8 FIX: Retry loop avec exponential backoff
+    bool frame_captured = opencv_capture_->read(frame);
+    
+    while (!frame_captured) {
         std::cerr << "[OpenCVCaptureManager] RTSP read failed" << std::endl;
         
-        // Tentative de reconnexion RTSP
-        if (ShouldAttemptReconnect()) {
-            std::cerr << "[OpenCVCaptureManager] Attempting RTSP reconnection..." << std::endl;
-            opencv_capture_->release();
-            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-            
-            if (opencv_capture_->open(camera_url_)) {
-                std::cerr << "[OpenCVCaptureManager] RTSP reconnection successful" << std::endl;
-                if (opencv_capture_->read(frame)) {
-                    // Appliquer détection de mouvement si activée
-                    if (!frame.empty()) {
-                        ProcessMotionDetection(frame);
-                    }
-                    return ConvertMatToFrame(frame);
-                }
-            }
+        // Vérifier si on peut tenter une reconnection (avec backoff)
+        if (!ShouldAttemptReconnect()) {
+            // Max tentatives atteintes ou backoff delay non écoulé
+            return CreateEmptyFrame();
         }
+        
+        // Tenter la reconnection
+        std::cerr << "[OpenCVCaptureManager] Attempting RTSP reconnection..." << std::endl;
+        opencv_capture_->release();
+        
+        // Le backoff delay est déjà géré par ShouldAttemptReconnect()
+        // On applique juste un petit sleep additionnel pour stabiliser
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        
+        if (opencv_capture_->open(camera_url_)) {
+            std::cerr << "[OpenCVCaptureManager] RTSP reconnection successful!" << std::endl;
+            
+            // Réessayer la capture
+            frame_captured = opencv_capture_->read(frame);
+            
+            if (frame_captured) {
+                // Succès! Reset le compteur de tentatives
+                ResetReconnectAttempts();
+                break;
+            } else {
+                std::cerr << "[OpenCVCaptureManager] Frame read failed after reconnection" << std::endl;
+                // Continue loop pour réessayer avec backoff plus long
+            }
+        } else {
+            std::cerr << "[OpenCVCaptureManager] RTSP reconnection failed" << std::endl;
+            // Continue loop pour réessayer avec backoff plus long
+        }
+    }
+    
+    if (!frame_captured || frame.empty()) {
         return CreateEmptyFrame();
     }
 
@@ -797,5 +819,51 @@ void OpenCVCaptureManager::GenerateDetectionEvent(int motion_pixels) {
               << "camera=" << camera_id_ 
               << ", pixels=" << motion_pixels
               << ", frame=" << frame_number_.load() << std::endl;
+}
+
+// BUG #8 FIX: RTSP reconnection avec exponential backoff
+bool OpenCVCaptureManager::ShouldAttemptReconnect() {
+    auto now = std::chrono::steady_clock::now();
+    
+    // Vérifier si on a atteint le max de tentatives
+    int current_attempts = rtsp_reconnect_attempts_.load();
+    if (current_attempts >= MAX_RECONNECT_ATTEMPTS) {
+        std::cerr << "[OpenCVCaptureManager] Max RTSP reconnection attempts (" 
+                  << MAX_RECONNECT_ATTEMPTS << ") reached. Giving up." << std::endl;
+        return false;
+    }
+    
+    // Calculer le délai avec exponential backoff: delay = base * 2^attempts
+    // Tentative 0: 1s, 1: 2s, 2: 4s, 3: 8s, 4: 16s, 5: 32s...
+    int delay_ms = BASE_RECONNECT_DELAY_MS * (1 << current_attempts);
+    auto required_delay = std::chrono::milliseconds(delay_ms);
+    
+    // Vérifier si assez de temps s'est écoulé depuis la dernière tentative
+    if (current_attempts > 0) {
+        auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+            now - last_reconnect_attempt_);
+        
+        if (elapsed < required_delay) {
+            // Pas encore le moment de réessayer
+            return false;
+        }
+    }
+    
+    // Incrémenter le compteur de tentatives
+    rtsp_reconnect_attempts_++;
+    last_reconnect_attempt_ = now;
+    
+    std::cerr << "[OpenCVCaptureManager] RTSP reconnection attempt " 
+              << rtsp_reconnect_attempts_.load() << "/" << MAX_RECONNECT_ATTEMPTS
+              << " (delay: " << delay_ms << "ms)" << std::endl;
+    
+    return true;
+}
+
+void OpenCVCaptureManager::ResetReconnectAttempts() {
+    if (rtsp_reconnect_attempts_.load() > 0) {
+        std::cerr << "[OpenCVCaptureManager] RTSP reconnection successful! Resetting attempts counter." << std::endl;
+    }
+    rtsp_reconnect_attempts_ = 0;
 }
 

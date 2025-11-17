@@ -267,37 +267,33 @@ func (gc *grpcClient) streamInternetFrames(ctx context.Context, stream *grpcStre
 			log.Printf("⏹ Internet stream stopped for %s", stream.cameraID)
 			return
 		case <-ticker.C:
-			// Create enhanced frame for internet streaming
-			frame := core.Frame{
-				CameraID:  stream.cameraID,
-				Data:      gc.generateInternetFrameData(frameCounter, videoURL),
-				Width:     1280, // Higher resolution for internet streams
-				Height:    720,
-				Format:    "bgr",
-				Timestamp: time.Now(),
-				Size:      1280 * 720 * 3,
-			}
+			// BUG #9 FIX: Utiliser le pool pour frames internet (1280x720)
+			frame := core.GetFrameWithSize(1280, 720, 3)
+			frame.CameraID = stream.cameraID
+			frame.Format = "bgr"
+			frame.Timestamp = time.Now()
+			
+			// Generate enhanced mock data
+			gc.fillInternetFrameData(frame.Data, frameCounter, videoURL)
 
 			// Send frame (non-blocking)
 			select {
-			case stream.framesChan <- frame:
+			case stream.framesChan <- *frame:
+				core.ReleaseFrame(frame)
 				frameCounter++
 				if frameCounter%300 == 0 { // Every 10 seconds at 30fps
 					log.Printf("📹 Internet streaming frame %d for camera %s from %s", frameCounter, stream.cameraID, videoURL)
 				}
 			default:
 				// Channel full, drop frame
+				core.ReleaseFrame(frame)
 			}
 		}
 	}
 }
 
-// Enhanced frame generation for internet streams
-func (gc *grpcClient) generateInternetFrameData(frameNumber int, videoURL string) []byte {
-	// Generate higher resolution mock frame data (1280x720x3) with URL-specific patterns
-	size := 1280 * 720 * 3
-	data := make([]byte, size)
-
+// fillInternetFrameData remplit un buffer avec des données de test avancées
+func (gc *grpcClient) fillInternetFrameData(data []byte, frameNumber int, videoURL string) {
 	// Create a visual pattern that changes over time to simulate real video
 	timePattern := frameNumber % 255
 	
@@ -313,14 +309,20 @@ func (gc *grpcClient) generateInternetFrameData(frameNumber int, videoURL string
 	}
 
 	// Fill with dynamic pattern for internet stream simulation
-	for i := 0; i < size; i += 3 {
+	for i := 0; i < len(data); i += 3 {
 		// Add some noise to make it look more realistic
 		noise := byte((frameNumber + i/3) % 50)
 		data[i] = b + noise     // B
 		data[i+1] = g + noise   // G  
 		data[i+2] = r + noise   // R
 	}
+}
 
+// generateInternetFrameData deprecated: utiliser fillInternetFrameData avec pool
+func (gc *grpcClient) generateInternetFrameData(frameNumber int, videoURL string) []byte {
+	size := 1280 * 720 * 3
+	data := make([]byte, size)
+	gc.fillInternetFrameData(data, frameNumber, videoURL)
 	return data
 }
 
@@ -342,43 +344,48 @@ func (gc *grpcClient) streamFrames(ctx context.Context, stream *grpcStream) {
 		case <-stream.stopChan:
 			return
 		case <-ticker.C:
-			// Create simulated frame
-			frame := core.Frame{
-				CameraID:  stream.cameraID,
-				Data:      gc.generateMockFrameData(),
-				Width:     640,
-				Height:    480,
-				Format:    "bgr",
-				Timestamp: time.Now(),
-				Size:      640 * 480 * 3,
-			}
+			// BUG #9 FIX: Utiliser le pool de frames au lieu d'allocation directe
+			frame := core.GetFrameWithSize(640, 480, 3)
+			frame.CameraID = stream.cameraID
+			frame.Format = "bgr"
+			frame.Timestamp = time.Now()
+			
+			// Generate mock data
+			gc.fillMockFrameData(frame.Data)
 
 			// Send frame (non-blocking)
 			select {
-			case stream.framesChan <- frame:
+			case stream.framesChan <- *frame:
+				// Frame envoyée, on peut la recycler
+				core.ReleaseFrame(frame)
 				frameCounter++
 				if frameCounter%150 == 0 { // Every 10 seconds at 15fps
 					log.Printf("📹 Streaming frame %d for camera %s", frameCounter, stream.cameraID)
 				}
 			default:
-				// Channel full, drop frame
+				// Channel full, drop frame et recycler
+				core.ReleaseFrame(frame)
 			}
 		}
 	}
 }
 
-func (gc *grpcClient) generateMockFrameData() []byte {
-	// Generate mock BGR frame data (640x480x3)
-	size := 640 * 480 * 3
-	data := make([]byte, size)
-
+// fillMockFrameData remplit un buffer avec des données de test (évite allocation)
+func (gc *grpcClient) fillMockFrameData(data []byte) {
 	// Fill with a simple pattern for Phase 2.2
-	for i := 0; i < size; i += 3 {
+	for i := 0; i < len(data); i += 3 {
 		data[i] = 100   // B
 		data[i+1] = 150 // G
 		data[i+2] = 200 // R
 	}
+}
 
+// generateMockFrameData deprecated: utiliser fillMockFrameData avec pool
+func (gc *grpcClient) generateMockFrameData() []byte {
+	// Generate mock BGR frame data (640x480x3)
+	size := 640 * 480 * 3
+	data := make([]byte, size)
+	gc.fillMockFrameData(data)
 	return data
 }
 

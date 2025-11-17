@@ -82,6 +82,10 @@ public:
                            const DetectionStreamRequest* request,
                            ServerWriter<surveillance::vision::DetectionEvent>* writer) override;
     
+    Status GetFrames(ServerContext* context,
+                    const surveillance::vision::GetFramesRequest* request,
+                    ServerWriter<surveillance::vision::Frame>* writer) override;
+    
     // Méthodes utilitaires publiques
     int GetActiveStreamsCount() const;
     

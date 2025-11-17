@@ -43,12 +43,16 @@ struct Frame {
     std::vector<uint8_t> data;
     int width;
     int height;
+    int channels;  // Nombre de canaux (3 pour BGR)
     std::string format;
     std::chrono::steady_clock::time_point timestamp;
+    int64_t frame_number;  // Numéro de frame
+    bool has_motion;  // Indique si mouvement détecté
     
-    Frame() : width(0), height(0), format("unknown") {}
+    Frame() : width(0), height(0), channels(3), format("unknown"), frame_number(0), has_motion(false) {}
     Frame(int w, int h, const std::string& fmt) 
-        : width(w), height(h), format(fmt), timestamp(std::chrono::steady_clock::now()) {}
+        : width(w), height(h), channels(3), format(fmt), 
+          timestamp(std::chrono::steady_clock::now()), frame_number(0), has_motion(false) {}
 };
 
 // Résultat du traitement d'une frame

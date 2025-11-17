@@ -121,7 +121,8 @@ type Frame struct {
 	Data      []byte    `json:"-"` // Image data
 	Width     int       `json:"width"`
 	Height    int       `json:"height"`
-	Format    string    `json:"format"` // "jpeg", "png", etc.
+	Channels  int       `json:"channels"` // Number of channels (3 for BGR)
+	Format    string    `json:"format"`   // "jpeg", "png", "bgr", etc.
 	Timestamp time.Time `json:"timestamp"`
 	Size      int       `json:"size"`
 }

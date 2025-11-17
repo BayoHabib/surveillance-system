@@ -3,6 +3,7 @@ package vision
 import (
 	"context"
 	"fmt"
+	"io"
 	"log"
 	"surveillance-core/internal/core"
 	pb "surveillance-core/internal/vision/proto"
@@ -331,39 +332,64 @@ func (gc *grpcClient) generateInternetFrameData(frameNumber int, videoURL string
 func (gc *grpcClient) streamFrames(ctx context.Context, stream *grpcStream) {
 	defer close(stream.framesChan)
 
-	// For Phase 2.2, we'll simulate frames since we don't have real video streaming yet
-	ticker := time.NewTicker(time.Second / 15) // 15 FPS
-	defer ticker.Stop()
-
+	// BUG #1 FIX: Utiliser le RPC GetFrames pour obtenir les vraies frames du C++
+	log.Printf("📹 Starting real frame stream via GetFrames RPC for camera: %s", stream.cameraID)
+	
+	// Créer la requête
+	req := &pb.GetFramesRequest{
+		CameraId: stream.cameraID,
+	}
+	
+	// Appeler GetFrames (server streaming)
+	grpcStream, err := gc.client.GetFrames(ctx, req)
+	if err != nil {
+		log.Printf("❌ Failed to start GetFrames stream: %v", err)
+		return
+	}
+	
 	frameCounter := 0
-
 	for {
 		select {
 		case <-ctx.Done():
+			log.Printf("🔌 Context cancelled for camera: %s", stream.cameraID)
 			return
 		case <-stream.stopChan:
+			log.Printf("⏹ Stream stopped for camera: %s", stream.cameraID)
 			return
-		case <-ticker.C:
-			// BUG #9 FIX: Utiliser le pool de frames au lieu d'allocation directe
-			frame := core.GetFrameWithSize(640, 480, 3)
-			frame.CameraID = stream.cameraID
-			frame.Format = "bgr"
-			frame.Timestamp = time.Now()
+		default:
+			// Recevoir une frame du serveur C++
+			protoFrame, err := grpcStream.Recv()
+			if err != nil {
+				if err == io.EOF {
+					log.Printf("📭 Stream ended for camera: %s", stream.cameraID)
+					return
+				}
+				log.Printf("❌ Error receiving frame: %v", err)
+				return
+			}
 			
-			// Generate mock data
-			gc.fillMockFrameData(frame.Data)
-
-			// Send frame (non-blocking)
+			// Convertir proto Frame en core.Frame
+			frame := core.GetFrameWithSize(int(protoFrame.Width), int(protoFrame.Height), int(protoFrame.Channels))
+			frame.CameraID = protoFrame.CameraId
+			frame.Format = protoFrame.Format
+			frame.Timestamp = time.UnixMilli(protoFrame.Timestamp)
+			
+			// Copier les données (déjà allouées par GetFrameWithSize)
+			if len(protoFrame.Data) > 0 {
+				copy(frame.Data, protoFrame.Data)
+			}
+			
+			// Envoyer au channel (non-bloquant)
 			select {
 			case stream.framesChan <- *frame:
-				// Frame envoyée, on peut la recycler
 				core.ReleaseFrame(frame)
 				frameCounter++
-				if frameCounter%150 == 0 { // Every 10 seconds at 15fps
-					log.Printf("📹 Streaming frame %d for camera %s", frameCounter, stream.cameraID)
+				if frameCounter%150 == 0 {
+					log.Printf("📹 Received %d real frames for camera %s (has_motion: %v)", 
+						frameCounter, stream.cameraID, protoFrame.HasMotion)
 				}
 			default:
-				// Channel full, drop frame et recycler
+				// Channel plein, drop frame
 				core.ReleaseFrame(frame)
 			}
 		}

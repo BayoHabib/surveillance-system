@@ -41,6 +41,13 @@ public:
     void SetCameraId(const std::string& camera_id);
     void SetDetectionCallback(GrpcDetectionCallback callback);
     
+    // Buffer management (BUG #7 fix) - Public pour GetFrames RPC
+    Frame GetNextFrameFromBuffer();
+    bool IsBufferEmpty() const;
+    size_t GetBufferSize() const;
+    int GetDroppedFramesCount() const { return dropped_frames_.load(); }
+    int GetBufferOverflowsCount() const { return buffer_overflows_.load(); }
+    
 protected:
     // Méthodes de capture spécialisées OpenCV
     Frame CaptureFileFrame() override;
@@ -114,11 +121,8 @@ private:
     // Thread de capture
     void CaptureThreadLoop();
     
-    // Buffer management (BUG #7 fix)
+    // Buffer management (internal - push only)
     void PushFrameToBuffer(Frame&& frame);
-    Frame GetNextFrameFromBuffer();
-    bool IsBufferEmpty() const;
-    size_t GetBufferSize() const;
     
     // Gestion d'erreurs spécifique OpenCV
     void HandleCaptureError(const std::string& operation) const;

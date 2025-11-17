@@ -417,6 +417,94 @@ Status VisionServiceImpl::StreamDetections(ServerContext* context,
     return Status::OK;
 }
 
+Status VisionServiceImpl::GetFrames(ServerContext* context,
+                                    const surveillance::vision::GetFramesRequest* request,
+                                    ServerWriter<surveillance::vision::Frame>* writer) {
+    std::string camera_id = request->camera_id();
+    LogInfo("GetFrames called for camera: " + camera_id);
+    
+    // Validation
+    if (camera_id.empty()) {
+        LogError("GetFrames: Camera ID is empty");
+        return Status(grpc::StatusCode::INVALID_ARGUMENT, "Camera ID cannot be empty");
+    }
+    
+    // Récupérer le stream
+    StreamState* stream_state = GetStreamState(camera_id);
+    if (!stream_state) {
+        LogError("GetFrames: Stream not found for camera: " + camera_id);
+        return Status(grpc::StatusCode::NOT_FOUND, "Stream not found for camera: " + camera_id);
+    }
+    
+    // Vérifier que c'est un OpenCVCaptureManager
+    auto* opencv_manager = dynamic_cast<OpenCVCaptureManager*>(stream_state->camera_manager.get());
+    if (!opencv_manager) {
+        LogError("GetFrames: Camera manager is not OpenCVCaptureManager for: " + camera_id);
+        return Status(grpc::StatusCode::FAILED_PRECONDITION, 
+                     "Camera manager does not support frame streaming");
+    }
+    
+    LogInfo("GetFrames: Starting frame stream for camera: " + camera_id);
+    
+    int64_t frames_sent = 0;
+    auto start_time = std::chrono::steady_clock::now();
+    
+    // Streamer les frames depuis le buffer circulaire
+    while (!context->IsCancelled()) {
+        // Récupérer la prochaine frame du buffer (bloquant avec timeout)
+        auto camera_frame = opencv_manager->GetNextFrameFromBuffer();
+        
+        if (camera_frame.data.empty()) {
+            // Timeout ou buffer vide, continuer
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+            continue;
+        }
+        
+        // Convertir en proto Frame
+        surveillance::vision::Frame proto_frame;
+        proto_frame.set_camera_id(camera_id);
+        proto_frame.set_frame_number(camera_frame.frame_number);
+        proto_frame.set_data(camera_frame.data.data(), camera_frame.data.size());
+        proto_frame.set_width(camera_frame.width);
+        proto_frame.set_height(camera_frame.height);
+        proto_frame.set_channels(camera_frame.channels);
+        proto_frame.set_format(camera_frame.format);
+        
+        // Convertir timestamp en millisecondes depuis epoch
+        auto millis = std::chrono::duration_cast<std::chrono::milliseconds>(
+            camera_frame.timestamp.time_since_epoch()).count();
+        proto_frame.set_timestamp(millis);
+        
+        proto_frame.set_has_motion(camera_frame.has_motion);
+        
+        // Envoyer la frame
+        if (!writer->Write(proto_frame)) {
+            LogInfo("GetFrames: Client disconnected for camera: " + camera_id);
+            break;
+        }
+        
+        frames_sent++;
+        
+        // Log toutes les 100 frames
+        if (frames_sent % 100 == 0) {
+            auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(
+                std::chrono::steady_clock::now() - start_time).count();
+            double fps = elapsed > 0 ? static_cast<double>(frames_sent) / elapsed : 0.0;
+            LogInfo("GetFrames: Sent " + std::to_string(frames_sent) + 
+                   " frames for camera: " + camera_id + 
+                   " (FPS: " + std::to_string(fps) + ")");
+        }
+    }
+    
+    auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(
+        std::chrono::steady_clock::now() - start_time).count();
+    LogInfo("GetFrames completed for camera: " + camera_id + 
+           ", frames sent: " + std::to_string(frames_sent) + 
+           ", duration: " + std::to_string(elapsed) + "s");
+    
+    return Status::OK;
+}
+
 Status VisionServiceImpl::ValidateStopRequest(const StopRequest* request) const {
     if (request->camera_id().empty()) {
         return Status(grpc::StatusCode::INVALID_ARGUMENT, "Camera ID cannot be empty");

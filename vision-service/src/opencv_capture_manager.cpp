@@ -386,7 +386,11 @@ Frame OpenCVCaptureManager::ConvertMatToFrame(const Mat& mat) const {
     frame.data.resize(data_size);
     std::memcpy(frame.data.data(), mat.data, data_size);
     
+    // Remplir les métadonnées
     frame.timestamp = std::chrono::steady_clock::now();
+    frame.channels = mat.channels();
+    frame.frame_number = frame_number_.load();
+    frame.has_motion = false;  // Sera mis à jour si détection
     
     return frame;
 }
@@ -511,6 +515,15 @@ void OpenCVCaptureManager::CaptureThreadLoop() {
             total_frames_captured_++;
             stats_.frames_captured++;
             frame_number_++;
+            
+            // Mettre à jour frame_number
+            frame.frame_number = frame_number_.load();
+            
+            // Détecter le mouvement si activé
+            if (motion_detection_enabled_.load()) {
+                cv::Mat mat = ConvertFrameToMat(frame);
+                frame.has_motion = DetectMotion(mat);
+            }
             
             // NOUVEAU: Pousser dans buffer au lieu de callback direct
             PushFrameToBuffer(std::move(frame));

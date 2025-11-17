@@ -21,6 +21,9 @@ service VisionService {
   // Stream de frames (bidirectionnel)
   rpc ProcessFrames(stream FrameRequest) returns (stream FrameResponse);
   
+  // Récupérer une frame du buffer (server-side streaming)
+  rpc GetFrames(GetFramesRequest) returns (stream Frame);
+  
   // Stream des événements de détection (server-side streaming)
   rpc StreamDetections(DetectionStreamRequest) returns (stream DetectionEvent);
 }
@@ -153,6 +156,24 @@ message ProcessingStats {
 message DetectionStreamRequest {
   string camera_id = 1;
   bool include_frames = 2;  // Inclure les frames avec détections
+}
+
+// Request pour obtenir les frames du buffer
+message GetFramesRequest {
+  string camera_id = 1;
+}
+
+// Frame capturée (avec données brutes)
+message Frame {
+  string camera_id = 1;
+  int64 frame_number = 2;
+  bytes data = 3;           // Données BGR raw (width * height * 3)
+  int32 width = 4;
+  int32 height = 5;
+  int32 channels = 6;       // Toujours 3 pour BGR
+  string format = 7;        // "bgr", "rgb", "gray"
+  int64 timestamp = 8;      // Milliseconds since epoch
+  bool has_motion = 9;      // Indique si mouvement détecté
 }
 
 // Événement de détection (stream)

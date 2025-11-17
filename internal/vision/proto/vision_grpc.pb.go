@@ -24,6 +24,7 @@ const (
 	VisionService_GetStreamStatus_FullMethodName  = "/surveillance.vision.VisionService/GetStreamStatus"
 	VisionService_GetHealth_FullMethodName        = "/surveillance.vision.VisionService/GetHealth"
 	VisionService_ProcessFrames_FullMethodName    = "/surveillance.vision.VisionService/ProcessFrames"
+	VisionService_GetFrames_FullMethodName        = "/surveillance.vision.VisionService/GetFrames"
 	VisionService_StreamDetections_FullMethodName = "/surveillance.vision.VisionService/StreamDetections"
 )
 
@@ -43,6 +44,8 @@ type VisionServiceClient interface {
 	GetHealth(ctx context.Context, in *HealthRequest, opts ...grpc.CallOption) (*HealthResponse, error)
 	// Stream de frames (bidirectionnel)
 	ProcessFrames(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[FrameRequest, FrameResponse], error)
+	// Récupérer une frame du buffer (server-side streaming)
+	GetFrames(ctx context.Context, in *GetFramesRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[Frame], error)
 	// Stream des événements de détection (server-side streaming)
 	StreamDetections(ctx context.Context, in *DetectionStreamRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[DetectionEvent], error)
 }
@@ -108,9 +111,28 @@ func (c *visionServiceClient) ProcessFrames(ctx context.Context, opts ...grpc.Ca
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type VisionService_ProcessFramesClient = grpc.BidiStreamingClient[FrameRequest, FrameResponse]
 
+func (c *visionServiceClient) GetFrames(ctx context.Context, in *GetFramesRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[Frame], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &VisionService_ServiceDesc.Streams[1], VisionService_GetFrames_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[GetFramesRequest, Frame]{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type VisionService_GetFramesClient = grpc.ServerStreamingClient[Frame]
+
 func (c *visionServiceClient) StreamDetections(ctx context.Context, in *DetectionStreamRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[DetectionEvent], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	stream, err := c.cc.NewStream(ctx, &VisionService_ServiceDesc.Streams[1], VisionService_StreamDetections_FullMethodName, cOpts...)
+	stream, err := c.cc.NewStream(ctx, &VisionService_ServiceDesc.Streams[2], VisionService_StreamDetections_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -143,6 +165,8 @@ type VisionServiceServer interface {
 	GetHealth(context.Context, *HealthRequest) (*HealthResponse, error)
 	// Stream de frames (bidirectionnel)
 	ProcessFrames(grpc.BidiStreamingServer[FrameRequest, FrameResponse]) error
+	// Récupérer une frame du buffer (server-side streaming)
+	GetFrames(*GetFramesRequest, grpc.ServerStreamingServer[Frame]) error
 	// Stream des événements de détection (server-side streaming)
 	StreamDetections(*DetectionStreamRequest, grpc.ServerStreamingServer[DetectionEvent]) error
 	mustEmbedUnimplementedVisionServiceServer()
@@ -156,22 +180,25 @@ type VisionServiceServer interface {
 type UnimplementedVisionServiceServer struct{}
 
 func (UnimplementedVisionServiceServer) StartStream(context.Context, *StreamRequest) (*StreamResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method StartStream not implemented")
+	return nil, status.Error(codes.Unimplemented, "method StartStream not implemented")
 }
 func (UnimplementedVisionServiceServer) StopStream(context.Context, *StopRequest) (*StopResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method StopStream not implemented")
+	return nil, status.Error(codes.Unimplemented, "method StopStream not implemented")
 }
 func (UnimplementedVisionServiceServer) GetStreamStatus(context.Context, *StatusRequest) (*StatusResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetStreamStatus not implemented")
+	return nil, status.Error(codes.Unimplemented, "method GetStreamStatus not implemented")
 }
 func (UnimplementedVisionServiceServer) GetHealth(context.Context, *HealthRequest) (*HealthResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetHealth not implemented")
+	return nil, status.Error(codes.Unimplemented, "method GetHealth not implemented")
 }
 func (UnimplementedVisionServiceServer) ProcessFrames(grpc.BidiStreamingServer[FrameRequest, FrameResponse]) error {
-	return status.Errorf(codes.Unimplemented, "method ProcessFrames not implemented")
+	return status.Error(codes.Unimplemented, "method ProcessFrames not implemented")
+}
+func (UnimplementedVisionServiceServer) GetFrames(*GetFramesRequest, grpc.ServerStreamingServer[Frame]) error {
+	return status.Error(codes.Unimplemented, "method GetFrames not implemented")
 }
 func (UnimplementedVisionServiceServer) StreamDetections(*DetectionStreamRequest, grpc.ServerStreamingServer[DetectionEvent]) error {
-	return status.Errorf(codes.Unimplemented, "method StreamDetections not implemented")
+	return status.Error(codes.Unimplemented, "method StreamDetections not implemented")
 }
 func (UnimplementedVisionServiceServer) mustEmbedUnimplementedVisionServiceServer() {}
 func (UnimplementedVisionServiceServer) testEmbeddedByValue()                       {}
@@ -184,7 +211,7 @@ type UnsafeVisionServiceServer interface {
 }
 
 func RegisterVisionServiceServer(s grpc.ServiceRegistrar, srv VisionServiceServer) {
-	// If the following call pancis, it indicates UnimplementedVisionServiceServer was
+	// If the following call panics, it indicates UnimplementedVisionServiceServer was
 	// embedded by pointer and is nil.  This will cause panics if an
 	// unimplemented method is ever invoked, so we test this at initialization
 	// time to prevent it from happening at runtime later due to I/O.
@@ -273,6 +300,17 @@ func _VisionService_ProcessFrames_Handler(srv interface{}, stream grpc.ServerStr
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type VisionService_ProcessFramesServer = grpc.BidiStreamingServer[FrameRequest, FrameResponse]
 
+func _VisionService_GetFrames_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(GetFramesRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(VisionServiceServer).GetFrames(m, &grpc.GenericServerStream[GetFramesRequest, Frame]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type VisionService_GetFramesServer = grpc.ServerStreamingServer[Frame]
+
 func _VisionService_StreamDetections_Handler(srv interface{}, stream grpc.ServerStream) error {
 	m := new(DetectionStreamRequest)
 	if err := stream.RecvMsg(m); err != nil {
@@ -314,6 +352,11 @@ var VisionService_ServiceDesc = grpc.ServiceDesc{
 			Handler:       _VisionService_ProcessFrames_Handler,
 			ServerStreams: true,
 			ClientStreams: true,
+		},
+		{
+			StreamName:    "GetFrames",
+			Handler:       _VisionService_GetFrames_Handler,
+			ServerStreams: true,
 		},
 		{
 			StreamName:    "StreamDetections",

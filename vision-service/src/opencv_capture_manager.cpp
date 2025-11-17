@@ -58,7 +58,7 @@ bool OpenCVCaptureManager::Initialize(const CameraConfig& config) {
         
         // Activer la détection de mouvement par défaut
         EnableMotionDetection(true);
-        SetMotionSensitivity(0.7);  // Sensibilité moyenne
+        SetMotionSensitivity(0.3);  // Sensibilité basse pour éviter les faux positifs sur vidéos
         
         std::cerr << "[OpenCVCaptureManager] OpenCV initialization successful" << std::endl;
         return true;
@@ -563,9 +563,15 @@ void OpenCVCaptureManager::SetMotionSensitivity(double sensitivity) {
     if (sensitivity >= 0.0 && sensitivity <= 1.0) {
         motion_sensitivity_.store(sensitivity);
         // Ajuster le seuil : plus sensible = seuil plus bas
-        motion_detection_threshold_ = static_cast<int>(50 * (1.0 - sensitivity));
+        // Pour 1280x720 (921,600 pixels totaux):
+        // - sensibilité 0.1 (très basse) = 45,000 pixels (4.9% de l'image)
+        // - sensibilité 0.3 (basse) = 35,000 pixels (3.8% de l'image)
+        // - sensibilité 0.5 (moyenne) = 25,000 pixels (2.7% de l'image)
+        // - sensibilité 0.7 (haute) = 15,000 pixels (1.6% de l'image)
+        // - sensibilité 0.9 (très haute) = 5,000 pixels (0.5% de l'image)
+        motion_detection_threshold_ = static_cast<int>(50000 * (1.0 - sensitivity));
         std::cerr << "[OpenCVCaptureManager] Motion sensitivity set to " 
-                  << sensitivity << " (threshold: " << motion_detection_threshold_ << ")" << std::endl;
+                  << sensitivity << " (threshold: " << motion_detection_threshold_ << " pixels)" << std::endl;
     }
 }
 

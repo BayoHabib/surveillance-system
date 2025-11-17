@@ -794,6 +794,11 @@ func streamHandler(app *App) gin.HandlerFunc {
 		frameCount := 0
 		streamStartTime := time.Now()
 		
+		// BUG #4 FIX: Frame skipping pour clients lents
+		skippedFrames := 0
+		skipInterval := 1  // Envoyer 1 frame sur N (1 = pas de skip)
+		lastSkipCheck := time.Now()
+		
 		for {
 			select {
 			case frame, ok := <-frames:
@@ -803,6 +808,46 @@ func streamHandler(app *App) gin.HandlerFunc {
 				}
 				
 				frameCount++
+				
+				// BUG #4 FIX: Adapter le skip interval selon la buffer utilization
+				// Vérifier toutes les 30 frames (environ 1 seconde @ 30 FPS)
+				if frameCount%30 == 0 && time.Since(lastSkipCheck) > time.Second {
+					// Estimer la charge du buffer en mesurant le nombre de frames en attente
+					// Si len(frames) est élevé, le client est lent
+					bufferLoad := len(frames)
+					bufferCapacity := cap(frames)
+					
+					if bufferCapacity > 0 {
+						loadPercent := (bufferLoad * 100) / bufferCapacity
+						
+						if loadPercent > 80 {
+							// Client très lent: skip 2 frames sur 3
+							skipInterval = 3
+							app.Logger.Printf("⚠️ Camera %s: High buffer load (%d%%), skipping 2/3 frames", 
+								cameraID, loadPercent)
+						} else if loadPercent > 60 {
+							// Client modérément lent: skip 1 frame sur 2
+							skipInterval = 2
+							app.Logger.Printf("⚠️ Camera %s: Medium buffer load (%d%%), skipping 1/2 frames", 
+								cameraID, loadPercent)
+						} else {
+							// Client OK: pas de skip
+							if skipInterval > 1 {
+								app.Logger.Printf("✓ Camera %s: Buffer load normal (%d%%), resuming full rate", 
+									cameraID, loadPercent)
+							}
+							skipInterval = 1
+						}
+					}
+					
+					lastSkipCheck = time.Now()
+				}
+				
+				// Skip frames si nécessaire (garder 1 frame sur skipInterval)
+				if skipInterval > 1 && frameCount%skipInterval != 0 {
+					skippedFrames++
+					continue  // Skip cette frame
+				}
 				
 				// Convert BGR frame data to JPEG
 				jpegData, err := convertBGRToJPEG(frame.Data, frame.Width, frame.Height)
@@ -840,14 +885,19 @@ func streamHandler(app *App) gin.HandlerFunc {
 				if frameCount%100 == 0 {
 					elapsed := time.Since(streamStartTime).Seconds()
 					fps := float64(frameCount) / elapsed
-					app.Logger.Printf("📸 Camera %s: %d frames, %.1f FPS", cameraID, frameCount, fps)
+					effectiveFPS := float64(frameCount-skippedFrames) / elapsed
+					skipRate := float64(skippedFrames) / float64(frameCount) * 100
+					app.Logger.Printf("📸 Camera %s: %d frames (%.0f%% skipped), %.1f FPS received, %.1f FPS sent", 
+						cameraID, frameCount, skipRate, fps, effectiveFPS)
 				}
 				
 			case <-done:
 				elapsed := time.Since(streamStartTime).Seconds()
 				fps := float64(frameCount) / elapsed
-				app.Logger.Printf("📺 MJPEG stream stopped for camera %s: %d frames in %.1fs (%.1f FPS)", 
-					cameraID, frameCount, elapsed, fps)
+				effectiveFPS := float64(frameCount-skippedFrames) / elapsed
+				skipRate := float64(skippedFrames) / float64(frameCount) * 100
+				app.Logger.Printf("📺 MJPEG stream stopped for camera %s: %d frames in %.1fs (%.1f FPS received, %.1f FPS sent, %.0f%% skipped)", 
+					cameraID, frameCount, elapsed, fps, effectiveFPS, skipRate)
 				return
 				
 			case <-time.After(10 * time.Second):

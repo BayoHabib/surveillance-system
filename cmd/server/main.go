@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/gorilla/websocket"
 )
 
 type App struct {
@@ -305,6 +306,7 @@ func setupRouter(app *App) *gin.Engine {
 			cameras.PUT("/:id/start", startCameraHandler(app))
 			cameras.PUT("/:id/stop", stopCameraHandler(app))
 			cameras.GET("/:id/stream", streamHandler(app))
+			cameras.GET("/:id/ws-stream", wsVideoStreamHandler(app))  // BUG #5: WebSocket video
 		}
 
 		// Internet streaming endpoints
@@ -903,6 +905,128 @@ func streamHandler(app *App) gin.HandlerFunc {
 			case <-time.After(10 * time.Second):
 				// Timeout si aucune frame pendant 10 secondes
 				app.Logger.Printf("⚠️ Stream timeout for camera %s (no frames for 10s)", cameraID)
+				return
+			}
+		}
+	})
+}
+
+// BUG #5 FIX: WebSocket video streaming handler
+var wsVideoUpgrader = websocket.Upgrader{
+	ReadBufferSize:  1024,
+	WriteBufferSize: 1024 * 64, // 64KB buffer pour frames
+	CheckOrigin: func(r *http.Request) bool {
+		return true // Allow all origins in development
+	},
+}
+
+func wsVideoStreamHandler(app *App) gin.HandlerFunc {
+	return gin.HandlerFunc(func(c *gin.Context) {
+		cameraID := c.Param("id")
+		
+		// Upgrade HTTP connection to WebSocket
+		conn, err := wsVideoUpgrader.Upgrade(c.Writer, c.Request, nil)
+		if err != nil {
+			app.Logger.Printf("❌ WebSocket upgrade failed for camera %s: %v", cameraID, err)
+			return
+		}
+		defer conn.Close()
+		
+		app.Logger.Printf("🔌 WebSocket video stream started for camera: %s from %s", cameraID, c.ClientIP())
+		
+		// Get frames channel
+		var frames <-chan core.Frame
+		
+		if streamInfo, ok := app.ActiveStreams.Load(cameraID); ok {
+			if info, ok := streamInfo.(*StreamInfo); ok {
+				frames = info.FramesCh
+			}
+		}
+		
+		if frames == nil {
+			frames, err = app.VisionClient.GetStream(cameraID)
+			if err != nil {
+				app.Logger.Printf("❌ Error getting stream for camera %s: %v", cameraID, err)
+				conn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf(`{"error":"Stream not found","camera_id":"%s"}`, cameraID)))
+				return
+			}
+		}
+		
+		// Context pour détecter déconnexion
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		
+		// Goroutine pour lire les messages du client (ping/pong)
+		go func() {
+			defer cancel()
+			for {
+				if _, _, err := conn.ReadMessage(); err != nil {
+					app.Logger.Printf("🔌 WebSocket client disconnected: %s", cameraID)
+					return
+				}
+			}
+		}()
+		
+		// Stream frames via WebSocket
+		frameCount := 0
+		streamStartTime := time.Now()
+		lastPingTime := time.Now()
+		
+		// Configure ping/pong
+		conn.SetReadDeadline(time.Now().Add(60 * time.Second))
+		conn.SetPongHandler(func(string) error {
+			conn.SetReadDeadline(time.Now().Add(60 * time.Second))
+			return nil
+		})
+		
+		for {
+			select {
+			case frame, ok := <-frames:
+				if !ok {
+					app.Logger.Printf("🔌 Frame channel closed for WebSocket: %s", cameraID)
+					return
+				}
+				
+				frameCount++
+				
+				// Convert BGR to JPEG
+				jpegData, err := convertBGRToJPEG(frame.Data, frame.Width, frame.Height)
+				if err != nil {
+					app.Logger.Printf("⚠️ Failed to convert frame for WebSocket: %v", err)
+					continue
+				}
+				
+				// Send frame as binary message
+				if err := conn.WriteMessage(websocket.BinaryMessage, jpegData); err != nil {
+					app.Logger.Printf("🔌 WebSocket write failed for camera %s: %v", cameraID, err)
+					return
+				}
+				
+				// Send ping every 10 seconds
+				if time.Since(lastPingTime) > 10*time.Second {
+					if err := conn.WriteMessage(websocket.PingMessage, nil); err != nil {
+						app.Logger.Printf("🔌 WebSocket ping failed: %v", err)
+						return
+					}
+					lastPingTime = time.Now()
+				}
+				
+				if frameCount%100 == 0 {
+					elapsed := time.Since(streamStartTime).Seconds()
+					fps := float64(frameCount) / elapsed
+					app.Logger.Printf("🔌 WebSocket camera %s: %d frames, %.1f FPS", cameraID, frameCount, fps)
+				}
+				
+			case <-ctx.Done():
+				elapsed := time.Since(streamStartTime).Seconds()
+				fps := float64(frameCount) / elapsed
+				app.Logger.Printf("🔌 WebSocket stream stopped for camera %s: %d frames in %.1fs (%.1f FPS)", 
+					cameraID, frameCount, elapsed, fps)
+				return
+				
+			case <-time.After(15 * time.Second):
+				// Timeout si aucune frame
+				app.Logger.Printf("⚠️ WebSocket timeout for camera %s", cameraID)
 				return
 			}
 		}

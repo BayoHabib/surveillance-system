@@ -200,28 +200,64 @@ bool OpenCVCaptureManager::SetupWebcamCapture() {
 bool OpenCVCaptureManager::SetupRtspCapture() {
     std::cerr << "[OpenCVCaptureManager] Setting up RTSP capture: " << camera_url_ << std::endl;
     
+    // Try FFMPEG backend first (better RTSP support than GStreamer)
+    std::cerr << "[OpenCVCaptureManager] Trying FFMPEG backend for RTSP..." << std::endl;
+    opencv_capture_ = std::make_unique<cv::VideoCapture>(camera_url_, CAP_FFMPEG);
+    
     // Configuration spéciale pour RTSP
     opencv_capture_->set(CAP_PROP_BUFFERSIZE, 1); // Réduire la latence
+    opencv_capture_->set(CAP_PROP_OPEN_TIMEOUT_MSEC, 10000);  // 10s timeout
+    opencv_capture_->set(CAP_PROP_READ_TIMEOUT_MSEC, 5000);   // 5s read timeout
     
-    if (!opencv_capture_->open(camera_url_)) {
-        SetError("Failed to open RTSP stream: " + camera_url_);
-        return false;
+    std::cerr << "[OpenCVCaptureManager] Attempting to open RTSP URL with FFMPEG..." << std::endl;
+    auto start_time = std::chrono::steady_clock::now();
+    
+    if (!opencv_capture_->isOpened()) {
+        auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(
+            std::chrono::steady_clock::now() - start_time).count();
+        std::cerr << "[OpenCVCaptureManager] ❌ Failed to open RTSP stream with FFMPEG after " << elapsed << "s" << std::endl;
+        
+        // Fallback to default backend
+        std::cerr << "[OpenCVCaptureManager] Trying default backend..." << std::endl;
+        opencv_capture_ = std::make_unique<cv::VideoCapture>();
+        opencv_capture_->set(CAP_PROP_BUFFERSIZE, 1);
+        if (!opencv_capture_->open(camera_url_)) {
+            SetError("Failed to open RTSP stream: " + camera_url_);
+            return false;
+        }
     }
+    
+    auto open_elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::steady_clock::now() - start_time).count();
+    std::cerr << "[OpenCVCaptureManager] ✅ RTSP stream opened in " << open_elapsed << "ms" << std::endl;
 
     // RTSP peut prendre du temps à se connecter
     Mat test_frame;
     int attempts = 0;
     const int max_attempts = 10;
     
+    std::cerr << "[OpenCVCaptureManager] Reading test frame..." << std::endl;
     while (attempts < max_attempts) {
-        if (opencv_capture_->read(test_frame) && !test_frame.empty()) {
-            std::cerr << "[OpenCVCaptureManager] RTSP stream validated" << std::endl;
+        auto read_start = std::chrono::steady_clock::now();
+        bool read_success = opencv_capture_->read(test_frame);
+        auto read_time = std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::steady_clock::now() - read_start).count();
+            
+        std::cerr << "[OpenCVCaptureManager] Attempt " << (attempts + 1) << "/" << max_attempts 
+                  << " - read took " << read_time << "ms, success=" << read_success 
+                  << ", empty=" << test_frame.empty() << std::endl;
+                  
+        if (read_success && !test_frame.empty()) {
+            std::cerr << "[OpenCVCaptureManager] ✅ RTSP stream validated - frame size: " 
+                      << test_frame.cols << "x" << test_frame.rows << std::endl;
             return true;
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(500));
         attempts++;
     }
 
+    std::cerr << "[OpenCVCaptureManager] ❌ RTSP stream timeout - no frames received after " 
+              << max_attempts << " attempts" << std::endl;
     SetError("RTSP stream timeout - no frames received");
     return false;
 }

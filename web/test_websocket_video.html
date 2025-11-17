@@ -376,14 +376,8 @@
         async function addTestCamera() {
             log('Adding test camera...');
             
-            // Test streams - try RTSP public stream
-            const testStreams = [
-                'rtsp://wowzaec2demo.streamlock.net/vod/mp4:BigBuckBunny_115k.mp4',
-                'file:///mnt/c/Users/Administrator/git_clone/surveillance-system/test_camera_feed.mp4',
-                'rtsp://rtsp.stream/pattern'
-            ];
-            
-            const streamUrl = testStreams[0];  // Use RTSP Big Buck Bunny
+            // Use local file instead of RTSP
+            const streamUrl = 'file:///mnt/c/Users/Administrator/git_clone/surveillance-system/test_camera_feed.mp4';
             
             log('📡 Stream URL: ' + streamUrl);
             

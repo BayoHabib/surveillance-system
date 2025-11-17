@@ -780,35 +780,82 @@ func streamHandler(app *App) gin.HandlerFunc {
 			app.Logger.Printf("📺 Starting MJPEG stream for local camera: %s", cameraID)
 		}
 
+		// BUG #2 FIX: Context pour détecter déconnexion client
+		ctx := c.Request.Context()
+		done := make(chan struct{})
+		
+		// Goroutine pour détecter fermeture connexion
+		go func() {
+			<-ctx.Done()
+			close(done)
+		}()
+
 		// Stream frames and convert BGR to JPEG
 		frameCount := 0
-		for frame := range frames {
-			frameCount++
-			
-			// Convert BGR frame data to JPEG
-			jpegData, err := convertBGRToJPEG(frame.Data, frame.Width, frame.Height)
-			if err != nil {
-				app.Logger.Printf("⚠️ Failed to convert frame %d for camera %s: %v", frameCount, cameraID, err)
-				continue
-			}
-			
-			// Write MJPEG boundary and frame
-			c.Writer.Write([]byte("--frame\r\n"))
-			c.Writer.Write([]byte("Content-Type: image/jpeg\r\n"))
-			c.Writer.Write([]byte(fmt.Sprintf("Content-Length: %d\r\n\r\n", len(jpegData))))
-			c.Writer.Write(jpegData)
-			c.Writer.Write([]byte("\r\n"))
-			
-			if flusher, ok := c.Writer.(http.Flusher); ok {
-				flusher.Flush()
-			}
-			
-			if frameCount%100 == 0 {
-				app.Logger.Printf("📸 Streamed %d frames for camera %s", frameCount, cameraID)
+		streamStartTime := time.Now()
+		
+		for {
+			select {
+			case frame, ok := <-frames:
+				if !ok {
+					app.Logger.Printf("📺 Frame channel closed for camera: %s", cameraID)
+					return
+				}
+				
+				frameCount++
+				
+				// Convert BGR frame data to JPEG
+				jpegData, err := convertBGRToJPEG(frame.Data, frame.Width, frame.Height)
+				if err != nil {
+					app.Logger.Printf("⚠️ Failed to convert frame %d for camera %s: %v", frameCount, cameraID, err)
+					continue
+				}
+				
+				// Write MJPEG boundary and frame
+				if _, err := c.Writer.Write([]byte("--frame\r\n")); err != nil {
+					app.Logger.Printf("📺 Client disconnected (boundary write failed): %s", cameraID)
+					return
+				}
+				if _, err := c.Writer.Write([]byte("Content-Type: image/jpeg\r\n")); err != nil {
+					app.Logger.Printf("📺 Client disconnected (header write failed): %s", cameraID)
+					return
+				}
+				if _, err := c.Writer.Write([]byte(fmt.Sprintf("Content-Length: %d\r\n\r\n", len(jpegData)))); err != nil {
+					app.Logger.Printf("📺 Client disconnected (length write failed): %s", cameraID)
+					return
+				}
+				if _, err := c.Writer.Write(jpegData); err != nil {
+					app.Logger.Printf("📺 Client disconnected (data write failed): %s", cameraID)
+					return
+				}
+				if _, err := c.Writer.Write([]byte("\r\n")); err != nil {
+					app.Logger.Printf("📺 Client disconnected (end write failed): %s", cameraID)
+					return
+				}
+				
+				if flusher, ok := c.Writer.(http.Flusher); ok {
+					flusher.Flush()
+				}
+				
+				if frameCount%100 == 0 {
+					elapsed := time.Since(streamStartTime).Seconds()
+					fps := float64(frameCount) / elapsed
+					app.Logger.Printf("📸 Camera %s: %d frames, %.1f FPS", cameraID, frameCount, fps)
+				}
+				
+			case <-done:
+				elapsed := time.Since(streamStartTime).Seconds()
+				fps := float64(frameCount) / elapsed
+				app.Logger.Printf("📺 MJPEG stream stopped for camera %s: %d frames in %.1fs (%.1f FPS)", 
+					cameraID, frameCount, elapsed, fps)
+				return
+				
+			case <-time.After(10 * time.Second):
+				// Timeout si aucune frame pendant 10 secondes
+				app.Logger.Printf("⚠️ Stream timeout for camera %s (no frames for 10s)", cameraID)
+				return
 			}
 		}
-
-		app.Logger.Printf("📺 MJPEG stream stopped for camera: %s", cameraID)
 	})
 }
 

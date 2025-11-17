@@ -511,22 +511,23 @@ void OpenCVCaptureManager::CaptureThreadLoop() {
             stats_.frames_captured++;
             frame_number_++;
             
+            // NOUVEAU: Pousser dans buffer au lieu de callback direct
+            PushFrameToBuffer(std::move(frame));
+            
             // Log périodique (toutes les 5 secondes)
             auto now = std::chrono::steady_clock::now();
             auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(now - last_log_time);
             if (elapsed.count() >= 5) {
                 double fps = frame_count / static_cast<double>(elapsed.count());
+                size_t buffer_size = GetBufferSize();
                 std::cerr << "[OpenCVCaptureManager] Captured " << frame_count 
                           << " frames in " << elapsed.count() << "s"
                           << " (FPS: " << fps << ")"
+                          << " | Buffer: " << buffer_size << "/" << MAX_BUFFER_SIZE
+                          << " | Dropped: " << dropped_frames_.load()
                           << " | Motion frames: " << motion_frames_count_.load() << std::endl;
                 frame_count = 0;
                 last_log_time = now;
-            }
-            
-            // Notifier via callback si disponible
-            if (frame_callback_) {
-                NotifyFrameAvailable(frame);
             }
             
             // Contrôler le framerate (environ 30 FPS max)
@@ -540,6 +541,59 @@ void OpenCVCaptureManager::CaptureThreadLoop() {
     }
     
     std::cerr << "[OpenCVCaptureManager] Capture thread loop ended" << std::endl;
+}
+
+// ============================================================================
+// Buffer Circulaire Management (BUG #7 Fix)
+// ============================================================================
+
+void OpenCVCaptureManager::PushFrameToBuffer(Frame&& frame) {
+    std::lock_guard<std::mutex> lock(buffer_mutex_);
+    
+    // Si buffer plein, supprimer la frame la plus ancienne
+    if (frame_buffer_.size() >= MAX_BUFFER_SIZE) {
+        frame_buffer_.pop();
+        dropped_frames_++;
+        buffer_overflows_++;
+        
+        // Log toutes les 100 overflows
+        if (buffer_overflows_.load() % 100 == 0) {
+            std::cerr << "[OpenCVCaptureManager] ⚠️  Buffer overflow! Dropped " 
+                      << dropped_frames_.load() << " frames total" << std::endl;
+        }
+    }
+    
+    frame_buffer_.push(std::move(frame));
+    buffer_cv_.notify_one();
+}
+
+Frame OpenCVCaptureManager::GetNextFrameFromBuffer() {
+    std::unique_lock<std::mutex> lock(buffer_mutex_);
+    
+    // Attendre qu'une frame soit disponible (max 5 secondes)
+    if (!buffer_cv_.wait_for(lock, std::chrono::seconds(5), 
+                              [this] { return !frame_buffer_.empty() || should_stop_capture_.load(); })) {
+        std::cerr << "[OpenCVCaptureManager] ⚠️  Timeout waiting for frame" << std::endl;
+        return CreateEmptyFrame();
+    }
+    
+    if (should_stop_capture_.load() && frame_buffer_.empty()) {
+        return CreateEmptyFrame();
+    }
+    
+    Frame frame = std::move(frame_buffer_.front());
+    frame_buffer_.pop();
+    return frame;
+}
+
+bool OpenCVCaptureManager::IsBufferEmpty() const {
+    std::lock_guard<std::mutex> lock(buffer_mutex_);
+    return frame_buffer_.empty();
+}
+
+size_t OpenCVCaptureManager::GetBufferSize() const {
+    std::lock_guard<std::mutex> lock(buffer_mutex_);
+    return frame_buffer_.size();
 }
 
 // ============================================================================

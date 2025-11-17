@@ -7,6 +7,8 @@
 #include <mutex>
 #include <atomic>
 #include <functional>
+#include <queue>
+#include <condition_variable>
 #include "camera_manager.h"
 #include "vision.pb.h"
 
@@ -62,6 +64,14 @@ private:
     std::string camera_id_;  // ID de la caméra pour les événements
     std::atomic<int64_t> frame_number_{0};
     
+    // Buffer circulaire pour frames (BUG #7 fix)
+    std::queue<Frame> frame_buffer_;
+    mutable std::mutex buffer_mutex_;  // mutable pour méthodes const
+    std::condition_variable buffer_cv_;
+    static constexpr size_t MAX_BUFFER_SIZE = 60;  // 2 secondes @ 30 FPS
+    std::atomic<int> dropped_frames_{0};
+    std::atomic<int> buffer_overflows_{0};
+    
     // Callback pour les événements de détection
     GrpcDetectionCallback detection_callback_;
     std::mutex callback_mutex_;
@@ -98,6 +108,12 @@ private:
     
     // Thread de capture
     void CaptureThreadLoop();
+    
+    // Buffer management (BUG #7 fix)
+    void PushFrameToBuffer(Frame&& frame);
+    Frame GetNextFrameFromBuffer();
+    bool IsBufferEmpty() const;
+    size_t GetBufferSize() const;
     
     // Gestion d'erreurs spécifique OpenCV
     void HandleCaptureError(const std::string& operation) const;

@@ -631,8 +631,18 @@ func deleteCameraHandler(app *App) gin.HandlerFunc {
 	return gin.HandlerFunc(func(c *gin.Context) {
 		cameraID := c.Param("id")
 		
-		// Stop stream if active
-		app.VisionClient.StopStream(cameraID)
+		// BUG #1 FIX: Stop stream if active and cleanup resources
+		err := app.VisionClient.StopStream(cameraID)
+		if err != nil {
+			app.Logger.Printf("⚠️  Warning: failed to stop stream for camera %s: %v", cameraID, err)
+		}
+		
+		// Stop detection stream if active
+		if app.DetectionStreamMgr != nil {
+			app.DetectionStreamMgr.StopDetectionStream(cameraID)
+		}
+		
+		// Delete from ActiveStreams (this cleans up the StreamInfo)
 		app.ActiveStreams.Delete(cameraID)
 		
 		app.Logger.Printf("🗑️  Deleting camera: %s", cameraID)

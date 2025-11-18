@@ -73,10 +73,18 @@ bool OpenCVCaptureManager::Initialize(const CameraConfig& config) {
 }
 
 void OpenCVCaptureManager::Cleanup() {
-    std::cerr << "[OpenCVCaptureManager] Cleanup with OpenCV" << std::endl;
+    LOG_DEBUG("[OpenCVCaptureManager] Cleanup with OpenCV");
     
     // Arrêter la capture d'abord
     StopCapture();
+    
+    // BUG #1 FIX: Clear buffer before cleanup to avoid memory leak
+    {
+        std::lock_guard<std::mutex> lock(buffer_mutex_);
+        while (!frame_buffer_.empty()) {
+            frame_buffer_.pop();
+        }
+    }
     
     // Nettoyer les ressources OpenCV
     {
@@ -86,10 +94,17 @@ void OpenCVCaptureManager::Cleanup() {
             opencv_capture_.reset();
         }
         current_frame_.release();
+        
+        // BUG #1 FIX: Clear background subtractor
+        if (background_subtractor_) {
+            background_subtractor_.release();
+        }
     }
     
     // Appeler le cleanup de base
     CameraManager::Cleanup();
+    
+    LOG_DEBUG("[OpenCVCaptureManager] Cleanup completed");
 }
 
 bool OpenCVCaptureManager::SetupCapture() {

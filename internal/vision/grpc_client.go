@@ -498,9 +498,21 @@ func (gc *grpcClient) stopStreamInternal(cameraID string) error {
 		log.Printf("⚠️ Warning: server reported error stopping stream: %s", resp.Message)
 	}
 
-	// Stop local stream
-	stream.cancel()
-	close(stream.stopChan)
+	// BUG #1 FIX: Stop local stream properly to avoid goroutine leak
+	stream.cancel()      // Cancel context to stop goroutines
+	close(stream.stopChan) // Close stop channel
+	
+	// Wait a bit for goroutine to finish and close framesChan
+	time.Sleep(50 * time.Millisecond)
+	
+	// Drain any remaining frames from channel before deleting
+	select {
+	case <-stream.framesChan:
+		// Drained one frame
+	default:
+		// Channel empty or already closed
+	}
+	
 	delete(gc.streams, cameraID)
 
 	log.Printf("✅ Stream stopped for camera: %s", cameraID)

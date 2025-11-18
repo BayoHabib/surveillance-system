@@ -376,14 +376,15 @@ Status VisionServiceImpl::StreamDetections(ServerContext* context,
     
     lock.unlock(); // Libérer le lock avant la boucle
     
-    // Créer un compteur partagé pour l'état du stream
-    auto event_count = std::make_shared<std::atomic<int>>(0);
-    auto stream_active = std::make_shared<std::atomic<bool>>(true);
+    // BUG #1 FIX: Use atomic counter on stack instead of shared_ptr to avoid leak
+    std::atomic<int> event_count{0};
+    std::atomic<bool> stream_active{true};
     
     // Créer un callback pour recevoir les événements de détection
-    GrpcDetectionCallback callback = [writer, context, event_count, stream_active, camera_id](const surveillance::vision::DetectionEvent& event) -> bool {
+    // BUG #1 FIX: Capture by reference (stack variables) instead of shared_ptr
+    GrpcDetectionCallback callback = [&writer, &context, &event_count, &stream_active, &camera_id](const surveillance::vision::DetectionEvent& event) -> bool {
         // Vérifier si le stream est toujours actif
-        if (!stream_active->load() || context->IsCancelled()) {
+        if (!stream_active.load() || context->IsCancelled()) {
             return false; // Arrêter le callback
         }
         
@@ -393,7 +394,7 @@ Status VisionServiceImpl::StreamDetections(ServerContext* context,
             return false;
         }
         
-        int count = ++(*event_count);
+        int count = ++event_count;
         // Log réduit: seulement tous les 50 événements au lieu de 10
         if (count % 50 == 0) {
             LOG_DEBUG("[VisionService] Sent ", count, " detection events for camera: ", camera_id);
@@ -411,11 +412,11 @@ Status VisionServiceImpl::StreamDetections(ServerContext* context,
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
     
-    // Marquer le stream comme inactif et nettoyer le callback
-    stream_active->store(false);
+    // BUG #1 FIX: Cleanup callback BEFORE returning to avoid use-after-free
+    stream_active.store(false);
     opencv_manager->SetDetectionCallback(nullptr);
     
-    LogInfo("StreamDetections completed for camera: " + camera_id + ", total events sent: " + std::to_string(event_count->load()));
+    LogInfo("StreamDetections completed for camera: " + camera_id + ", total events sent: " + std::to_string(event_count.load()));
     return Status::OK;
 }
 

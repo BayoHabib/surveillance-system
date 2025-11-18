@@ -134,10 +134,15 @@ bool OpenCVCaptureManager::SetupFileCapture() {
     std::string file_path = camera_url_;
     if (file_path.find("file://") == 0) {
         file_path = file_path.substr(7); // Remove "file://"
-        std::cerr << "[OpenCVCaptureManager] Cleaned URL from " << camera_url_ << " to " << file_path << std::endl;
+        LOG_DEBUG("[OpenCVCaptureManager] Cleaned URL from ", camera_url_, " to ", file_path);
     }
     
-    std::cerr << "[OpenCVCaptureManager] Setting up file capture: " << file_path << std::endl;
+    LOG_INFO("[OpenCVCaptureManager] Setting up file capture: ", file_path);
+    
+    // Set timeout for file open (5s default to detect corrupted files)
+    int open_timeout = config_.open_timeout_ms > 0 ? config_.open_timeout_ms : 5000;
+    opencv_capture_->set(CAP_PROP_OPEN_TIMEOUT_MSEC, open_timeout);
+    LOG_DEBUG("[OpenCVCaptureManager] File open timeout: ", open_timeout, "ms");
     
     if (!opencv_capture_->open(file_path)) {
         SetError("Failed to open video file: " + file_path);
@@ -150,9 +155,9 @@ bool OpenCVCaptureManager::SetupFileCapture() {
     int height = static_cast<int>(opencv_capture_->get(CAP_PROP_FRAME_HEIGHT));
     int frame_count = static_cast<int>(opencv_capture_->get(CAP_PROP_FRAME_COUNT));
 
-    std::cerr << "[OpenCVCaptureManager] File properties: " 
-              << width << "x" << height << " @ " << fps << "fps, " 
-              << frame_count << " frames" << std::endl;
+    LOG_INFO("[OpenCVCaptureManager] File properties: ", 
+              width, "x", height, " @ ", fps, "fps, ", 
+              frame_count, " frames");
 
     // Ajuster la configuration si nécessaire
     if (config_.fps <= 0) {
@@ -169,7 +174,7 @@ bool OpenCVCaptureManager::SetupFileCapture() {
 }
 
 bool OpenCVCaptureManager::SetupWebcamCapture() {
-    std::cerr << "[OpenCVCaptureManager] Setting up webcam capture: " << camera_url_ << std::endl;
+    LOG_INFO("[OpenCVCaptureManager] Setting up webcam capture: ", camera_url_);
     
     // Extraire l'index de la webcam
     int device_index = 0;
@@ -182,12 +187,17 @@ bool OpenCVCaptureManager::SetupWebcamCapture() {
         }
     }
 
+    // Set timeout for webcam open (3s default - faster for local devices)
+    int open_timeout = config_.open_timeout_ms > 0 ? config_.open_timeout_ms : 3000;
+    opencv_capture_->set(CAP_PROP_OPEN_TIMEOUT_MSEC, open_timeout);
+    LOG_DEBUG("[OpenCVCaptureManager] Webcam open timeout: ", open_timeout, "ms");
+
     // Essayer d'ouvrir avec différents backends
     std::vector<int> backends = {CAP_V4L2, CAP_ANY};
     
     for (int backend : backends) {
         if (opencv_capture_->open(device_index, backend)) {
-            std::cerr << "[OpenCVCaptureManager] Webcam opened with backend: " << backend << std::endl;
+            LOG_INFO("[OpenCVCaptureManager] Webcam opened with backend: ", backend);
             break;
         }
     }
@@ -207,8 +217,8 @@ bool OpenCVCaptureManager::SetupWebcamCapture() {
     int actual_height = static_cast<int>(opencv_capture_->get(CAP_PROP_FRAME_HEIGHT));
     double actual_fps = opencv_capture_->get(CAP_PROP_FPS);
 
-    std::cerr << "[OpenCVCaptureManager] Webcam configured: " 
-              << actual_width << "x" << actual_height << " @ " << actual_fps << "fps" << std::endl;
+    LOG_INFO("[OpenCVCaptureManager] Webcam configured: ", 
+              actual_width, "x", actual_height, " @ ", actual_fps, "fps");
 
     return true;
 }
@@ -220,10 +230,16 @@ bool OpenCVCaptureManager::SetupRtspCapture() {
     LOG_DEBUG("[OpenCVCaptureManager] Trying FFMPEG backend...");
     opencv_capture_ = std::make_unique<cv::VideoCapture>(camera_url_, CAP_FFMPEG);
     
+    // Use configured timeouts or defaults
+    int open_timeout = config_.open_timeout_ms > 0 ? config_.open_timeout_ms : 5000;
+    int read_timeout = config_.read_timeout_ms > 0 ? config_.read_timeout_ms : 3000;
+    
     // Configuration spéciale pour RTSP
     opencv_capture_->set(CAP_PROP_BUFFERSIZE, 1); // Réduire la latence
-    opencv_capture_->set(CAP_PROP_OPEN_TIMEOUT_MSEC, 10000);  // 10s timeout
-    opencv_capture_->set(CAP_PROP_READ_TIMEOUT_MSEC, 5000);   // 5s read timeout
+    opencv_capture_->set(CAP_PROP_OPEN_TIMEOUT_MSEC, open_timeout);
+    opencv_capture_->set(CAP_PROP_READ_TIMEOUT_MSEC, read_timeout);
+    
+    LOG_DEBUG("[OpenCVCaptureManager] Timeouts configured: open=", open_timeout, "ms, read=", read_timeout, "ms");
     
     auto start_time = std::chrono::steady_clock::now();
     
@@ -235,6 +251,8 @@ bool OpenCVCaptureManager::SetupRtspCapture() {
         // Fallback to default backend
         opencv_capture_ = std::make_unique<cv::VideoCapture>();
         opencv_capture_->set(CAP_PROP_BUFFERSIZE, 1);
+        opencv_capture_->set(CAP_PROP_OPEN_TIMEOUT_MSEC, open_timeout);
+        opencv_capture_->set(CAP_PROP_READ_TIMEOUT_MSEC, read_timeout);
         if (!opencv_capture_->open(camera_url_)) {
             SetError("Failed to open RTSP stream: " + camera_url_);
             return false;
@@ -246,9 +264,10 @@ bool OpenCVCaptureManager::SetupRtspCapture() {
     LOG_INFO("[OpenCVCaptureManager] RTSP stream opened in ", open_elapsed, "ms");
 
     // RTSP peut prendre du temps à se connecter - validate with test frame
+    // Reduce validation attempts from 10 to 5 (2.5s max instead of 5s)
     Mat test_frame;
     int attempts = 0;
-    const int max_attempts = 10;
+    const int max_attempts = 5;
     
     while (attempts < max_attempts) {
         bool read_success = opencv_capture_->read(test_frame);
@@ -293,9 +312,13 @@ void OpenCVCaptureManager::OptimizeCapture() {
             break;
             
         case CameraType::RTSP_STREAM:
-            // Optimisations RTSP
-            opencv_capture_->set(CAP_PROP_OPEN_TIMEOUT_MSEC, 10000);  // 10s timeout
-            opencv_capture_->set(CAP_PROP_READ_TIMEOUT_MSEC, 5000);   // 5s read timeout
+            // Optimisations RTSP - use configured timeouts
+            {
+                int open_timeout = config_.open_timeout_ms > 0 ? config_.open_timeout_ms : 5000;
+                int read_timeout = config_.read_timeout_ms > 0 ? config_.read_timeout_ms : 3000;
+                opencv_capture_->set(CAP_PROP_OPEN_TIMEOUT_MSEC, open_timeout);
+                opencv_capture_->set(CAP_PROP_READ_TIMEOUT_MSEC, read_timeout);
+            }
             break;
             
         default:

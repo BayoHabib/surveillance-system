@@ -50,6 +50,8 @@ struct CameraConfig {
     int reconnect_delay_ms = 5000;
     int max_reconnect_attempts = 3;
     int frame_buffer_size = 30;
+    int open_timeout_ms = 5000;  // Connection timeout (default: 5s)
+    int read_timeout_ms = 3000;  // Frame read timeout (default: 3s)
     
     CameraConfig() = default;
     CameraConfig(int w, int h, int f) : width(w), height(h), fps(f) {}

@@ -28,12 +28,14 @@ const (
 )
 
 type CameraConfig struct {
-	Resolution   Resolution `json:"resolution"`
-	FPS          int        `json:"fps"`
-	Quality      int        `json:"quality"` // 1-100
-	EnableMotion bool       `json:"enable_motion"`
-	EnableAI     bool       `json:"enable_ai"`
-	Zones        []Zone     `json:"zones"`
+	Resolution     Resolution `json:"resolution"`
+	FPS            int        `json:"fps"`
+	Quality        int        `json:"quality"` // 1-100
+	EnableMotion   bool       `json:"enable_motion"`
+	EnableAI       bool       `json:"enable_ai"`
+	Zones          []Zone     `json:"zones"`
+	OpenTimeoutMs  int        `json:"open_timeout_ms"`  // Connection timeout in milliseconds (default: 5000)
+	ReadTimeoutMs  int        `json:"read_timeout_ms"`  // Frame read timeout in milliseconds (default: 3000)
 }
 
 type Resolution struct {

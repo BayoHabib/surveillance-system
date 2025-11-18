@@ -36,6 +36,8 @@ message StreamConfig {
   string format = 4;  // "jpeg", "png", "raw"
   bool enable_motion_detection = 5;
   repeated DetectionZone zones = 6;
+  int32 open_timeout_ms = 7;  // Connection timeout in milliseconds (default: 5000)
+  int32 read_timeout_ms = 8;  // Frame read timeout in milliseconds (default: 3000)
 }
 
 // Zone de détection

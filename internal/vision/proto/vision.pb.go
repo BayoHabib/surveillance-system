@@ -30,6 +30,8 @@ type StreamConfig struct {
 	Format                string                 `protobuf:"bytes,4,opt,name=format,proto3" json:"format,omitempty"` // "jpeg", "png", "raw"
 	EnableMotionDetection bool                   `protobuf:"varint,5,opt,name=enable_motion_detection,json=enableMotionDetection,proto3" json:"enable_motion_detection,omitempty"`
 	Zones                 []*DetectionZone       `protobuf:"bytes,6,rep,name=zones,proto3" json:"zones,omitempty"`
+	OpenTimeoutMs         int32                  `protobuf:"varint,7,opt,name=open_timeout_ms,json=openTimeoutMs,proto3" json:"open_timeout_ms,omitempty"` // Connection timeout in milliseconds (default: 5000)
+	ReadTimeoutMs         int32                  `protobuf:"varint,8,opt,name=read_timeout_ms,json=readTimeoutMs,proto3" json:"read_timeout_ms,omitempty"` // Frame read timeout in milliseconds (default: 3000)
 	unknownFields         protoimpl.UnknownFields
 	sizeCache             protoimpl.SizeCache
 }
@@ -104,6 +106,20 @@ func (x *StreamConfig) GetZones() []*DetectionZone {
 		return x.Zones
 	}
 	return nil
+}
+
+func (x *StreamConfig) GetOpenTimeoutMs() int32 {
+	if x != nil {
+		return x.OpenTimeoutMs
+	}
+	return 0
+}
+
+func (x *StreamConfig) GetReadTimeoutMs() int32 {
+	if x != nil {
+		return x.ReadTimeoutMs
+	}
+	return 0
 }
 
 // Zone de détection

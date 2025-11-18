@@ -74,6 +74,10 @@ Status VisionServiceImpl::StartStream(ServerContext* context,
         camera_config.width = request->has_config() ? request->config().width() : 640;
         camera_config.height = request->has_config() ? request->config().height() : 480;
         camera_config.fps = request->has_config() ? request->config().fps() : 30;
+        camera_config.open_timeout_ms = request->has_config() && request->config().open_timeout_ms() > 0 
+            ? request->config().open_timeout_ms() : 5000;  // Default 5s
+        camera_config.read_timeout_ms = request->has_config() && request->config().read_timeout_ms() > 0
+            ? request->config().read_timeout_ms() : 3000;  // Default 3s
         
         // Initialiser le camera manager
         if (!stream_state->camera_manager->Initialize(camera_config)) {

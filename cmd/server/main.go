@@ -338,12 +338,7 @@ func setupRouter(app *App) *gin.Engine {
 
 	// 404 handler
 	router.NoRoute(func(c *gin.Context) {
-		c.JSON(404, gin.H{
-			"error":     "endpoint not found",
-			"path":      c.Request.URL.Path,
-			"method":    c.Request.Method,
-			"timestamp": time.Now(),
-		})
+		respondNotFound(c, fmt.Sprintf("Endpoint not found: %s %s", c.Request.Method, c.Request.URL.Path))
 	})
 
 	app.Logger.Printf("✅ Router setup completed with %d routes", len(router.Routes()))
@@ -459,6 +454,56 @@ func generateRequestID() string {
 	return hex.EncodeToString(bytes)
 }
 
+// Error response helpers for consistent API responses
+type ErrorResponse struct {
+	Error     string                 `json:"error"`
+	Message   string                 `json:"message,omitempty"`
+	Details   interface{}            `json:"details,omitempty"`
+	Code      string                 `json:"code,omitempty"`
+	Timestamp time.Time              `json:"timestamp"`
+	RequestID string                 `json:"request_id,omitempty"`
+	Path      string                 `json:"path,omitempty"`
+}
+
+func respondWithError(c *gin.Context, status int, code, message string, details interface{}) {
+	requestID, _ := c.Get("RequestID")
+	
+	response := ErrorResponse{
+		Error:     message,
+		Code:      code,
+		Details:   details,
+		Timestamp: time.Now(),
+		RequestID: fmt.Sprintf("%v", requestID),
+		Path:      c.Request.URL.Path,
+	}
+	
+	c.JSON(status, response)
+}
+
+func respondBadRequest(c *gin.Context, message string, details interface{}) {
+	respondWithError(c, http.StatusBadRequest, "BAD_REQUEST", message, details)
+}
+
+func respondNotFound(c *gin.Context, message string) {
+	respondWithError(c, http.StatusNotFound, "NOT_FOUND", message, nil)
+}
+
+func respondInternalError(c *gin.Context, message string, err error) {
+	details := map[string]interface{}{}
+	if err != nil {
+		details["error"] = err.Error()
+	}
+	respondWithError(c, http.StatusInternalServerError, "INTERNAL_ERROR", message, details)
+}
+
+func respondConflict(c *gin.Context, message string) {
+	respondWithError(c, http.StatusConflict, "CONFLICT", message, nil)
+}
+
+func respondTooManyRequests(c *gin.Context, message string) {
+	respondWithError(c, http.StatusTooManyRequests, "RATE_LIMIT_EXCEEDED", message, nil)
+}
+
 // Handler functions
 func healthHandler(app *App) gin.HandlerFunc {
 	return gin.HandlerFunc(func(c *gin.Context) {
@@ -564,14 +609,14 @@ func createCameraHandler(app *App) gin.HandlerFunc {
 	return gin.HandlerFunc(func(c *gin.Context) {
 		var req CameraRequest
 		if err := c.ShouldBindJSON(&req); err != nil {
-			c.JSON(400, gin.H{"error": "Invalid request format", "details": err.Error()})
+			respondBadRequest(c, "Invalid request format", err.Error())
 			return
 		}
 		
 		// Validate URL
 		if !isValidURL(req.URL) {
 			app.Logger.Printf("❌ Invalid URL rejected: '%s'", req.URL)
-			c.JSON(400, gin.H{"error": "Invalid camera URL format"})
+			respondBadRequest(c, "Invalid camera URL format", map[string]string{"url": req.URL})
 			return
 		}
 		app.Logger.Printf("✅ URL accepted: '%s'", req.URL)
@@ -613,7 +658,7 @@ func updateCameraHandler(app *App) gin.HandlerFunc {
 		
 		var req CameraRequest
 		if err := c.ShouldBindJSON(&req); err != nil {
-			c.JSON(400, gin.H{"error": err.Error()})
+			respondBadRequest(c, "Invalid request format", err.Error())
 			return
 		}
 		
@@ -661,7 +706,7 @@ func startCameraHandler(app *App) gin.HandlerFunc {
 		
 		framesChan, err := app.VisionClient.StartStream(cameraID)
 		if err != nil {
-			c.JSON(500, gin.H{"error": fmt.Sprintf("Failed to start stream: %v", err)})
+			respondInternalError(c, "Failed to start camera stream", err)
 			return
 		}
 		
@@ -701,7 +746,7 @@ func stopCameraHandler(app *App) gin.HandlerFunc {
 		
 		err := app.VisionClient.StopStream(cameraID)
 		if err != nil {
-			c.JSON(500, gin.H{"error": fmt.Sprintf("Failed to stop stream: %v", err)})
+			respondInternalError(c, "Failed to stop camera stream", err)
 			return
 		}
 		
@@ -786,7 +831,7 @@ func streamHandler(app *App) gin.HandlerFunc {
 			frames, err = app.VisionClient.GetStream(cameraID)
 			if err != nil {
 				app.Logger.Printf("❌ Error getting stream for camera %s: %v", cameraID, err)
-				c.JSON(404, gin.H{"error": "Stream not found", "camera_id": cameraID})
+				respondNotFound(c, fmt.Sprintf("Stream not found for camera: %s", cameraID))
 				return
 			}
 			app.Logger.Printf("📺 Starting MJPEG stream for local camera: %s", cameraID)
@@ -1057,13 +1102,13 @@ func addInternetCameraHandler(app *App) gin.HandlerFunc {
 	return gin.HandlerFunc(func(c *gin.Context) {
 		var req CameraRequest
 		if err := c.ShouldBindJSON(&req); err != nil {
-			c.JSON(400, gin.H{"error": "Invalid request format", "details": err.Error()})
+			respondBadRequest(c, "Invalid request format", err.Error())
 			return
 		}
 
 		// Validate URL
 		if !isValidURL(req.URL) {
-			c.JSON(400, gin.H{"error": "Invalid camera URL format"})
+			respondBadRequest(c, "Invalid camera URL format", map[string]string{"url": req.URL})
 			return
 		}
 
@@ -1072,7 +1117,7 @@ func addInternetCameraHandler(app *App) gin.HandlerFunc {
 	// Start internet stream (this also starts the stream on vision service for detection)
 	framesChan, err := app.VisionClient.StartStreamWithURL(cameraID, req.URL)
 	if err != nil {
-		c.JSON(500, gin.H{"error": fmt.Sprintf("Failed to start stream: %v", err)})
+		respondInternalError(c, "Failed to start internet stream", err)
 		return
 	}
 

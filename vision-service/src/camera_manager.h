@@ -14,12 +14,6 @@
 #include <future>
 #include <iostream>
 
-// Logging macros
-#define LOG_INFO(msg) std::cout << "[INFO] " << msg << std::endl
-#define LOG_ERROR(msg) std::cerr << "[ERROR] " << msg << std::endl
-#define LOG_DEBUG(msg) std::cout << "[DEBUG] " << msg << std::endl
-#define LOG_WARNING(msg) std::cout << "[WARNING] " << msg << std::endl
-
 #ifdef HAVE_OPENCV
 #include <opencv2/opencv.hpp>
 #endif

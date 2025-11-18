@@ -2,6 +2,7 @@
 // Implémentation du gestionnaire de capture avec OpenCV
 
 #include "opencv_capture_manager.h"
+#include "logger.h"
 #include <iostream>
 #include <algorithm>
 #include <chrono>
@@ -11,19 +12,19 @@ using namespace cv;
 OpenCVCaptureManager::OpenCVCaptureManager(const std::string& camera_url)
     : CameraManager(camera_url), opencv_capture_(nullptr),
       last_detection_time_(std::chrono::steady_clock::now() - std::chrono::seconds(DETECTION_COOLDOWN_SECONDS)) {
-    std::cerr << "[OpenCVCaptureManager] Constructed with URL: " << camera_url << std::endl;
+    LOG_DEBUG("[OpenCVCaptureManager] Constructed with URL: ", camera_url);
 }
 
 OpenCVCaptureManager::~OpenCVCaptureManager() {
     try {
         Cleanup();
     } catch (const std::exception& e) {
-        std::cerr << "[OpenCVCaptureManager] Exception in destructor: " << e.what() << std::endl;
+        LOG_ERROR("[OpenCVCaptureManager] Exception in destructor: ", e.what());
     }
 }
 
 bool OpenCVCaptureManager::Initialize(const CameraConfig& config) {
-    std::cerr << "[OpenCVCaptureManager] Initialize with OpenCV" << std::endl;
+    LOG_INFO("[OpenCVCaptureManager] Initializing camera: ", camera_url_);
     
     // Configuration de base
     {
@@ -198,10 +199,10 @@ bool OpenCVCaptureManager::SetupWebcamCapture() {
 }
 
 bool OpenCVCaptureManager::SetupRtspCapture() {
-    std::cerr << "[OpenCVCaptureManager] Setting up RTSP capture: " << camera_url_ << std::endl;
+    LOG_INFO("[OpenCVCaptureManager] Setting up RTSP: ", camera_url_);
     
     // Try FFMPEG backend first (better RTSP support than GStreamer)
-    std::cerr << "[OpenCVCaptureManager] Trying FFMPEG backend for RTSP..." << std::endl;
+    LOG_DEBUG("[OpenCVCaptureManager] Trying FFMPEG backend...");
     opencv_capture_ = std::make_unique<cv::VideoCapture>(camera_url_, CAP_FFMPEG);
     
     // Configuration spéciale pour RTSP
@@ -209,16 +210,14 @@ bool OpenCVCaptureManager::SetupRtspCapture() {
     opencv_capture_->set(CAP_PROP_OPEN_TIMEOUT_MSEC, 10000);  // 10s timeout
     opencv_capture_->set(CAP_PROP_READ_TIMEOUT_MSEC, 5000);   // 5s read timeout
     
-    std::cerr << "[OpenCVCaptureManager] Attempting to open RTSP URL with FFMPEG..." << std::endl;
     auto start_time = std::chrono::steady_clock::now();
     
     if (!opencv_capture_->isOpened()) {
         auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(
             std::chrono::steady_clock::now() - start_time).count();
-        std::cerr << "[OpenCVCaptureManager] ❌ Failed to open RTSP stream with FFMPEG after " << elapsed << "s" << std::endl;
+        LOG_WARN("[OpenCVCaptureManager] FFMPEG failed after ", elapsed, "s, trying default backend");
         
         // Fallback to default backend
-        std::cerr << "[OpenCVCaptureManager] Trying default backend..." << std::endl;
         opencv_capture_ = std::make_unique<cv::VideoCapture>();
         opencv_capture_->set(CAP_PROP_BUFFERSIZE, 1);
         if (!opencv_capture_->open(camera_url_)) {
@@ -229,35 +228,33 @@ bool OpenCVCaptureManager::SetupRtspCapture() {
     
     auto open_elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
         std::chrono::steady_clock::now() - start_time).count();
-    std::cerr << "[OpenCVCaptureManager] ✅ RTSP stream opened in " << open_elapsed << "ms" << std::endl;
+    LOG_INFO("[OpenCVCaptureManager] RTSP stream opened in ", open_elapsed, "ms");
 
-    // RTSP peut prendre du temps à se connecter
+    // RTSP peut prendre du temps à se connecter - validate with test frame
     Mat test_frame;
     int attempts = 0;
     const int max_attempts = 10;
     
-    std::cerr << "[OpenCVCaptureManager] Reading test frame..." << std::endl;
     while (attempts < max_attempts) {
-        auto read_start = std::chrono::steady_clock::now();
         bool read_success = opencv_capture_->read(test_frame);
-        auto read_time = std::chrono::duration_cast<std::chrono::milliseconds>(
-            std::chrono::steady_clock::now() - read_start).count();
-            
-        std::cerr << "[OpenCVCaptureManager] Attempt " << (attempts + 1) << "/" << max_attempts 
-                  << " - read took " << read_time << "ms, success=" << read_success 
-                  << ", empty=" << test_frame.empty() << std::endl;
                   
         if (read_success && !test_frame.empty()) {
-            std::cerr << "[OpenCVCaptureManager] ✅ RTSP stream validated - frame size: " 
-                      << test_frame.cols << "x" << test_frame.rows << std::endl;
+            LOG_INFO("[OpenCVCaptureManager] RTSP validated - ", 
+                      test_frame.cols, "x", test_frame.rows);
             return true;
         }
+        
+        // Only log every 3 attempts to reduce verbosity
+        if (attempts % 3 == 0) {
+            LOG_DEBUG("[OpenCVCaptureManager] Waiting for RTSP frames... attempt ", 
+                     (attempts + 1), "/", max_attempts);
+        }
+        
         std::this_thread::sleep_for(std::chrono::milliseconds(500));
         attempts++;
     }
 
-    std::cerr << "[OpenCVCaptureManager] ❌ RTSP stream timeout - no frames received after " 
-              << max_attempts << " attempts" << std::endl;
+    LOG_ERROR("[OpenCVCaptureManager] RTSP timeout - no frames after ", max_attempts, " attempts");
     SetError("RTSP stream timeout - no frames received");
     return false;
 }
@@ -267,7 +264,7 @@ void OpenCVCaptureManager::OptimizeCapture() {
         return;
     }
 
-    std::cerr << "[OpenCVCaptureManager] Optimizing capture settings..." << std::endl;
+    LOG_DEBUG("[OpenCVCaptureManager] Optimizing capture settings...");
 
     // Optimisations générales
     opencv_capture_->set(CAP_PROP_BUFFERSIZE, 1); // Réduire latence
@@ -290,7 +287,7 @@ void OpenCVCaptureManager::OptimizeCapture() {
             break;
     }
 
-    std::cerr << "[OpenCVCaptureManager] Capture optimization completed" << std::endl;
+    LOG_DEBUG("[OpenCVCaptureManager] Capture optimization completed");
 }
 
 bool OpenCVCaptureManager::ValidateCapture() const {
@@ -309,28 +306,28 @@ bool OpenCVCaptureManager::ValidateCapture() const {
         return false;
     }
 
-    std::cerr << "[OpenCVCaptureManager] Capture validation successful: " 
-              << test_frame.cols << "x" << test_frame.rows << std::endl;
+    LOG_INFO("[OpenCVCaptureManager] Capture validation successful: ", 
+              test_frame.cols, "x", test_frame.rows);
 
     return true;
 }
 
 Frame OpenCVCaptureManager::CaptureFileFrame() {
     if (!opencv_capture_ || !opencv_capture_->isOpened()) {
-        std::cerr << "[OpenCVCaptureManager] File capture not initialized" << std::endl;
+        LOG_ERROR("[OpenCVCaptureManager] File capture not initialized");
         return CreateEmptyFrame();
     }
 
     Mat frame;
     if (!opencv_capture_->read(frame)) {
         // Fin de fichier ou erreur
-        std::cerr << "[OpenCVCaptureManager] End of file or read error" << std::endl;
+        LOG_DEBUG("[OpenCVCaptureManager] End of file or read error");
         
         // Option: boucler le fichier
         if (camera_type_ == CameraType::FILE_VIDEO) {
             opencv_capture_->set(CAP_PROP_POS_FRAMES, 0); // Revenir au début
             if (opencv_capture_->read(frame)) {
-                std::cerr << "[OpenCVCaptureManager] File looped successfully" << std::endl;
+                LOG_DEBUG("[OpenCVCaptureManager] File looped successfully");
                 // Appliquer détection de mouvement si activée
                 if (!frame.empty()) {
                     ProcessMotionDetection(frame);
@@ -351,18 +348,18 @@ Frame OpenCVCaptureManager::CaptureFileFrame() {
 
 Frame OpenCVCaptureManager::CaptureWebcamFrame() {
     if (!opencv_capture_ || !opencv_capture_->isOpened()) {
-        std::cerr << "[OpenCVCaptureManager] Webcam capture not initialized" << std::endl;
+        LOG_ERROR("[OpenCVCaptureManager] Webcam capture not initialized");
         return CreateEmptyFrame();
     }
 
     Mat frame;
     if (!opencv_capture_->read(frame)) {
-        std::cerr << "[OpenCVCaptureManager] Webcam read failed" << std::endl;
+        LOG_ERROR("[OpenCVCaptureManager] Webcam read failed");
         return CreateEmptyFrame();
     }
 
     if (frame.empty()) {
-        std::cerr << "[OpenCVCaptureManager] Webcam returned empty frame" << std::endl;
+        LOG_WARN("[OpenCVCaptureManager] Webcam returned empty frame");
         return CreateEmptyFrame();
     }
 
@@ -374,7 +371,7 @@ Frame OpenCVCaptureManager::CaptureWebcamFrame() {
 
 Frame OpenCVCaptureManager::CaptureRtspFrame() {
     if (!opencv_capture_ || !opencv_capture_->isOpened()) {
-        std::cerr << "[OpenCVCaptureManager] RTSP capture not initialized" << std::endl;
+        LOG_ERROR("[OpenCVCaptureManager] RTSP capture not initialized");
         return CreateEmptyFrame();
     }
 
@@ -384,7 +381,7 @@ Frame OpenCVCaptureManager::CaptureRtspFrame() {
     bool frame_captured = opencv_capture_->read(frame);
     
     while (!frame_captured) {
-        std::cerr << "[OpenCVCaptureManager] RTSP read failed" << std::endl;
+        LOG_WARN("[OpenCVCaptureManager] RTSP read failed, attempting reconnection...");
         
         // Vérifier si on peut tenter une reconnection (avec backoff)
         if (!ShouldAttemptReconnect()) {
@@ -393,7 +390,6 @@ Frame OpenCVCaptureManager::CaptureRtspFrame() {
         }
         
         // Tenter la reconnection
-        std::cerr << "[OpenCVCaptureManager] Attempting RTSP reconnection..." << std::endl;
         opencv_capture_->release();
         
         // Le backoff delay est déjà géré par ShouldAttemptReconnect()
@@ -401,7 +397,7 @@ Frame OpenCVCaptureManager::CaptureRtspFrame() {
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
         
         if (opencv_capture_->open(camera_url_)) {
-            std::cerr << "[OpenCVCaptureManager] RTSP reconnection successful!" << std::endl;
+            LOG_INFO("[OpenCVCaptureManager] RTSP reconnection successful!");
             
             // Réessayer la capture
             frame_captured = opencv_capture_->read(frame);
@@ -411,11 +407,11 @@ Frame OpenCVCaptureManager::CaptureRtspFrame() {
                 ResetReconnectAttempts();
                 break;
             } else {
-                std::cerr << "[OpenCVCaptureManager] Frame read failed after reconnection" << std::endl;
+                LOG_WARN("[OpenCVCaptureManager] Frame read failed after reconnection");
                 // Continue loop pour réessayer avec backoff plus long
             }
         } else {
-            std::cerr << "[OpenCVCaptureManager] RTSP reconnection failed" << std::endl;
+            LOG_ERROR("[OpenCVCaptureManager] RTSP reconnection failed");
             // Continue loop pour réessayer avec backoff plus long
         }
     }
@@ -472,7 +468,8 @@ Mat OpenCVCaptureManager::ConvertFrameToMat(const Frame& frame) const {
     if (frame.data.size() >= expected_size) {
         std::memcpy(mat.data, frame.data.data(), expected_size);
     } else {
-        std::cerr << "[OpenCVCaptureManager] Frame data size mismatch" << std::endl;
+        LOG_ERROR("[OpenCVCaptureManager] Frame data size mismatch: expected ", 
+                  expected_size, ", got ", frame.data.size());
         return Mat();
     }
 
@@ -511,14 +508,13 @@ bool OpenCVCaptureManager::StartCapture() {
     );
     
     SetState(CameraState::CAPTURING);
-    std::cerr << "[OpenCVCaptureManager] OpenCV capture thread started" << std::endl;
-    LOG_INFO("OpenCV capture started with motion detection");
+    LOG_INFO("[OpenCVCaptureManager] OpenCV capture thread started with motion detection");
     
     return true;
 }
 
 bool OpenCVCaptureManager::StopCapture() {
-    std::cerr << "[OpenCVCaptureManager] Stopping OpenCV capture" << std::endl;
+    LOG_INFO("[OpenCVCaptureManager] Stopping OpenCV capture");
     
     should_stop_capture_.store(true);
     is_capturing_.store(false);
@@ -528,17 +524,16 @@ bool OpenCVCaptureManager::StopCapture() {
     if (capture_thread_ && capture_thread_->joinable()) {
         capture_thread_->join();
         capture_thread_.reset();
-        std::cerr << "[OpenCVCaptureManager] Capture thread stopped" << std::endl;
+        LOG_DEBUG("[OpenCVCaptureManager] Capture thread stopped");
     }
     
     SetState(CameraState::READY);
-    LOG_INFO("OpenCV capture stopped");
     
     return true;
 }
 
 void OpenCVCaptureManager::CaptureThreadLoop() {
-    std::cerr << "[OpenCVCaptureManager] Capture thread loop started" << std::endl;
+    LOG_DEBUG("[OpenCVCaptureManager] Capture thread loop started");
     
     int frame_count = 0;
     auto last_log_time = std::chrono::steady_clock::now();
@@ -558,7 +553,7 @@ void OpenCVCaptureManager::CaptureThreadLoop() {
                     frame = CaptureRtspFrame();
                     break;
                 default:
-                    std::cerr << "[OpenCVCaptureManager] Unsupported camera type" << std::endl;
+                    LOG_ERROR("[OpenCVCaptureManager] Unsupported camera type");
                     std::this_thread::sleep_for(std::chrono::milliseconds(100));
                     continue;
             }
@@ -586,18 +581,16 @@ void OpenCVCaptureManager::CaptureThreadLoop() {
             // NOUVEAU: Pousser dans buffer au lieu de callback direct
             PushFrameToBuffer(std::move(frame));
             
-            // Log périodique (toutes les 5 secondes)
+            // Log périodique réduit (toutes les 10 secondes au lieu de 5)
             auto now = std::chrono::steady_clock::now();
             auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(now - last_log_time);
-            if (elapsed.count() >= 5) {
+            if (elapsed.count() >= 10) {
                 double fps = frame_count / static_cast<double>(elapsed.count());
                 size_t buffer_size = GetBufferSize();
-                std::cerr << "[OpenCVCaptureManager] Captured " << frame_count 
-                          << " frames in " << elapsed.count() << "s"
-                          << " (FPS: " << fps << ")"
-                          << " | Buffer: " << buffer_size << "/" << MAX_BUFFER_SIZE
-                          << " | Dropped: " << dropped_frames_.load()
-                          << " | Motion frames: " << motion_frames_count_.load() << std::endl;
+                LOG_INFO("[OpenCVCaptureManager] Stats: ", frame_count, " frames in ", 
+                         elapsed.count(), "s (", static_cast<int>(fps), " FPS) | Buffer: ", 
+                         buffer_size, "/", MAX_BUFFER_SIZE, " | Dropped: ", 
+                         dropped_frames_.load(), " | Motion: ", motion_frames_count_.load());
                 frame_count = 0;
                 last_log_time = now;
             }
@@ -606,13 +599,12 @@ void OpenCVCaptureManager::CaptureThreadLoop() {
             std::this_thread::sleep_for(std::chrono::milliseconds(33));
             
         } catch (const std::exception& e) {
-            std::cerr << "[OpenCVCaptureManager] Exception in capture loop: " 
-                      << e.what() << std::endl;
+            LOG_ERROR("[OpenCVCaptureManager] Exception in capture loop: ", e.what());
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
         }
     }
     
-    std::cerr << "[OpenCVCaptureManager] Capture thread loop ended" << std::endl;
+    LOG_DEBUG("[OpenCVCaptureManager] Capture thread loop ended");
 }
 
 // ============================================================================
@@ -628,10 +620,10 @@ void OpenCVCaptureManager::PushFrameToBuffer(Frame&& frame) {
         dropped_frames_++;
         buffer_overflows_++;
         
-        // Log toutes les 100 overflows
-        if (buffer_overflows_.load() % 100 == 0) {
-            std::cerr << "[OpenCVCaptureManager] ⚠️  Buffer overflow! Dropped " 
-                      << dropped_frames_.load() << " frames total" << std::endl;
+        // Log réduit: toutes les 500 overflows au lieu de 100
+        if (buffer_overflows_.load() % 500 == 0) {
+            LOG_WARN("[OpenCVCaptureManager] Buffer overflow! Total dropped frames: ", 
+                     dropped_frames_.load());
         }
     }
     
@@ -645,7 +637,7 @@ Frame OpenCVCaptureManager::GetNextFrameFromBuffer() {
     // Attendre qu'une frame soit disponible (max 5 secondes)
     if (!buffer_cv_.wait_for(lock, std::chrono::seconds(5), 
                               [this] { return !frame_buffer_.empty() || should_stop_capture_.load(); })) {
-        std::cerr << "[OpenCVCaptureManager] ⚠️  Timeout waiting for frame" << std::endl;
+        LOG_WARN("[OpenCVCaptureManager] Timeout waiting for frame in buffer");
         return CreateEmptyFrame();
     }
     
@@ -677,8 +669,8 @@ void OpenCVCaptureManager::EnableMotionDetection(bool enable) {
     if (enable && !background_subtractor_) {
         InitializeMotionDetector();
     }
-    std::cerr << "[OpenCVCaptureManager] Motion detection " 
-              << (enable ? "enabled" : "disabled") << std::endl;
+    LOG_INFO("[OpenCVCaptureManager] Motion detection ", 
+              (enable ? "enabled" : "disabled"));
 }
 
 bool OpenCVCaptureManager::IsMotionDetectionEnabled() const {
@@ -696,28 +688,28 @@ void OpenCVCaptureManager::SetMotionSensitivity(double sensitivity) {
         // - sensibilité 0.7 (haute) = 15,000 pixels (1.6% de l'image)
         // - sensibilité 0.9 (très haute) = 5,000 pixels (0.5% de l'image)
         motion_detection_threshold_ = static_cast<int>(50000 * (1.0 - sensitivity));
-        std::cerr << "[OpenCVCaptureManager] Motion sensitivity set to " 
-                  << sensitivity << " (threshold: " << motion_detection_threshold_ << " pixels)" << std::endl;
+        LOG_INFO("[OpenCVCaptureManager] Motion sensitivity set to ", 
+                  sensitivity, " (threshold: ", motion_detection_threshold_, " pixels)");
     }
 }
 
 void OpenCVCaptureManager::SetCameraId(const std::string& camera_id) {
     camera_id_ = camera_id;
-    std::cerr << "[OpenCVCaptureManager] Camera ID set to: " << camera_id << std::endl;
+    LOG_DEBUG("[OpenCVCaptureManager] Camera ID set to: ", camera_id);
 }
 
 void OpenCVCaptureManager::SetDetectionCallback(GrpcDetectionCallback callback) {
     std::lock_guard<std::mutex> lock(callback_mutex_);
     detection_callback_ = callback;
     if (callback) {
-        std::cerr << "[OpenCVCaptureManager] Detection callback registered for camera: " << camera_id_ << std::endl;
+        LOG_DEBUG("[OpenCVCaptureManager] Detection callback registered for camera: ", camera_id_);
     } else {
-        std::cerr << "[OpenCVCaptureManager] Detection callback cleared for camera: " << camera_id_ << std::endl;
+        LOG_DEBUG("[OpenCVCaptureManager] Detection callback cleared for camera: ", camera_id_);
     }
 }
 
 void OpenCVCaptureManager::InitializeMotionDetector() {
-    std::cerr << "[OpenCVCaptureManager] Initializing MOG2 background subtractor" << std::endl;
+    LOG_DEBUG("[OpenCVCaptureManager] Initializing MOG2 background subtractor");
     
     // Créer le détecteur MOG2 avec paramètres optimisés
     int history = 500;  // Nombre de frames pour l'historique
@@ -741,8 +733,8 @@ void OpenCVCaptureManager::InitializeMotionDetector() {
     background_subtractor_->setBackgroundRatio(0.9);
     background_subtractor_->setComplexityReductionThreshold(0.05);
     
-    std::cerr << "[OpenCVCaptureManager] MOG2 initialized with history=" << history 
-              << ", varThreshold=" << varThreshold << std::endl;
+    LOG_DEBUG("[OpenCVCaptureManager] MOG2 initialized with history=", history, 
+              ", varThreshold=", varThreshold);
 }
 
 bool OpenCVCaptureManager::DetectMotion(const cv::Mat& frame) {
@@ -782,10 +774,10 @@ bool OpenCVCaptureManager::DetectMotion(const cv::Mat& frame) {
             
             if (elapsed >= DETECTION_COOLDOWN_SECONDS) {
                 motion_frames_count_++;
-                std::cerr << "[OpenCVCaptureManager] Motion detected! Pixels: " 
-                          << motion_pixels << " (threshold: " << motion_detection_threshold_ 
-                          << "), frame #" << motion_frames_count_.load() 
-                          << " [cooldown: " << elapsed << "s]" << std::endl;
+                LOG_INFO("[OpenCVCaptureManager] Motion detected! Pixels: ", 
+                          motion_pixels, " (threshold: ", motion_detection_threshold_, 
+                          "), frame #", motion_frames_count_.load(), 
+                          " [cooldown: ", elapsed, "s]");
                 
                 // Générer un événement de détection
                 GenerateDetectionEvent(motion_pixels);
@@ -804,8 +796,8 @@ bool OpenCVCaptureManager::DetectMotion(const cv::Mat& frame) {
         return false;
         
     } catch (const cv::Exception& e) {
-        std::cerr << "[OpenCVCaptureManager] OpenCV exception in motion detection: " 
-                  << e.what() << std::endl;
+        LOG_ERROR("[OpenCVCaptureManager] OpenCV exception in motion detection: ", 
+                  e.what());
         return false;
     }
 }
@@ -844,17 +836,15 @@ void OpenCVCaptureManager::GenerateDetectionEvent(int motion_pixels) {
         std::lock_guard<std::mutex> lock(callback_mutex_);
         if (detection_callback_) {
             if (!detection_callback_(event)) {
-                std::cerr << "[OpenCVCaptureManager] Detection callback returned false, stopping notifications" << std::endl;
+                LOG_WARN("[OpenCVCaptureManager] Detection callback returned false, stopping notifications");
                 detection_callback_ = nullptr;
             }
         }
     }
     
-    // Log l'événement pour debug
-    std::cerr << "[OpenCVCaptureManager] Detection event sent: "
-              << "camera=" << camera_id_ 
-              << ", pixels=" << motion_pixels
-              << ", frame=" << frame_number_.load() << std::endl;
+    // Log l'événement réduit (seulement en DEBUG)
+    LOG_DEBUG("[OpenCVCaptureManager] Detection event sent: camera=", camera_id_, 
+              ", pixels=", motion_pixels, ", frame=", frame_number_.load());
 }
 
 // BUG #8 FIX: RTSP reconnection avec exponential backoff

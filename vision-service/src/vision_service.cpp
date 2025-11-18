@@ -1,6 +1,7 @@
 // src/vision_service.cpp
 #include "vision_service.h"
 #include "opencv_capture_manager.h"
+#include "logger.h"
 #include <iostream>
 #include <sstream>
 #include <regex>
@@ -388,13 +389,14 @@ Status VisionServiceImpl::StreamDetections(ServerContext* context,
         
         // Envoyer l'événement au client
         if (!writer->Write(event)) {
-            std::cerr << "[VisionService] Failed to write detection event to stream for camera: " << camera_id << std::endl;
+            LOG_ERROR("[VisionService] Failed to write detection event to stream for camera: ", camera_id);
             return false;
         }
         
         int count = ++(*event_count);
-        if (count % 10 == 0) {
-            std::cerr << "[VisionService] Sent " << count << " detection events for camera: " << camera_id << std::endl;
+        // Log réduit: seulement tous les 50 événements au lieu de 10
+        if (count % 50 == 0) {
+            LOG_DEBUG("[VisionService] Sent ", count, " detection events for camera: ", camera_id);
         }
         
         return true; // Continuer à recevoir des événements

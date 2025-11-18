@@ -1,4 +1,5 @@
 #include "camera_manager.h"
+#include "logger.h"
 #include <iostream>
 #include <algorithm>
 #include <regex>

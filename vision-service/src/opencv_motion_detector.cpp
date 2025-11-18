@@ -2,6 +2,7 @@
 // Détecteur de mouvement avancé avec OpenCV
 
 #include "opencv_motion_detector.h"
+#include "logger.h"
 #include <iostream>
 #include <sstream>
 #include <chrono>
@@ -10,7 +11,7 @@ using namespace cv;
 
 OpenCVMotionDetector::OpenCVMotionDetector(const MotionDetectionConfig& config)
     : config_(config), initialized_(false), debug_output_(false) {
-    std::cerr << "[OpenCVMotionDetector] Constructed with threshold: " << config_.threshold << std::endl;
+    LOG_DEBUG("[OpenCVMotionDetector] Constructed with threshold: ", config_.threshold);
 }
 
 OpenCVMotionDetector::~OpenCVMotionDetector() {
@@ -18,7 +19,7 @@ OpenCVMotionDetector::~OpenCVMotionDetector() {
 }
 
 bool OpenCVMotionDetector::Initialize() {
-    std::cerr << "[OpenCVMotionDetector] Initializing with OpenCV BackgroundSubtractorMOG2" << std::endl;
+    LOG_INFO("[OpenCVMotionDetector] Initializing with OpenCV BackgroundSubtractorMOG2");
     
     try {
         // Créer le background subtractor MOG2
@@ -29,7 +30,7 @@ bool OpenCVMotionDetector::Initialize() {
         );
         
         if (!bg_subtractor_) {
-            std::cerr << "[OpenCVMotionDetector] Failed to create BackgroundSubtractorMOG2" << std::endl;
+            LOG_ERROR("[OpenCVMotionDetector] Failed to create BackgroundSubtractorMOG2");
             return false;
         }
 
@@ -58,25 +59,25 @@ bool OpenCVMotionDetector::Initialize() {
         total_detections_ = 0;
         false_positives_filtered_ = 0;
 
-        std::cerr << "[OpenCVMotionDetector] Initialization successful" << std::endl;
-        std::cerr << "[OpenCVMotionDetector] Config: threshold=" << config_.threshold 
-                  << ", min_area=" << config_.min_area 
-                  << ", max_area=" << config_.max_area 
-                  << ", learning_rate=" << config_.learning_rate << std::endl;
+        LOG_INFO("[OpenCVMotionDetector] Initialization successful");
+        LOG_DEBUG("[OpenCVMotionDetector] Config: threshold=", config_.threshold, 
+                  ", min_area=", config_.min_area, 
+                  ", max_area=", config_.max_area, 
+                  ", learning_rate=", config_.learning_rate);
 
         return true;
 
     } catch (const Exception& e) {
-        std::cerr << "[OpenCVMotionDetector] OpenCV exception during initialization: " << e.what() << std::endl;
+        LOG_ERROR("[OpenCVMotionDetector] OpenCV exception during initialization: ", e.what());
         return false;
     } catch (const std::exception& e) {
-        std::cerr << "[OpenCVMotionDetector] Exception during initialization: " << e.what() << std::endl;
+        LOG_ERROR("[OpenCVMotionDetector] Exception during initialization: ", e.what());
         return false;
     }
 }
 
 void OpenCVMotionDetector::Cleanup() {
-    std::cerr << "[OpenCVMotionDetector] Cleanup" << std::endl;
+    LOG_DEBUG("[OpenCVMotionDetector] Cleanup");
     
     if (bg_subtractor_) {
         bg_subtractor_.release();
@@ -94,7 +95,7 @@ std::vector<Detection> OpenCVMotionDetector::Detect(const Frame& frame) {
     std::vector<Detection> detections;
     
     if (!initialized_) {
-        std::cerr << "[OpenCVMotionDetector] Not initialized" << std::endl;
+        LOG_ERROR("[OpenCVMotionDetector] Not initialized");
         return detections;
     }
 
@@ -106,12 +107,12 @@ std::vector<Detection> OpenCVMotionDetector::Detect(const Frame& frame) {
         } else if (frame.format == "gray") {
             current_frame = Mat(frame.height, frame.width, CV_8UC1, (void*)frame.data.data());
         } else {
-            std::cerr << "[OpenCVMotionDetector] Unsupported frame format: " << frame.format << std::endl;
+            LOG_ERROR("[OpenCVMotionDetector] Unsupported frame format: ", frame.format);
             return detections;
         }
 
         if (current_frame.empty()) {
-            std::cerr << "[OpenCVMotionDetector] Empty frame received" << std::endl;
+            LOG_WARN("[OpenCVMotionDetector] Empty frame received");
             return detections;
         }
 
@@ -127,7 +128,7 @@ std::vector<Detection> OpenCVMotionDetector::Detect(const Frame& frame) {
         bg_subtractor_->apply(gray_frame, foreground_mask_, config_.learning_rate);
 
         if (foreground_mask_.empty()) {
-            std::cerr << "[OpenCVMotionDetector] Empty foreground mask" << std::endl;
+            LOG_WARN("[OpenCVMotionDetector] Empty foreground mask");
             return detections;
         }
 
@@ -154,14 +155,15 @@ std::vector<Detection> OpenCVMotionDetector::Detect(const Frame& frame) {
         // Stocker la frame précédente pour analyse supplémentaire si nécessaire
         previous_frame_ = gray_frame.clone();
 
-        if (debug_output_ && !detections.empty()) {
-            std::cerr << "[OpenCVMotionDetector] Detected " << detections.size() << " objects" << std::endl;
+        // Log réduit: seulement en DEBUG et si détections
+        if (!detections.empty()) {
+            LOG_DEBUG("[OpenCVMotionDetector] Detected ", detections.size(), " objects");
         }
 
     } catch (const Exception& e) {
-        std::cerr << "[OpenCVMotionDetector] OpenCV exception during detection: " << e.what() << std::endl;
+        LOG_ERROR("[OpenCVMotionDetector] OpenCV exception during detection: ", e.what());
     } catch (const std::exception& e) {
-        std::cerr << "[OpenCVMotionDetector] Exception during detection: " << e.what() << std::endl;
+        LOG_ERROR("[OpenCVMotionDetector] Exception during detection: ", e.what());
     }
 
     return detections;
@@ -211,12 +213,11 @@ std::vector<Detection> OpenCVMotionDetector::ProcessForegroundMask(const Mat& ma
 
         detections.push_back(detection);
 
-        if (debug_output_) {
-            std::cerr << "[OpenCVMotionDetector] Detection: area=" << area 
-                      << ", bbox=" << bounding_rect.x << "," << bounding_rect.y 
-                      << "," << bounding_rect.width << "," << bounding_rect.height 
-                      << ", confidence=" << confidence << std::endl;
-        }
+        // Log réduit: seulement en DEBUG
+        LOG_DEBUG("[OpenCVMotionDetector] Detection: area=", area, 
+                      ", bbox=", bounding_rect.x, ",", bounding_rect.y, 
+                      ",", bounding_rect.width, ",", bounding_rect.height, 
+                      ", confidence=", confidence);
     }
 
     return detections;
@@ -350,7 +351,7 @@ void OpenCVMotionDetector::SetConfig(const MotionDetectionConfig& config) {
             );
         }
         
-        std::cerr << "[OpenCVMotionDetector] Configuration updated" << std::endl;
+        LOG_DEBUG("[OpenCVMotionDetector] Configuration updated");
     }
 }
 
@@ -390,9 +391,9 @@ void DrawDetections(Mat& image, const std::vector<Detection>& detections, const 
 void SaveDebugImage(const Mat& image, const std::string& filename) {
     try {
         imwrite(filename, image);
-        std::cerr << "[OpenCVMotionDetector] Debug image saved: " << filename << std::endl;
+        LOG_DEBUG("[OpenCVMotionDetector] Debug image saved: ", filename);
     } catch (const Exception& e) {
-        std::cerr << "[OpenCVMotionDetector] Failed to save debug image: " << e.what() << std::endl;
+        LOG_ERROR("[OpenCVMotionDetector] Failed to save debug image: ", e.what());
     }
 }
 

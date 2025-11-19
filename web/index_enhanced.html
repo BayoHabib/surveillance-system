@@ -1,0 +1,1090 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎥 Surveillance System - Enhanced</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f0f2f5;
+            color: #1c1e21;
+            min-height: 100vh;
+        }
+
+        /* Header */
+        .header {
+            background: white;
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid #e4e6eb;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .header-content {
+            max-width: 1920px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1877f2;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .header-controls {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        /* Toolbar */
+        .toolbar {
+            background: white;
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid #e4e6eb;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+        }
+
+        .toolbar-content {
+            max-width: 1920px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .toolbar-left {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .toolbar-right {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        /* Search Bar */
+        .search-bar {
+            display: flex;
+            align-items: center;
+            background: #f0f2f5;
+            border-radius: 20px;
+            padding: 0.5rem 1rem;
+            min-width: 250px;
+        }
+
+        .search-bar input {
+            border: none;
+            background: transparent;
+            outline: none;
+            width: 100%;
+            font-size: 0.9rem;
+        }
+
+        .search-icon {
+            color: #65676b;
+            margin-right: 0.5rem;
+        }
+
+        /* Filter Buttons */
+        .filter-group {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .filter-btn {
+            padding: 0.5rem 1rem;
+            border: 1px solid #e4e6eb;
+            background: white;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #65676b;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .filter-btn:hover {
+            background: #f0f2f5;
+        }
+
+        .filter-btn.active {
+            background: #e7f3ff;
+            border-color: #1877f2;
+            color: #1877f2;
+        }
+
+        /* Grid Layout Selector */
+        .grid-selector {
+            display: flex;
+            gap: 0.5rem;
+            background: white;
+            padding: 0.25rem;
+            border-radius: 8px;
+            border: 1px solid #e4e6eb;
+        }
+
+        .grid-btn {
+            width: 36px;
+            height: 36px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .grid-btn:hover {
+            background: #f0f2f5;
+        }
+
+        .grid-btn.active {
+            background: #e7f3ff;
+            color: #1877f2;
+        }
+
+        .grid-icon {
+            display: grid;
+            gap: 2px;
+        }
+
+        .grid-icon.grid-1x1 {
+            grid-template-columns: 8px;
+            grid-template-rows: 8px;
+        }
+
+        .grid-icon.grid-2x2 {
+            grid-template-columns: repeat(2, 6px);
+            grid-template-rows: repeat(2, 6px);
+        }
+
+        .grid-icon.grid-3x3 {
+            grid-template-columns: repeat(3, 4px);
+            grid-template-rows: repeat(3, 4px);
+        }
+
+        .grid-icon.grid-4x4 {
+            grid-template-columns: repeat(4, 3px);
+            grid-template-rows: repeat(4, 3px);
+        }
+
+        .grid-cell {
+            background: currentColor;
+            border-radius: 1px;
+        }
+
+        /* Action Buttons */
+        .action-btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            background: #1877f2;
+            color: white;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.875rem;
+            font-weight: 600;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .action-btn:hover {
+            background: #166fe5;
+        }
+
+        .action-btn.secondary {
+            background: #e4e6eb;
+            color: #1c1e21;
+        }
+
+        .action-btn.secondary:hover {
+            background: #d8dadf;
+        }
+
+        .action-btn.success {
+            background: #42b72a;
+        }
+
+        .action-btn.success:hover {
+            background: #36a420;
+        }
+
+        .action-btn.danger {
+            background: #f02849;
+        }
+
+        .action-btn.danger:hover {
+            background: #d4203b;
+        }
+
+        /* Main Content */
+        .main-content {
+            max-width: 1920px;
+            margin: 0 auto;
+            padding: 1.5rem;
+        }
+
+        /* Video Grid */
+        .video-grid {
+            display: grid;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .video-grid.layout-1x1 {
+            grid-template-columns: 1fr;
+        }
+
+        .video-grid.layout-2x2 {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .video-grid.layout-3x3 {
+            grid-template-columns: repeat(3, 1fr);
+        }
+
+        .video-grid.layout-4x4 {
+            grid-template-columns: repeat(4, 1fr);
+        }
+
+        /* Camera Card */
+        .camera-card {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            transition: all 0.3s;
+            position: relative;
+        }
+
+        .camera-card:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            transform: translateY(-2px);
+        }
+
+        .camera-card.streaming {
+            border: 2px solid #42b72a;
+        }
+
+        .camera-card.error {
+            border: 2px solid #f02849;
+        }
+
+        /* Camera Header */
+        .camera-header {
+            padding: 0.75rem 1rem;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e4e6eb;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .camera-info h3 {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #1c1e21;
+            margin-bottom: 0.25rem;
+        }
+
+        .camera-info p {
+            font-size: 0.8rem;
+            color: #65676b;
+        }
+
+        .camera-status {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .camera-status.streaming {
+            background: #d8f3dc;
+            color: #2d6a4f;
+        }
+
+        .camera-status.offline {
+            background: #e9ecef;
+            color: #495057;
+        }
+
+        .camera-status.error {
+            background: #f8d7da;
+            color: #842029;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: currentColor;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Video Container */
+        .video-container {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 16/9;
+            background: #000;
+            overflow: hidden;
+        }
+
+        .video-stream {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .video-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            transition: opacity 0.3s;
+        }
+
+        .video-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .video-overlay-icon {
+            font-size: 3rem;
+            margin-bottom: 0.5rem;
+            opacity: 0.6;
+        }
+
+        /* Video Controls Overlay */
+        .video-controls-overlay {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            display: flex;
+            gap: 0.5rem;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .camera-card:hover .video-controls-overlay {
+            opacity: 1;
+        }
+
+        .overlay-btn {
+            width: 36px;
+            height: 36px;
+            border: none;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            backdrop-filter: blur(10px);
+        }
+
+        .overlay-btn:hover {
+            background: rgba(0, 0, 0, 0.9);
+            transform: scale(1.1);
+        }
+
+        /* Camera Footer Controls */
+        .camera-footer {
+            padding: 0.75rem 1rem;
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .camera-btn {
+            flex: 1;
+            padding: 0.5rem;
+            border: 1px solid #e4e6eb;
+            background: white;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.875rem;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .camera-btn:hover {
+            background: #f0f2f5;
+        }
+
+        .camera-btn.primary {
+            background: #1877f2;
+            color: white;
+            border-color: #1877f2;
+        }
+
+        .camera-btn.primary:hover {
+            background: #166fe5;
+        }
+
+        .camera-btn.danger {
+            background: #f02849;
+            color: white;
+            border-color: #f02849;
+        }
+
+        .camera-btn.danger:hover {
+            background: #d4203b;
+        }
+
+        .camera-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Toast Notification */
+        .toast-container {
+            position: fixed;
+            bottom: 1.5rem;
+            right: 1.5rem;
+            z-index: 2000;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            max-width: 400px;
+        }
+
+        .toast {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            padding: 1rem;
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+            animation: slideIn 0.3s ease-out;
+            border-left: 4px solid #1877f2;
+        }
+
+        .toast.success {
+            border-left-color: #42b72a;
+        }
+
+        .toast.error {
+            border-left-color: #f02849;
+        }
+
+        .toast.warning {
+            border-left-color: #f5c542;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(120%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .toast-icon {
+            font-size: 1.5rem;
+            line-height: 1;
+        }
+
+        .toast-content {
+            flex: 1;
+        }
+
+        .toast-title {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+            color: #1c1e21;
+        }
+
+        .toast-message {
+            font-size: 0.875rem;
+            color: #65676b;
+        }
+
+        .toast-close {
+            background: none;
+            border: none;
+            color: #65676b;
+            cursor: pointer;
+            font-size: 1.25rem;
+            line-height: 1;
+            padding: 0;
+        }
+
+        /* Stats Bar */
+        .stats-bar {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.25rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .stat-label {
+            font-size: 0.875rem;
+            color: #65676b;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #1c1e21;
+        }
+
+        .stat-card.primary .stat-value {
+            color: #1877f2;
+        }
+
+        .stat-card.success .stat-value {
+            color: #42b72a;
+        }
+
+        .stat-card.danger .stat-value {
+            color: #f02849;
+        }
+
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .video-grid.layout-4x4 {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .video-grid.layout-3x3,
+            .video-grid.layout-4x4 {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .toolbar-content {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .search-bar {
+                min-width: 100%;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .video-grid.layout-2x2,
+            .video-grid.layout-3x3,
+            .video-grid.layout-4x4 {
+                grid-template-columns: 1fr;
+            }
+
+            .stats-bar {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-content">
+            <div class="logo">
+                📹 Surveillance System
+            </div>
+            <div class="header-controls">
+                <span id="systemTime">00:00:00</span>
+                <div class="camera-status" id="connectionStatus">
+                    <div class="status-dot"></div>
+                    <span>Offline</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+        <div class="toolbar-content">
+            <div class="toolbar-left">
+                <!-- Search -->
+                <div class="search-bar">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" id="searchInput" placeholder="Rechercher une caméra...">
+                </div>
+
+                <!-- Filters -->
+                <div class="filter-group">
+                    <button class="filter-btn active" data-filter="all">Toutes</button>
+                    <button class="filter-btn" data-filter="streaming">En ligne</button>
+                    <button class="filter-btn" data-filter="offline">Hors ligne</button>
+                    <button class="filter-btn" data-filter="error">Erreur</button>
+                </div>
+            </div>
+
+            <div class="toolbar-right">
+                <!-- Grid Layout Selector -->
+                <div class="grid-selector">
+                    <button class="grid-btn" data-layout="1x1" title="1x1">
+                        <div class="grid-icon grid-1x1">
+                            <div class="grid-cell"></div>
+                        </div>
+                    </button>
+                    <button class="grid-btn active" data-layout="2x2" title="2x2">
+                        <div class="grid-icon grid-2x2">
+                            <div class="grid-cell"></div>
+                            <div class="grid-cell"></div>
+                            <div class="grid-cell"></div>
+                            <div class="grid-cell"></div>
+                        </div>
+                    </button>
+                    <button class="grid-btn" data-layout="3x3" title="3x3">
+                        <div class="grid-icon grid-3x3">
+                            <div class="grid-cell"></div>
+                            <div class="grid-cell"></div>
+                            <div class="grid-cell"></div>
+                            <div class="grid-cell"></div>
+                            <div class="grid-cell"></div>
+                            <div class="grid-cell"></div>
+                            <div class="grid-cell"></div>
+                            <div class="grid-cell"></div>
+                            <div class="grid-cell"></div>
+                        </div>
+                    </button>
+                    <button class="grid-btn" data-layout="4x4" title="4x4">
+                        <div class="grid-icon grid-4x4">
+                            <div class="grid-cell"></div>
+                            <div class="grid-cell"></div>
+                            <div class="grid-cell"></div>
+                            <div class="grid-cell"></div>
+                            <div class="grid-cell"></div>
+                            <div class="grid-cell"></div>
+                            <div class="grid-cell"></div>
+                            <div class="grid-cell"></div>
+                            <div class="grid-cell"></div>
+                            <div class="grid-cell"></div>
+                            <div class="grid-cell"></div>
+                            <div class="grid-cell"></div>
+                            <div class="grid-cell"></div>
+                            <div class="grid-cell"></div>
+                            <div class="grid-cell"></div>
+                            <div class="grid-cell"></div>
+                        </div>
+                    </button>
+                </div>
+
+                <!-- Actions -->
+                <button class="action-btn success" id="startAllBtn">▶ Démarrer tout</button>
+                <button class="action-btn danger" id="stopAllBtn">■ Arrêter tout</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Stats -->
+        <div class="stats-bar">
+            <div class="stat-card primary">
+                <div class="stat-label">Caméras actives</div>
+                <div class="stat-value" id="statActive">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Total caméras</div>
+                <div class="stat-value" id="statTotal">0</div>
+            </div>
+            <div class="stat-card danger">
+                <div class="stat-label">Alertes actives</div>
+                <div class="stat-value" id="statAlerts">0</div>
+            </div>
+            <div class="stat-card success">
+                <div class="stat-label">FPS moyen</div>
+                <div class="stat-value" id="statFPS">0</div>
+            </div>
+        </div>
+
+        <!-- Video Grid -->
+        <div class="video-grid layout-2x2" id="videoGrid">
+            <!-- Camera cards will be inserted here -->
+        </div>
+    </main>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script>
+        const API_BASE = 'http://localhost:8080/api/v1';
+        const WS_URL = 'ws://localhost:8080/ws';
+        let ws = null;
+        let cameras = [];
+        let activeStreams = new Set();
+        let currentLayout = '2x2';
+        let currentFilter = 'all';
+        let searchQuery = '';
+
+        // Update time
+        function updateTime() {
+            const now = new Date();
+            document.getElementById('systemTime').textContent = now.toLocaleTimeString();
+        }
+        setInterval(updateTime, 1000);
+        updateTime();
+
+        // Toast notification
+        function showToast(title, message, type = 'info') {
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            
+            const icons = {
+                success: '✅',
+                error: '❌',
+                warning: '⚠️',
+                info: 'ℹ️'
+            };
+            
+            toast.innerHTML = `
+                <div class="toast-icon">${icons[type] || icons.info}</div>
+                <div class="toast-content">
+                    <div class="toast-title">${title}</div>
+                    <div class="toast-message">${message}</div>
+                </div>
+                <button class="toast-close" onclick="this.parentElement.remove()">×</button>
+            `;
+            
+            document.getElementById('toastContainer').appendChild(toast);
+            
+            setTimeout(() => toast.remove(), 5000);
+        }
+
+        // WebSocket
+        function connectWebSocket() {
+            ws = new WebSocket(WS_URL);
+            
+            ws.onopen = () => {
+                const status = document.getElementById('connectionStatus');
+                status.className = 'camera-status streaming';
+                status.querySelector('span').textContent = 'En ligne';
+                showToast('Connexion établie', 'WebSocket connecté avec succès', 'success');
+            };
+            
+            ws.onclose = () => {
+                const status = document.getElementById('connectionStatus');
+                status.className = 'camera-status offline';
+                status.querySelector('span').textContent = 'Hors ligne';
+                setTimeout(connectWebSocket, 3000);
+            };
+            
+            ws.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    if (data.type === 'alert' || data.type === 'detection') {
+                        showToast('Alerte détection', `Caméra ${data.camera_id}: ${data.alert_type}`, 'warning');
+                        updateStats();
+                    }
+                } catch (err) {
+                    console.error('WS error:', err);
+                }
+            };
+        }
+
+        // Fetch cameras
+        async function fetchCameras() {
+            try {
+                const response = await fetch(`${API_BASE}/cameras`);
+                const data = await response.json();
+                cameras = data.cameras || [];
+                renderCameras();
+                updateStats();
+            } catch (error) {
+                showToast('Erreur', `Impossible de charger les caméras: ${error.message}`, 'error');
+            }
+        }
+
+        // Render cameras
+        function renderCameras() {
+            const grid = document.getElementById('videoGrid');
+            grid.innerHTML = '';
+            
+            let filteredCameras = cameras.filter(camera => {
+                // Apply filter
+                if (currentFilter !== 'all') {
+                    if (currentFilter === 'streaming' && camera.status !== 'streaming') return false;
+                    if (currentFilter === 'offline' && camera.status === 'streaming') return false;
+                    if (currentFilter === 'error' && camera.status !== 'error') return false;
+                }
+                
+                // Apply search
+                if (searchQuery) {
+                    const query = searchQuery.toLowerCase();
+                    const name = (camera.name || camera.id).toLowerCase();
+                    if (!name.includes(query)) return false;
+                }
+                
+                return true;
+            });
+            
+            filteredCameras.forEach(camera => {
+                grid.appendChild(createCameraCard(camera));
+            });
+        }
+
+        // Create camera card
+        function createCameraCard(camera) {
+            const card = document.createElement('div');
+            const isStreaming = camera.status === 'streaming';
+            const statusClass = isStreaming ? 'streaming' : (camera.status === 'error' ? 'error' : 'offline');
+            const statusText = isStreaming ? 'En direct' : (camera.status === 'error' ? 'Erreur' : 'Hors ligne');
+            
+            card.className = `camera-card ${statusClass}`;
+            card.id = `card-${camera.id}`;
+            
+            if (isStreaming) activeStreams.add(camera.id);
+            
+            card.innerHTML = `
+                <div class="camera-header">
+                    <div class="camera-info">
+                        <h3>${camera.name || camera.id}</h3>
+                        <p>ID: ${camera.id}</p>
+                    </div>
+                    <div class="camera-status ${statusClass}">
+                        <div class="status-dot"></div>
+                        <span>${statusText}</span>
+                    </div>
+                </div>
+                <div class="video-container">
+                    <canvas class="video-stream" id="canvas-${camera.id}"></canvas>
+                    <div class="video-overlay ${isStreaming ? 'hidden' : ''}" id="overlay-${camera.id}">
+                        <div class="video-overlay-icon">📹</div>
+                        <div>Pas de signal</div>
+                    </div>
+                    <div class="video-controls-overlay">
+                        <button class="overlay-btn" onclick="takeSnapshot('${camera.id}')" title="Snapshot">📸</button>
+                        <button class="overlay-btn" onclick="toggleFullscreen('${camera.id}')" title="Plein écran">⛶</button>
+                    </div>
+                </div>
+                <div class="camera-footer">
+                    <button class="camera-btn primary" onclick="startCamera('${camera.id}')" ${isStreaming ? 'disabled' : ''}>
+                        ▶ Démarrer
+                    </button>
+                    <button class="camera-btn danger" onclick="stopCamera('${camera.id}')" ${!isStreaming ? 'disabled' : ''}>
+                        ■ Arrêter
+                    </button>
+                </div>
+            `;
+            
+            if (isStreaming) {
+                setTimeout(() => startVideoStream(camera.id), 500);
+            }
+            
+            return card;
+        }
+
+        // Start camera
+        async function startCamera(cameraId) {
+            try {
+                const response = await fetch(`${API_BASE}/cameras/${cameraId}/start`, { method: 'PUT' });
+                if (response.ok) {
+                    showToast('Succès', `Caméra ${cameraId} démarrée`, 'success');
+                    activeStreams.add(cameraId);
+                    updateCameraUI(cameraId, true);
+                    startVideoStream(cameraId);
+                }
+            } catch (error) {
+                showToast('Erreur', `Impossible de démarrer ${cameraId}`, 'error');
+            }
+        }
+
+        // Stop camera
+        async function stopCamera(cameraId) {
+            try {
+                const response = await fetch(`${API_BASE}/cameras/${cameraId}/stop`, { method: 'PUT' });
+                if (response.ok) {
+                    showToast('Succès', `Caméra ${cameraId} arrêtée`, 'success');
+                    activeStreams.delete(cameraId);
+                    updateCameraUI(cameraId, false);
+                }
+            } catch (error) {
+                showToast('Erreur', `Impossible d'arrêter ${cameraId}`, 'error');
+            }
+        }
+
+        // Update camera UI
+        function updateCameraUI(cameraId, isStreaming) {
+            const card = document.getElementById(`card-${cameraId}`);
+            const overlay = document.getElementById(`overlay-${cameraId}`);
+            const status = card.querySelector('.camera-status');
+            const buttons = card.querySelectorAll('.camera-btn');
+            
+            if (isStreaming) {
+                card.classList.add('streaming');
+                overlay.classList.add('hidden');
+                status.className = 'camera-status streaming';
+                status.querySelector('span').textContent = 'En direct';
+                buttons[0].disabled = true;
+                buttons[1].disabled = false;
+            } else {
+                card.classList.remove('streaming');
+                overlay.classList.remove('hidden');
+                status.className = 'camera-status offline';
+                status.querySelector('span').textContent = 'Hors ligne';
+                buttons[0].disabled = false;
+                buttons[1].disabled = true;
+            }
+            
+            updateStats();
+        }
+
+        // Start video stream
+        function startVideoStream(cameraId) {
+            const canvas = document.getElementById(`canvas-${cameraId}`);
+            if (!canvas) return;
+            
+            const ctx = canvas.getContext('2d');
+            const wsVideo = new WebSocket(`ws://localhost:8080/ws/video/${cameraId}`);
+            
+            wsVideo.onmessage = async (event) => {
+                try {
+                    const blob = await event.data;
+                    const img = new Image();
+                    img.onload = () => {
+                        canvas.width = img.width;
+                        canvas.height = img.height;
+                        ctx.drawImage(img, 0, 0);
+                    };
+                    img.src = URL.createObjectURL(blob);
+                } catch (err) {
+                    console.error('Video error:', err);
+                }
+            };
+        }
+
+        // Take snapshot
+        function takeSnapshot(cameraId) {
+            const canvas = document.getElementById(`canvas-${cameraId}`);
+            if (!canvas) return;
+            
+            canvas.toBlob(blob => {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `snapshot-${cameraId}-${Date.now()}.png`;
+                a.click();
+                URL.revokeObjectURL(url);
+                showToast('Snapshot', `Image de ${cameraId} téléchargée`, 'success');
+            });
+        }
+
+        // Toggle fullscreen
+        function toggleFullscreen(cameraId) {
+            const container = document.getElementById(`canvas-${cameraId}`).parentElement;
+            if (!document.fullscreenElement) {
+                container.requestFullscreen();
+            } else {
+                document.exitFullscreen();
+            }
+        }
+
+        // Start/Stop all
+        document.getElementById('startAllBtn').addEventListener('click', async () => {
+            for (const camera of cameras) {
+                if (camera.status !== 'streaming') {
+                    await startCamera(camera.id);
+                    await new Promise(r => setTimeout(r, 500));
+                }
+            }
+        });
+
+        document.getElementById('stopAllBtn').addEventListener('click', async () => {
+            for (const camera of cameras) {
+                if (camera.status === 'streaming') {
+                    await stopCamera(camera.id);
+                    await new Promise(r => setTimeout(r, 200));
+                }
+            }
+        });
+
+        // Grid layout
+        document.querySelectorAll('.grid-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.grid-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentLayout = btn.dataset.layout;
+                const grid = document.getElementById('videoGrid');
+                grid.className = `video-grid layout-${currentLayout}`;
+            });
+        });
+
+        // Filters
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentFilter = btn.dataset.filter;
+                renderCameras();
+            });
+        });
+
+        // Search
+        document.getElementById('searchInput').addEventListener('input', (e) => {
+            searchQuery = e.target.value;
+            renderCameras();
+        });
+
+        // Update stats
+        function updateStats() {
+            document.getElementById('statActive').textContent = activeStreams.size;
+            document.getElementById('statTotal').textContent = cameras.length;
+        }
+
+        // Initialize
+        connectWebSocket();
+        fetchCameras();
+        setInterval(fetchCameras, 30000);
+    </script>
+</body>
+</html>

@@ -1,0 +1,1006 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SURVEILLANCE SYSTEM // CLASSIFIED</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@300;400;500;600;700&family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --poi-blue: #4A90E2;
+            --poi-dark-blue: #2C5282;
+            --poi-light-blue: #6BA3E8;
+            --poi-yellow: #F5C542;
+            --poi-red: #E74C3C;
+            --poi-bg: #0D0D0D;
+            --poi-bg-secondary: #1A1A1A;
+            --poi-border: #2A3F5F;
+            --poi-text: #E8E8E8;
+            --poi-text-secondary: #9BA8B8;
+            --poi-grid: rgba(74, 144, 226, 0.15);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            background: var(--poi-bg);
+            color: var(--poi-text);
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* Subtle grid background */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(var(--poi-grid) 1px, transparent 1px),
+                linear-gradient(90deg, var(--poi-grid) 1px, transparent 1px);
+            background-size: 40px 40px;
+            opacity: 0.5;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .app-container {
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(180deg, rgba(26, 26, 26, 0.98) 0%, rgba(13, 13, 13, 0.95) 100%);
+            padding: 1.2rem 2rem;
+            border-bottom: 1px solid var(--poi-border);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 2000px;
+            margin: 0 auto;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+        }
+
+        .header h1 {
+            font-family: 'Roboto Mono', monospace;
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--poi-blue);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            position: relative;
+        }
+
+        .header h1::before {
+            content: '//';
+            color: var(--poi-text-secondary);
+            margin-right: 0.5rem;
+        }
+
+        .classification {
+            font-family: 'Roboto Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--poi-yellow);
+            border: 1px solid var(--poi-yellow);
+            padding: 0.25rem 0.75rem;
+            letter-spacing: 1px;
+            font-weight: 500;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+        }
+
+        .system-time {
+            font-family: 'Roboto Mono', monospace;
+            font-size: 1rem;
+            color: var(--poi-text-secondary);
+            letter-spacing: 1px;
+        }
+
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-family: 'Roboto Mono', monospace;
+            font-size: 0.9rem;
+        }
+
+        .status-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--poi-red);
+            box-shadow: 0 0 8px var(--poi-red);
+            animation: statusPulse 2s ease-in-out infinite;
+        }
+
+        .status-indicator.online {
+            background: var(--poi-blue);
+            box-shadow: 0 0 8px var(--poi-blue);
+        }
+
+        @keyframes statusPulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Main Container */
+        .main-container {
+            display: grid;
+            grid-template-columns: 1fr 380px;
+            max-width: 2000px;
+            margin: 0 auto;
+            padding: 1.5rem;
+            gap: 1.5rem;
+            min-height: calc(100vh - 100px);
+        }
+
+        /* Video Grid */
+        .video-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+            gap: 1.5rem;
+            align-content: start;
+        }
+
+        /* Camera Card */
+        .camera-card {
+            background: var(--poi-bg-secondary);
+            border: 1px solid var(--poi-border);
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .camera-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 3px;
+            height: 100%;
+            background: var(--poi-text-secondary);
+            transition: background 0.3s ease;
+        }
+
+        .camera-card.streaming::before {
+            background: var(--poi-blue);
+            box-shadow: 0 0 10px var(--poi-blue);
+        }
+
+        .camera-card.error::before {
+            background: var(--poi-red);
+        }
+
+        .camera-card:hover {
+            border-color: var(--poi-blue);
+            box-shadow: 0 0 20px rgba(74, 144, 226, 0.2);
+        }
+
+        /* Camera Header */
+        .camera-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 1.25rem;
+            border-bottom: 1px solid var(--poi-border);
+            background: rgba(26, 26, 26, 0.5);
+        }
+
+        .camera-info {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .camera-name {
+            font-family: 'Roboto Mono', monospace;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--poi-text);
+            letter-spacing: 0.5px;
+        }
+
+        .camera-id {
+            font-family: 'Roboto Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--poi-text-secondary);
+            text-transform: uppercase;
+        }
+
+        .camera-status {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-family: 'Roboto Mono', monospace;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--poi-text-secondary);
+        }
+
+        .camera-status.streaming .status-dot {
+            background: var(--poi-blue);
+            box-shadow: 0 0 6px var(--poi-blue);
+        }
+
+        .camera-status.streaming {
+            color: var(--poi-blue);
+        }
+
+        .camera-status.offline {
+            color: var(--poi-text-secondary);
+        }
+
+        .camera-status.error {
+            color: var(--poi-red);
+        }
+
+        .camera-status.error .status-dot {
+            background: var(--poi-red);
+            box-shadow: 0 0 6px var(--poi-red);
+        }
+
+        /* Video Container */
+        .video-container {
+            position: relative;
+            width: 100%;
+            height: 280px;
+            background: #000;
+            overflow: hidden;
+        }
+
+        .video-stream {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .video-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: var(--poi-text-secondary);
+            transition: opacity 0.3s ease;
+        }
+
+        .video-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .video-overlay-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        .video-overlay-text {
+            font-family: 'Roboto Mono', monospace;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Camera Controls */
+        .camera-controls {
+            display: flex;
+            gap: 0.5rem;
+            padding: 1rem 1.25rem;
+            background: rgba(13, 13, 13, 0.5);
+        }
+
+        .btn {
+            flex: 1;
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--poi-border);
+            background: transparent;
+            color: var(--poi-text);
+            font-family: 'Roboto Mono', monospace;
+            font-size: 0.85rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(74, 144, 226, 0.3), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .btn:hover::before {
+            left: 100%;
+        }
+
+        .btn-activate {
+            border-color: var(--poi-blue);
+            color: var(--poi-blue);
+        }
+
+        .btn-activate:hover:not(:disabled) {
+            background: var(--poi-blue);
+            color: var(--poi-bg);
+            box-shadow: 0 0 15px rgba(74, 144, 226, 0.5);
+        }
+
+        .btn-stop {
+            border-color: var(--poi-text-secondary);
+            color: var(--poi-text-secondary);
+        }
+
+        .btn-stop:hover:not(:disabled) {
+            background: var(--poi-red);
+            border-color: var(--poi-red);
+            color: white;
+        }
+
+        .btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .btn:disabled::before {
+            display: none;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .panel {
+            background: var(--poi-bg-secondary);
+            border: 1px solid var(--poi-border);
+            position: relative;
+        }
+
+        .panel::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, var(--poi-blue), transparent);
+        }
+
+        .panel-header {
+            padding: 1rem 1.25rem;
+            border-bottom: 1px solid var(--poi-border);
+            background: rgba(13, 13, 13, 0.5);
+        }
+
+        .panel-title {
+            font-family: 'Roboto Mono', monospace;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--poi-blue);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .panel-title::before {
+            content: '// ';
+            color: var(--poi-text-secondary);
+        }
+
+        .panel-content {
+            padding: 1.25rem;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 1.5rem 1rem;
+            background: rgba(13, 13, 13, 0.7);
+            border: 1px solid var(--poi-border);
+            transition: all 0.3s ease;
+        }
+
+        .stat-item:hover {
+            border-color: var(--poi-blue);
+            background: rgba(74, 144, 226, 0.05);
+        }
+
+        .stat-value {
+            font-family: 'Roboto Mono', monospace;
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--poi-blue);
+            display: block;
+            line-height: 1;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            font-family: 'Roboto Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--poi-text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Alerts */
+        .alerts-container {
+            max-height: 320px;
+            overflow-y: auto;
+        }
+
+        .alerts-container::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .alerts-container::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+        .alerts-container::-webkit-scrollbar-thumb {
+            background: var(--poi-border);
+        }
+
+        .alerts-container::-webkit-scrollbar-thumb:hover {
+            background: var(--poi-blue);
+        }
+
+        .alert-item {
+            padding: 1rem;
+            border-left: 3px solid var(--poi-yellow);
+            background: rgba(245, 197, 66, 0.05);
+            margin-bottom: 0.75rem;
+            transition: all 0.3s ease;
+        }
+
+        .alert-item:hover {
+            background: rgba(245, 197, 66, 0.1);
+        }
+
+        .alert-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .alert-type {
+            font-family: 'Roboto Mono', monospace;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--poi-yellow);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .alert-time {
+            font-family: 'Roboto Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--poi-text-secondary);
+        }
+
+        .alert-camera {
+            font-family: 'Roboto Mono', monospace;
+            font-size: 0.85rem;
+            color: var(--poi-text);
+        }
+
+        .no-alerts {
+            text-align: center;
+            padding: 2rem 1rem;
+            color: var(--poi-text-secondary);
+            font-family: 'Roboto Mono', monospace;
+            font-size: 0.85rem;
+        }
+
+        /* Logs */
+        .logs-container {
+            max-height: 280px;
+            overflow-y: auto;
+            font-family: 'Roboto Mono', monospace;
+            font-size: 0.8rem;
+            line-height: 1.6;
+        }
+
+        .logs-container::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .logs-container::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+        .logs-container::-webkit-scrollbar-thumb {
+            background: var(--poi-border);
+        }
+
+        .logs-container::-webkit-scrollbar-thumb:hover {
+            background: var(--poi-blue);
+        }
+
+        .log-entry {
+            padding: 0.5rem;
+            margin-bottom: 0.25rem;
+            border-left: 2px solid transparent;
+            transition: all 0.2s ease;
+        }
+
+        .log-entry:hover {
+            background: rgba(74, 144, 226, 0.05);
+        }
+
+        .log-entry.info {
+            color: var(--poi-blue);
+            border-left-color: var(--poi-blue);
+        }
+
+        .log-entry.success {
+            color: var(--poi-light-blue);
+            border-left-color: var(--poi-light-blue);
+        }
+
+        .log-entry.warning {
+            color: var(--poi-yellow);
+            border-left-color: var(--poi-yellow);
+        }
+
+        .log-entry.error {
+            color: var(--poi-red);
+            border-left-color: var(--poi-red);
+        }
+
+        .log-time {
+            color: var(--poi-text-secondary);
+            margin-right: 0.5rem;
+        }
+
+        /* Responsive */
+        @media (max-width: 1400px) {
+            .main-container {
+                grid-template-columns: 1fr 350px;
+            }
+            
+            .video-grid {
+                grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            }
+        }
+
+        @media (max-width: 1024px) {
+            .main-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                gap: 1rem;
+                align-items: flex-start;
+            }
+            
+            .video-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <div class="header-left">
+                    <h1>Surveillance System</h1>
+                    <div class="classification">CLASSIFIED</div>
+                </div>
+                <div class="header-right">
+                    <div class="system-time" id="systemTime">00:00:00</div>
+                    <div class="connection-status">
+                        <div class="status-indicator" id="statusIndicator"></div>
+                        <span id="connectionText">OFFLINE</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Container -->
+        <div class="main-container">
+            <!-- Video Grid -->
+            <div class="video-grid" id="videoGrid">
+                <!-- Camera cards will be inserted here -->
+            </div>
+
+            <!-- Sidebar -->
+            <aside class="sidebar">
+                <!-- Stats Panel -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <div class="panel-title">System Status</div>
+                    </div>
+                    <div class="panel-content">
+                        <div class="stats-grid">
+                            <div class="stat-item">
+                                <span class="stat-value" id="activeStreams">0</span>
+                                <span class="stat-label">Active</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-value" id="totalCameras">0</span>
+                                <span class="stat-label">Total</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-value" id="activeAlerts">0</span>
+                                <span class="stat-label">Alerts</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-value" id="systemFPS">0</span>
+                                <span class="stat-label">FPS</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Alerts Panel -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <div class="panel-title">Active Alerts</div>
+                    </div>
+                    <div class="panel-content">
+                        <div class="alerts-container" id="alertsContainer">
+                            <div class="no-alerts">NO ACTIVE ALERTS</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Logs Panel -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <div class="panel-title">System Log</div>
+                    </div>
+                    <div class="panel-content">
+                        <div class="logs-container" id="logsContainer">
+                            <!-- Logs will be inserted here -->
+                        </div>
+                    </div>
+                </div>
+            </aside>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8080/api/v1';
+        const WS_URL = 'ws://localhost:8080/ws';
+        let ws = null;
+        let cameras = [];
+        let activeStreams = new Set();
+
+        // Update system time
+        function updateSystemTime() {
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString('en-US', { hour12: false });
+            document.getElementById('systemTime').textContent = timeStr;
+        }
+        setInterval(updateSystemTime, 1000);
+        updateSystemTime();
+
+        // Logger
+        function addLog(message, type = 'info') {
+            const logsContainer = document.getElementById('logsContainer');
+            const time = new Date().toLocaleTimeString('en-US', { hour12: false });
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry ${type}`;
+            logEntry.innerHTML = `<span class="log-time">[${time}]</span> ${message}`;
+            logsContainer.appendChild(logEntry);
+            logsContainer.scrollTop = logsContainer.scrollHeight;
+            
+            while (logsContainer.children.length > 100) {
+                logsContainer.removeChild(logsContainer.firstChild);
+            }
+        }
+
+        // WebSocket connection
+        function connectWebSocket() {
+            addLog('Initializing WebSocket connection...', 'info');
+            
+            ws = new WebSocket(WS_URL);
+            
+            ws.onopen = () => {
+                addLog('WebSocket connected', 'success');
+                document.getElementById('statusIndicator').classList.add('online');
+                document.getElementById('connectionText').textContent = 'ONLINE';
+            };
+            
+            ws.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    handleWebSocketMessage(data);
+                } catch (err) {
+                    console.error('WS parse error:', err);
+                }
+            };
+            
+            ws.onclose = () => {
+                addLog('WebSocket disconnected', 'error');
+                document.getElementById('statusIndicator').classList.remove('online');
+                document.getElementById('connectionText').textContent = 'OFFLINE';
+                setTimeout(connectWebSocket, 3000);
+            };
+            
+            ws.onerror = (error) => {
+                addLog('WebSocket error', 'error');
+            };
+        }
+
+        function handleWebSocketMessage(data) {
+            if (data.type === 'alert' || data.type === 'detection') {
+                addAlert(data);
+                addLog(`Alert from ${data.camera_id}: ${data.alert_type || 'detection'}`, 'warning');
+                updateStats();
+            }
+        }
+
+        function addAlert(data) {
+            const alertsContainer = document.getElementById('alertsContainer');
+            
+            if (alertsContainer.querySelector('.no-alerts')) {
+                alertsContainer.innerHTML = '';
+            }
+            
+            const alertItem = document.createElement('div');
+            alertItem.className = 'alert-item';
+            const time = new Date().toLocaleTimeString('en-US', { hour12: false });
+            
+            alertItem.innerHTML = `
+                <div class="alert-header">
+                    <span class="alert-type">${data.alert_type || 'MOTION DETECTED'}</span>
+                    <span class="alert-time">${time}</span>
+                </div>
+                <div class="alert-camera">Camera: ${data.camera_id}</div>
+            `;
+            
+            alertsContainer.insertBefore(alertItem, alertsContainer.firstChild);
+            
+            while (alertsContainer.children.length > 10) {
+                alertsContainer.removeChild(alertsContainer.lastChild);
+            }
+        }
+
+        // Fetch cameras
+        async function fetchCameras() {
+            try {
+                const response = await fetch(`${API_BASE}/cameras`);
+                const data = await response.json();
+                cameras = data.cameras || [];
+                renderCameras();
+                updateStats();
+                addLog(`Loaded ${cameras.length} camera(s)`, 'success');
+            } catch (error) {
+                addLog(`Failed to fetch cameras: ${error.message}`, 'error');
+            }
+        }
+
+        function renderCameras() {
+            const videoGrid = document.getElementById('videoGrid');
+            videoGrid.innerHTML = '';
+            
+            cameras.forEach(camera => {
+                const card = createCameraCard(camera);
+                videoGrid.appendChild(card);
+            });
+        }
+
+        function createCameraCard(camera) {
+            const card = document.createElement('div');
+            card.className = 'camera-card';
+            card.id = `card-${camera.id}`;
+            
+            const isStreaming = camera.status === 'streaming';
+            if (isStreaming) {
+                card.classList.add('streaming');
+                activeStreams.add(camera.id);
+            }
+            
+            const statusClass = isStreaming ? 'streaming' : 'offline';
+            const statusText = isStreaming ? 'STREAMING' : 'OFFLINE';
+            
+            card.innerHTML = `
+                <div class="camera-header">
+                    <div class="camera-info">
+                        <div class="camera-name">${camera.name || camera.id}</div>
+                        <div class="camera-id">ID: ${camera.id}</div>
+                    </div>
+                    <div class="camera-status ${statusClass}">
+                        <div class="status-dot"></div>
+                        <span>${statusText}</span>
+                    </div>
+                </div>
+                <div class="video-container">
+                    <canvas class="video-stream" id="canvas-${camera.id}"></canvas>
+                    <div class="video-overlay ${isStreaming ? 'hidden' : ''}" id="overlay-${camera.id}">
+                        <div class="video-overlay-icon">◯</div>
+                        <div class="video-overlay-text">No Signal</div>
+                    </div>
+                </div>
+                <div class="camera-controls">
+                    <button class="btn btn-activate" onclick="startStream('${camera.id}')" 
+                            ${isStreaming ? 'disabled' : ''}>
+                        Activate
+                    </button>
+                    <button class="btn btn-stop" onclick="stopStream('${camera.id}')" 
+                            ${!isStreaming ? 'disabled' : ''}>
+                        Stop
+                    </button>
+                </div>
+            `;
+            
+            if (isStreaming) {
+                setTimeout(() => startVideoStream(camera.id), 500);
+            }
+            
+            return card;
+        }
+
+        async function startStream(cameraId) {
+            try {
+                addLog(`Activating camera ${cameraId}...`, 'info');
+                const response = await fetch(`${API_BASE}/cameras/${cameraId}/start`, {
+                    method: 'PUT'
+                });
+                
+                if (response.ok) {
+                    addLog(`Camera ${cameraId} activated`, 'success');
+                    activeStreams.add(cameraId);
+                    updateCameraUI(cameraId, true);
+                    startVideoStream(cameraId);
+                } else {
+                    throw new Error('Activation failed');
+                }
+            } catch (error) {
+                addLog(`Failed to activate ${cameraId}: ${error.message}`, 'error');
+            }
+        }
+
+        async function stopStream(cameraId) {
+            try {
+                addLog(`Stopping camera ${cameraId}...`, 'info');
+                const response = await fetch(`${API_BASE}/cameras/${cameraId}/stop`, {
+                    method: 'PUT'
+                });
+                
+                if (response.ok) {
+                    addLog(`Camera ${cameraId} stopped`, 'success');
+                    activeStreams.delete(cameraId);
+                    updateCameraUI(cameraId, false);
+                } else {
+                    throw new Error('Stop failed');
+                }
+            } catch (error) {
+                addLog(`Failed to stop ${cameraId}: ${error.message}`, 'error');
+            }
+        }
+
+        function updateCameraUI(cameraId, isStreaming) {
+            const card = document.getElementById(`card-${cameraId}`);
+            const overlay = document.getElementById(`overlay-${cameraId}`);
+            const status = card.querySelector('.camera-status');
+            const statusText = status.querySelector('span');
+            const startBtn = card.querySelector('.btn-activate');
+            const stopBtn = card.querySelector('.btn-stop');
+            
+            if (isStreaming) {
+                card.classList.add('streaming');
+                overlay.classList.add('hidden');
+                status.className = 'camera-status streaming';
+                statusText.textContent = 'STREAMING';
+                startBtn.disabled = true;
+                stopBtn.disabled = false;
+            } else {
+                card.classList.remove('streaming');
+                overlay.classList.remove('hidden');
+                status.className = 'camera-status offline';
+                statusText.textContent = 'OFFLINE';
+                startBtn.disabled = false;
+                stopBtn.disabled = true;
+            }
+            
+            updateStats();
+        }
+
+        function startVideoStream(cameraId) {
+            const canvas = document.getElementById(`canvas-${cameraId}`);
+            if (!canvas) return;
+            
+            const ctx = canvas.getContext('2d');
+            const wsVideo = new WebSocket(`ws://localhost:8080/ws/video/${cameraId}`);
+            
+            wsVideo.onmessage = async (event) => {
+                try {
+                    const blob = await event.data;
+                    const img = new Image();
+                    img.onload = () => {
+                        canvas.width = img.width;
+                        canvas.height = img.height;
+                        ctx.drawImage(img, 0, 0);
+                    };
+                    img.src = URL.createObjectURL(blob);
+                } catch (err) {
+                    console.error('Video stream error:', err);
+                }
+            };
+            
+            wsVideo.onerror = () => {
+                addLog(`Video stream error for ${cameraId}`, 'error');
+            };
+        }
+
+        function updateStats() {
+            document.getElementById('activeStreams').textContent = activeStreams.size;
+            document.getElementById('totalCameras').textContent = cameras.length;
+            
+            const alertsCount = document.getElementById('alertsContainer').children.length;
+            const hasNoAlertsMessage = document.getElementById('alertsContainer').querySelector('.no-alerts');
+            document.getElementById('activeAlerts').textContent = hasNoAlertsMessage ? 0 : alertsCount;
+        }
+
+        // Initialize
+        addLog('System initializing...', 'info');
+        connectWebSocket();
+        fetchCameras();
+        setInterval(fetchCameras, 30000);
+    </script>
+</body>
+</html>

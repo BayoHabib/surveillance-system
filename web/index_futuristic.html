@@ -1,0 +1,1098 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>◢◤ NEXUS SURVEILLANCE ◥◣ Neural Network Vision System</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --neon-cyan: #00ffff;
+            --neon-pink: #ff00ff;
+            --neon-yellow: #ffff00;
+            --neon-green: #00ff41;
+            --dark-bg: #0a0a0f;
+            --darker-bg: #050508;
+            --grid-color: rgba(0, 255, 255, 0.1);
+            --panel-bg: rgba(10, 10, 20, 0.85);
+            --glow-cyan: 0 0 10px var(--neon-cyan), 0 0 20px var(--neon-cyan), 0 0 30px var(--neon-cyan);
+            --glow-pink: 0 0 10px var(--neon-pink), 0 0 20px var(--neon-pink);
+            --glow-green: 0 0 10px var(--neon-green), 0 0 20px var(--neon-green);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Rajdhani', sans-serif;
+            background: var(--dark-bg);
+            color: var(--neon-cyan);
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* Animated grid background */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(var(--grid-color) 1px, transparent 1px),
+                linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
+            background-size: 50px 50px;
+            animation: gridMove 20s linear infinite;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        @keyframes gridMove {
+            0% { transform: translateY(0) translateX(0); }
+            100% { transform: translateY(50px) translateX(50px); }
+        }
+
+        /* Scanline effect */
+        body::after {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: repeating-linear-gradient(
+                0deg,
+                rgba(0, 255, 255, 0.03) 0px,
+                transparent 1px,
+                transparent 2px,
+                rgba(0, 255, 255, 0.03) 3px
+            );
+            pointer-events: none;
+            z-index: 1;
+            animation: scanline 8s linear infinite;
+        }
+
+        @keyframes scanline {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(100%); }
+        }
+
+        .app-container {
+            position: relative;
+            z-index: 2;
+        }
+
+        /* Futuristic header */
+        .header {
+            background: linear-gradient(135deg, rgba(10, 10, 30, 0.95) 0%, rgba(20, 5, 25, 0.95) 100%);
+            padding: 1.5rem 2rem;
+            border-bottom: 2px solid var(--neon-cyan);
+            box-shadow: 0 5px 30px rgba(0, 255, 255, 0.3), inset 0 -2px 10px rgba(0, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(0, 255, 255, 0.2), transparent);
+            animation: headerShine 3s linear infinite;
+        }
+
+        @keyframes headerShine {
+            0% { left: -100%; }
+            100% { left: 200%; }
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+            z-index: 2;
+        }
+
+        .header h1 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2.5rem;
+            font-weight: 900;
+            background: linear-gradient(45deg, var(--neon-cyan), var(--neon-pink), var(--neon-cyan));
+            background-size: 200% auto;
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: var(--glow-cyan);
+            animation: gradientShift 3s ease infinite;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+        }
+
+        @keyframes gradientShift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        .system-time {
+            font-family: 'Orbitron', monospace;
+            font-size: 1.2rem;
+            color: var(--neon-green);
+            text-shadow: var(--glow-green);
+            letter-spacing: 2px;
+        }
+
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            background: rgba(0, 255, 255, 0.1);
+            padding: 0.75rem 1.5rem;
+            border-radius: 30px;
+            border: 1px solid var(--neon-cyan);
+            box-shadow: inset 0 0 10px rgba(0, 255, 255, 0.2);
+        }
+
+        .status-dot {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #ff0055;
+            box-shadow: 0 0 10px #ff0055, 0 0 20px #ff0055, 0 0 30px #ff0055;
+            animation: pulseRed 1.5s ease-in-out infinite;
+        }
+
+        .status-dot.connected {
+            background: var(--neon-green);
+            box-shadow: var(--glow-green), 0 0 40px var(--neon-green);
+            animation: pulseGreen 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulseRed {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.2); opacity: 0.7; }
+        }
+
+        @keyframes pulseGreen {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.2); opacity: 0.8; }
+        }
+
+        /* Main container */
+        .main-container {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            height: calc(100vh - 120px);
+            gap: 1.5rem;
+            padding: 1.5rem;
+        }
+
+        .video-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+            gap: 1.5rem;
+            height: fit-content;
+        }
+
+        /* Futuristic video card */
+        .video-card {
+            background: var(--panel-bg);
+            border-radius: 15px;
+            padding: 1.5rem;
+            border: 2px solid transparent;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            position: relative;
+            overflow: hidden;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            backdrop-filter: blur(20px);
+        }
+
+        .video-card::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: linear-gradient(45deg, var(--neon-cyan), var(--neon-pink), var(--neon-yellow), var(--neon-cyan));
+            background-size: 400% 400%;
+            border-radius: 15px;
+            z-index: -1;
+            opacity: 0;
+            transition: opacity 0.4s;
+            animation: borderGlow 4s linear infinite;
+        }
+
+        @keyframes borderGlow {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        .video-card:hover::before,
+        .video-card.streaming::before {
+            opacity: 1;
+        }
+
+        .video-card:hover {
+            transform: translateY(-5px) scale(1.02);
+        }
+
+        .video-card.streaming {
+            box-shadow: 0 0 30px rgba(0, 255, 255, 0.4), 0 8px 32px rgba(0, 0, 0, 0.5);
+        }
+
+        .video-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid rgba(0, 255, 255, 0.3);
+            position: relative;
+        }
+
+        .video-header::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 0;
+            width: 0;
+            height: 1px;
+            background: var(--neon-cyan);
+            box-shadow: var(--glow-cyan);
+            transition: width 0.5s ease;
+        }
+
+        .video-card.streaming .video-header::after {
+            width: 100%;
+        }
+
+        .camera-info {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .camera-name {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--neon-cyan);
+            text-shadow: var(--glow-cyan);
+            letter-spacing: 1px;
+        }
+
+        .camera-location {
+            font-size: 0.9rem;
+            color: var(--neon-pink);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .status-badge {
+            padding: 0.4rem 1rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            border: 1px solid;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .status-streaming {
+            background: rgba(0, 255, 65, 0.2);
+            color: var(--neon-green);
+            border-color: var(--neon-green);
+            box-shadow: inset 0 0 10px rgba(0, 255, 65, 0.3), var(--glow-green);
+            animation: pulseGlow 2s ease-in-out infinite;
+        }
+
+        @keyframes pulseGlow {
+            0%, 100% { box-shadow: inset 0 0 10px rgba(0, 255, 65, 0.3), 0 0 10px var(--neon-green); }
+            50% { box-shadow: inset 0 0 20px rgba(0, 255, 65, 0.5), 0 0 20px var(--neon-green), 0 0 30px var(--neon-green); }
+        }
+
+        .status-offline {
+            background: rgba(100, 100, 100, 0.2);
+            color: #999;
+            border-color: #666;
+        }
+
+        .status-error {
+            background: rgba(255, 0, 85, 0.2);
+            color: #ff0055;
+            border-color: #ff0055;
+            box-shadow: inset 0 0 10px rgba(255, 0, 85, 0.3), 0 0 10px #ff0055;
+        }
+
+        /* Video container with holographic effect */
+        .video-container {
+            position: relative;
+            width: 100%;
+            height: 280px;
+            background: var(--darker-bg);
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 1rem;
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            box-shadow: inset 0 0 20px rgba(0, 255, 255, 0.1);
+        }
+
+        .video-stream {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            background: #000;
+            filter: saturate(1.2) contrast(1.1);
+        }
+
+        .video-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle, rgba(0, 255, 255, 0.05), rgba(10, 10, 15, 0.9));
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: var(--neon-cyan);
+            transition: opacity 0.3s ease;
+        }
+
+        .video-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .video-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            animation: float 3s ease-in-out infinite;
+            text-shadow: var(--glow-cyan);
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        /* Futuristic buttons */
+        .camera-controls {
+            display: flex;
+            gap: 0.75rem;
+            align-items: center;
+        }
+
+        .btn {
+            padding: 0.6rem 1.5rem;
+            border: 2px solid;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: 700;
+            font-family: 'Rajdhani', sans-serif;
+            transition: all 0.3s ease;
+            font-size: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            position: relative;
+            overflow: hidden;
+            background: transparent;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        .btn:active::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        .btn-start {
+            border-color: var(--neon-green);
+            color: var(--neon-green);
+            box-shadow: inset 0 0 10px rgba(0, 255, 65, 0.2);
+        }
+
+        .btn-start:hover {
+            background: var(--neon-green);
+            color: var(--darker-bg);
+            box-shadow: var(--glow-green), inset 0 0 20px rgba(0, 255, 65, 0.4);
+            transform: scale(1.05);
+        }
+
+        .btn-stop {
+            border-color: #ff0055;
+            color: #ff0055;
+            box-shadow: inset 0 0 10px rgba(255, 0, 85, 0.2);
+        }
+
+        .btn-stop:hover {
+            background: #ff0055;
+            color: white;
+            box-shadow: 0 0 10px #ff0055, 0 0 20px #ff0055, inset 0 0 20px rgba(255, 0, 85, 0.4);
+            transform: scale(1.05);
+        }
+
+        .btn:disabled {
+            border-color: #444;
+            color: #666;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .btn:disabled:hover {
+            transform: none;
+            background: transparent;
+        }
+
+        /* Sidebar panels */
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .panel {
+            background: var(--panel-bg);
+            border-radius: 15px;
+            padding: 1.5rem;
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), inset 0 0 20px rgba(0, 255, 255, 0.05);
+            backdrop-filter: blur(20px);
+            position: relative;
+        }
+
+        .panel::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--neon-cyan), transparent);
+        }
+
+        .panel h3 {
+            font-family: 'Orbitron', sans-serif;
+            color: var(--neon-cyan);
+            margin-bottom: 1.5rem;
+            font-size: 1.4rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-shadow: var(--glow-cyan);
+            border-bottom: 2px solid rgba(0, 255, 255, 0.3);
+            padding-bottom: 0.75rem;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 1.5rem 1rem;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 10px;
+            border: 1px solid rgba(0, 255, 255, 0.2);
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .stat-item::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: conic-gradient(transparent, rgba(0, 255, 255, 0.1), transparent 30%);
+            animation: rotate 4s linear infinite;
+        }
+
+        @keyframes rotate {
+            100% { transform: rotate(360deg); }
+        }
+
+        .stat-item:hover {
+            border-color: var(--neon-cyan);
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+        }
+
+        .stat-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .stat-value {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2.5rem;
+            font-weight: 900;
+            color: var(--neon-green);
+            text-shadow: var(--glow-green);
+            display: block;
+            line-height: 1;
+        }
+
+        .stat-label {
+            font-size: 0.85rem;
+            color: var(--neon-cyan);
+            margin-top: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Terminal-style logs */
+        .logs-container {
+            max-height: 350px;
+            overflow-y: auto;
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 10px;
+            padding: 1rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            box-shadow: inset 0 0 20px rgba(0, 255, 255, 0.1);
+        }
+
+        .logs-container::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .logs-container::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 10px;
+        }
+
+        .logs-container::-webkit-scrollbar-thumb {
+            background: var(--neon-cyan);
+            border-radius: 10px;
+            box-shadow: var(--glow-cyan);
+        }
+
+        .log-entry {
+            margin-bottom: 0.5rem;
+            padding: 0.5rem;
+            border-left: 3px solid transparent;
+            border-radius: 3px;
+            animation: logFadeIn 0.3s ease;
+        }
+
+        @keyframes logFadeIn {
+            from { opacity: 0; transform: translateX(-10px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .log-entry.info {
+            color: var(--neon-cyan);
+            border-left-color: var(--neon-cyan);
+        }
+
+        .log-entry.success {
+            color: var(--neon-green);
+            border-left-color: var(--neon-green);
+        }
+
+        .log-entry.warning {
+            color: var(--neon-yellow);
+            border-left-color: var(--neon-yellow);
+        }
+
+        .log-entry.error {
+            color: #ff0055;
+            border-left-color: #ff0055;
+        }
+
+        .log-time {
+            color: var(--neon-pink);
+            margin-right: 0.5rem;
+        }
+
+        /* Alert notifications */
+        .alerts-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .alert-item {
+            background: rgba(255, 0, 85, 0.1);
+            border: 1px solid #ff0055;
+            border-left: 4px solid #ff0055;
+            border-radius: 8px;
+            padding: 1rem;
+            box-shadow: 0 0 15px rgba(255, 0, 85, 0.2);
+            animation: alertPulse 2s ease-in-out infinite, logFadeIn 0.3s ease;
+        }
+
+        @keyframes alertPulse {
+            0%, 100% { box-shadow: 0 0 15px rgba(255, 0, 85, 0.2); }
+            50% { box-shadow: 0 0 25px rgba(255, 0, 85, 0.4), 0 0 35px rgba(255, 0, 85, 0.2); }
+        }
+
+        .alert-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .alert-type {
+            font-weight: 700;
+            color: #ff0055;
+            text-transform: uppercase;
+            font-size: 0.9rem;
+            letter-spacing: 1px;
+        }
+
+        .alert-time {
+            font-size: 0.8rem;
+            color: var(--neon-pink);
+        }
+
+        .alert-camera {
+            color: var(--neon-cyan);
+            font-size: 0.9rem;
+        }
+
+        /* Loading animation */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(0, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: var(--neon-cyan);
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Responsive */
+        @media (max-width: 1400px) {
+            .main-container {
+                grid-template-columns: 1fr 350px;
+            }
+            
+            .video-grid {
+                grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            }
+        }
+
+        @media (max-width: 1024px) {
+            .main-container {
+                grid-template-columns: 1fr;
+                height: auto;
+            }
+            
+            .sidebar {
+                grid-column: 1;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.8rem;
+            }
+            
+            .video-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <h1>◢ NEXUS SURVEILLANCE ◣</h1>
+                <div class="system-time" id="systemTime">00:00:00</div>
+                <div class="connection-status">
+                    <div class="status-dot" id="statusDot"></div>
+                    <span id="connectionText">INITIALIZING...</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Container -->
+        <div class="main-container">
+            <!-- Video Grid -->
+            <div class="video-grid" id="videoGrid">
+                <!-- Video cards will be inserted here -->
+            </div>
+
+            <!-- Sidebar -->
+            <aside class="sidebar">
+                <!-- Stats Panel -->
+                <div class="panel">
+                    <h3>⚡ SYSTEM STATUS</h3>
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <div class="stat-content">
+                                <span class="stat-value" id="activeStreams">0</span>
+                                <span class="stat-label">ACTIVE FEEDS</span>
+                            </div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-content">
+                                <span class="stat-value" id="totalCameras">0</span>
+                                <span class="stat-label">TOTAL NODES</span>
+                            </div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-content">
+                                <span class="stat-value" id="activeAlerts">0</span>
+                                <span class="stat-label">THREATS</span>
+                            </div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-content">
+                                <span class="stat-value" id="fps">0</span>
+                                <span class="stat-label">FPS</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Alerts Panel -->
+                <div class="panel">
+                    <h3>⚠ NEURAL ALERTS</h3>
+                    <div class="alerts-list" id="alertsList">
+                        <div style="text-align: center; color: #666; padding: 2rem;">
+                            NO THREATS DETECTED
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Logs Panel -->
+                <div class="panel">
+                    <h3>⌘ SYSTEM LOGS</h3>
+                    <div class="logs-container" id="logsContainer">
+                        <!-- Logs will be inserted here -->
+                    </div>
+                </div>
+            </aside>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8080/api/v1';
+        const WS_URL = 'ws://localhost:8080/ws';
+        let ws = null;
+        let cameras = [];
+        let activeStreams = new Set();
+
+        // Update system time
+        function updateSystemTime() {
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString('en-US', { hour12: false });
+            document.getElementById('systemTime').textContent = timeStr;
+        }
+        setInterval(updateSystemTime, 1000);
+        updateSystemTime();
+
+        // Logger
+        function addLog(message, type = 'info') {
+            const logsContainer = document.getElementById('logsContainer');
+            const time = new Date().toLocaleTimeString('en-US', { hour12: false });
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry ${type}`;
+            logEntry.innerHTML = `<span class="log-time">[${time}]</span> ${message}`;
+            logsContainer.appendChild(logEntry);
+            logsContainer.scrollTop = logsContainer.scrollHeight;
+            
+            // Keep only last 100 logs
+            while (logsContainer.children.length > 100) {
+                logsContainer.removeChild(logsContainer.firstChild);
+            }
+        }
+
+        // WebSocket connection
+        function connectWebSocket() {
+            addLog('◢ Initializing WebSocket connection...', 'info');
+            
+            ws = new WebSocket(WS_URL);
+            
+            ws.onopen = () => {
+                addLog('✓ WebSocket connected successfully', 'success');
+                document.getElementById('statusDot').classList.add('connected');
+                document.getElementById('connectionText').textContent = 'ONLINE';
+            };
+            
+            ws.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    handleWebSocketMessage(data);
+                } catch (err) {
+                    console.error('WS parse error:', err);
+                }
+            };
+            
+            ws.onclose = () => {
+                addLog('✗ WebSocket disconnected', 'error');
+                document.getElementById('statusDot').classList.remove('connected');
+                document.getElementById('connectionText').textContent = 'OFFLINE';
+                setTimeout(connectWebSocket, 3000);
+            };
+            
+            ws.onerror = (error) => {
+                addLog('⚠ WebSocket error occurred', 'error');
+            };
+        }
+
+        function handleWebSocketMessage(data) {
+            if (data.type === 'alert' || data.type === 'detection') {
+                addAlert(data);
+                addLog(`⚠ ALERT: ${data.camera_id} - ${data.alert_type || 'detection'}`, 'warning');
+                updateStats();
+            }
+        }
+
+        function addAlert(data) {
+            const alertsList = document.getElementById('alertsList');
+            
+            // Clear "no threats" message
+            if (alertsList.textContent.includes('NO THREATS')) {
+                alertsList.innerHTML = '';
+            }
+            
+            const alertItem = document.createElement('div');
+            alertItem.className = 'alert-item';
+            const time = new Date().toLocaleTimeString('en-US', { hour12: false });
+            
+            alertItem.innerHTML = `
+                <div class="alert-header">
+                    <span class="alert-type">${data.alert_type || 'MOTION DETECTED'}</span>
+                    <span class="alert-time">${time}</span>
+                </div>
+                <div class="alert-camera">NODE: ${data.camera_id}</div>
+            `;
+            
+            alertsList.insertBefore(alertItem, alertsList.firstChild);
+            
+            // Keep only last 10 alerts
+            while (alertsList.children.length > 10) {
+                alertsList.removeChild(alertsList.lastChild);
+            }
+        }
+
+        // Fetch cameras
+        async function fetchCameras() {
+            try {
+                const response = await fetch(`${API_BASE}/cameras`);
+                const data = await response.json();
+                cameras = data.cameras || [];
+                renderCameras();
+                updateStats();
+                addLog(`✓ Loaded ${cameras.length} camera nodes`, 'success');
+            } catch (error) {
+                addLog(`✗ Failed to fetch cameras: ${error.message}`, 'error');
+            }
+        }
+
+        function renderCameras() {
+            const videoGrid = document.getElementById('videoGrid');
+            videoGrid.innerHTML = '';
+            
+            cameras.forEach(camera => {
+                const card = createCameraCard(camera);
+                videoGrid.appendChild(card);
+            });
+        }
+
+        function createCameraCard(camera) {
+            const card = document.createElement('div');
+            card.className = 'video-card';
+            card.id = `card-${camera.id}`;
+            
+            const isStreaming = camera.status === 'streaming';
+            if (isStreaming) {
+                card.classList.add('streaming');
+                activeStreams.add(camera.id);
+            }
+            
+            card.innerHTML = `
+                <div class="video-header">
+                    <div class="camera-info">
+                        <div class="camera-name">${camera.name || camera.id}</div>
+                        <div class="camera-location">◢ ${camera.location || 'SECTOR UNKNOWN'} ◣</div>
+                    </div>
+                    <span class="status-badge status-${isStreaming ? 'streaming' : 'offline'}">
+                        ${isStreaming ? '◉ ACTIVE' : '○ OFFLINE'}
+                    </span>
+                </div>
+                <div class="video-container">
+                    <canvas class="video-stream" id="canvas-${camera.id}"></canvas>
+                    <div class="video-overlay ${isStreaming ? 'hidden' : ''}" id="overlay-${camera.id}">
+                        <div class="video-icon">◈</div>
+                        <div>FEED INACTIVE</div>
+                    </div>
+                </div>
+                <div class="camera-controls">
+                    <button class="btn btn-start" onclick="startStream('${camera.id}')" 
+                            ${isStreaming ? 'disabled' : ''}>
+                        ▶ ACTIVATE
+                    </button>
+                    <button class="btn btn-stop" onclick="stopStream('${camera.id}')" 
+                            ${!isStreaming ? 'disabled' : ''}>
+                        ■ TERMINATE
+                    </button>
+                </div>
+            `;
+            
+            if (isStreaming) {
+                setTimeout(() => startVideoStream(camera.id), 500);
+            }
+            
+            return card;
+        }
+
+        async function startStream(cameraId) {
+            try {
+                addLog(`◢ Activating feed ${cameraId}...`, 'info');
+                const response = await fetch(`${API_BASE}/cameras/${cameraId}/start`, {
+                    method: 'PUT'
+                });
+                
+                if (response.ok) {
+                    addLog(`✓ Feed ${cameraId} activated`, 'success');
+                    activeStreams.add(cameraId);
+                    updateCameraUI(cameraId, true);
+                    startVideoStream(cameraId);
+                } else {
+                    throw new Error('Activation failed');
+                }
+            } catch (error) {
+                addLog(`✗ Failed to activate ${cameraId}: ${error.message}`, 'error');
+            }
+        }
+
+        async function stopStream(cameraId) {
+            try {
+                addLog(`◢ Terminating feed ${cameraId}...`, 'info');
+                const response = await fetch(`${API_BASE}/cameras/${cameraId}/stop`, {
+                    method: 'PUT'
+                });
+                
+                if (response.ok) {
+                    addLog(`✓ Feed ${cameraId} terminated`, 'success');
+                    activeStreams.delete(cameraId);
+                    updateCameraUI(cameraId, false);
+                } else {
+                    throw new Error('Termination failed');
+                }
+            } catch (error) {
+                addLog(`✗ Failed to terminate ${cameraId}: ${error.message}`, 'error');
+            }
+        }
+
+        function updateCameraUI(cameraId, isStreaming) {
+            const card = document.getElementById(`card-${cameraId}`);
+            const overlay = document.getElementById(`overlay-${cameraId}`);
+            const statusBadge = card.querySelector('.status-badge');
+            const startBtn = card.querySelector('.btn-start');
+            const stopBtn = card.querySelector('.btn-stop');
+            
+            if (isStreaming) {
+                card.classList.add('streaming');
+                overlay.classList.add('hidden');
+                statusBadge.className = 'status-badge status-streaming';
+                statusBadge.textContent = '◉ ACTIVE';
+                startBtn.disabled = true;
+                stopBtn.disabled = false;
+            } else {
+                card.classList.remove('streaming');
+                overlay.classList.remove('hidden');
+                statusBadge.className = 'status-badge status-offline';
+                statusBadge.textContent = '○ OFFLINE';
+                startBtn.disabled = false;
+                stopBtn.disabled = true;
+            }
+            
+            updateStats();
+        }
+
+        function startVideoStream(cameraId) {
+            const canvas = document.getElementById(`canvas-${cameraId}`);
+            if (!canvas) return;
+            
+            const ctx = canvas.getContext('2d');
+            const wsVideo = new WebSocket(`ws://localhost:8080/ws/video/${cameraId}`);
+            
+            wsVideo.onmessage = async (event) => {
+                try {
+                    const blob = await event.data;
+                    const img = new Image();
+                    img.onload = () => {
+                        canvas.width = img.width;
+                        canvas.height = img.height;
+                        ctx.drawImage(img, 0, 0);
+                    };
+                    img.src = URL.createObjectURL(blob);
+                } catch (err) {
+                    console.error('Video stream error:', err);
+                }
+            };
+            
+            wsVideo.onerror = () => {
+                addLog(`✗ Video stream error for ${cameraId}`, 'error');
+            };
+        }
+
+        function updateStats() {
+            document.getElementById('activeStreams').textContent = activeStreams.size;
+            document.getElementById('totalCameras').textContent = cameras.length;
+            
+            const alertsCount = document.getElementById('alertsList').children.length;
+            document.getElementById('activeAlerts').textContent = 
+                alertsCount > 0 && !document.getElementById('alertsList').textContent.includes('NO THREATS') 
+                ? alertsCount : 0;
+        }
+
+        // Initialize
+        addLog('◢◤ NEXUS SURVEILLANCE SYSTEM v2.0 ◥◣', 'info');
+        addLog('◢ Initializing neural network...', 'info');
+        connectWebSocket();
+        fetchCameras();
+        
+        // Refresh cameras every 30 seconds
+        setInterval(fetchCameras, 30000);
+    </script>
+</body>
+</html>

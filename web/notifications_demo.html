@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔔 Notifications Demo - Surveillance System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 800px;
+            width: 100%;
+        }
+
+        .card {
+            background: white;
+            border-radius: 20px;
+            padding: 3rem;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            color: #1c1e21;
+        }
+
+        .header p {
+            color: #65676b;
+            font-size: 1.1rem;
+        }
+
+        .status-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 16px;
+            padding: 2rem;
+            color: white;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        .status-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+        }
+
+        .status-text {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .status-subtext {
+            opacity: 0.9;
+            font-size: 0.95rem;
+        }
+
+        .permission-required {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .permission-granted {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+
+        .permission-denied {
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+        }
+
+        .controls {
+            display: grid;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .btn {
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%);
+            color: #1c1e21;
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+            color: #1c1e21;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
+            color: #1c1e21;
+        }
+
+        .btn-info {
+            background: linear-gradient(135deg, #a1c4fd 0%, #c2e9fb 100%);
+            color: #1c1e21;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .settings {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .settings h3 {
+            margin-bottom: 1rem;
+            color: #1c1e21;
+        }
+
+        .setting-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid #e4e6eb;
+        }
+
+        .setting-item:last-child {
+            border-bottom: none;
+        }
+
+        .setting-label {
+            font-weight: 500;
+            color: #1c1e21;
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 50px;
+            height: 26px;
+            background: #ccc;
+            border-radius: 13px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .toggle-switch.active {
+            background: #667eea;
+        }
+
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            width: 22px;
+            height: 22px;
+            background: white;
+            border-radius: 50%;
+            top: 2px;
+            left: 2px;
+            transition: transform 0.3s;
+        }
+
+        .toggle-switch.active::after {
+            transform: translateX(24px);
+        }
+
+        .log {
+            background: #1c1e21;
+            color: #00ff00;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            padding: 1rem;
+            border-radius: 8px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .log-entry {
+            margin-bottom: 0.5rem;
+            opacity: 0;
+            animation: fadeIn 0.3s forwards;
+        }
+
+        @keyframes fadeIn {
+            to { opacity: 1; }
+        }
+
+        .badge {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .info-box {
+            background: #e7f3ff;
+            border-left: 4px solid #1877f2;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-top: 2rem;
+        }
+
+        .info-box h4 {
+            color: #1877f2;
+            margin-bottom: 0.5rem;
+        }
+
+        .info-box ul {
+            margin-left: 1.5rem;
+            color: #65676b;
+        }
+
+        .info-box li {
+            margin-bottom: 0.25rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <div class="header">
+                <h1>🔔 Notifications Push</h1>
+                <p>Testez les notifications browser en temps réel</p>
+            </div>
+
+            <!-- Status Card -->
+            <div class="status-card" id="statusCard">
+                <div class="status-icon" id="statusIcon">🔔</div>
+                <div class="status-text" id="statusText">Vérification...</div>
+                <div class="status-subtext" id="statusSubtext">Initialisation du système de notifications</div>
+            </div>
+
+            <!-- Settings -->
+            <div class="settings">
+                <h3>⚙️ Paramètres</h3>
+                <div class="setting-item">
+                    <span class="setting-label">Son des notifications</span>
+                    <div class="toggle-switch active" id="soundToggle" onclick="toggleSound()"></div>
+                </div>
+                <div class="setting-item">
+                    <span class="setting-label">Vibration</span>
+                    <div class="toggle-switch active" id="vibrationToggle" onclick="toggleVibration()"></div>
+                </div>
+                <div class="setting-item">
+                    <span class="setting-label">Badge de compteur</span>
+                    <div class="toggle-switch active" id="badgeToggle" onclick="toggleBadge()"></div>
+                </div>
+            </div>
+
+            <!-- Controls -->
+            <div class="controls">
+                <button class="btn btn-primary" id="requestBtn" onclick="requestPermission()">
+                    🔓 Demander Permission
+                </button>
+                <button class="btn btn-success" onclick="sendTestNotification('motion')" disabled id="notifyBtn">
+                    ✅ Test Détection Mouvement
+                </button>
+                <button class="btn btn-warning" onclick="sendTestNotification('intrusion')">
+                    ⚠️ Test Alerte Intrusion
+                </button>
+                <button class="btn btn-danger" onclick="sendTestNotification('critical')">
+                    🚨 Test Alerte Critique
+                </button>
+                <button class="btn btn-info" onclick="sendTestNotification('info')">
+                    ℹ️ Test Notification Info
+                </button>
+            </div>
+
+            <!-- Log -->
+            <div class="log" id="logContainer">
+                <div class="log-entry">[SYSTEM] Système de notifications initialisé</div>
+            </div>
+
+            <!-- Info Box -->
+            <div class="info-box">
+                <h4>💡 Fonctionnalités</h4>
+                <ul>
+                    <li>Notifications natives du navigateur</li>
+                    <li>Son personnalisable pour chaque type d'alerte</li>
+                    <li>Vibration sur appareils mobiles</li>
+                    <li>Badge de compteur d'alertes non lues</li>
+                    <li>Clics sur notifications pour actions rapides</li>
+                    <li>Persistance des préférences</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Settings
+        let settings = {
+            sound: true,
+            vibration: true,
+            badge: true,
+            permission: 'default'
+        };
+
+        // Load settings from localStorage
+        function loadSettings() {
+            const saved = localStorage.getItem('notificationSettings');
+            if (saved) {
+                settings = { ...settings, ...JSON.parse(saved) };
+            }
+            updateSettingsUI();
+        }
+
+        // Save settings
+        function saveSettings() {
+            localStorage.setItem('notificationSettings', JSON.stringify(settings));
+        }
+
+        // Update UI
+        function updateSettingsUI() {
+            document.getElementById('soundToggle').classList.toggle('active', settings.sound);
+            document.getElementById('vibrationToggle').classList.toggle('active', settings.vibration);
+            document.getElementById('badgeToggle').classList.toggle('active', settings.badge);
+        }
+
+        // Toggle functions
+        function toggleSound() {
+            settings.sound = !settings.sound;
+            updateSettingsUI();
+            saveSettings();
+            addLog(`Son ${settings.sound ? 'activé' : 'désactivé'}`);
+        }
+
+        function toggleVibration() {
+            settings.vibration = !settings.vibration;
+            updateSettingsUI();
+            saveSettings();
+            addLog(`Vibration ${settings.vibration ? 'activée' : 'désactivée'}`);
+        }
+
+        function toggleBadge() {
+            settings.badge = !settings.badge;
+            updateSettingsUI();
+            saveSettings();
+            addLog(`Badge ${settings.badge ? 'activé' : 'désactivé'}`);
+        }
+
+        // Check notification support
+        function checkNotificationSupport() {
+            if (!('Notification' in window)) {
+                updateStatus('❌', 'Non supporté', 'Votre navigateur ne supporte pas les notifications', 'permission-denied');
+                addLog('[ERROR] Notifications non supportées par ce navigateur');
+                return false;
+            }
+            return true;
+        }
+
+        // Update status card
+        function updateStatus(icon, text, subtext, className) {
+            const card = document.getElementById('statusCard');
+            document.getElementById('statusIcon').textContent = icon;
+            document.getElementById('statusText').textContent = text;
+            document.getElementById('statusSubtext').textContent = subtext;
+            
+            card.className = 'status-card ' + (className || '');
+        }
+
+        // Add log entry
+        function addLog(message) {
+            const log = document.getElementById('logContainer');
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            const time = new Date().toLocaleTimeString('fr-FR');
+            entry.textContent = `[${time}] ${message}`;
+            log.appendChild(entry);
+            log.scrollTop = log.scrollHeight;
+        }
+
+        // Request permission
+        async function requestPermission() {
+            if (!checkNotificationSupport()) return;
+
+            addLog('[REQUEST] Demande de permission...');
+            
+            try {
+                const permission = await Notification.requestPermission();
+                settings.permission = permission;
+                saveSettings();
+                
+                if (permission === 'granted') {
+                    updateStatus('✅', 'Permission accordée', 'Notifications activées avec succès', 'permission-granted');
+                    addLog('[SUCCESS] Permission accordée');
+                    enableNotificationButtons();
+                    
+                    // Send welcome notification
+                    new Notification('🎉 Notifications activées !', {
+                        body: 'Vous recevrez maintenant des alertes en temps réel',
+                        icon: '🔔',
+                        badge: '🔔',
+                        tag: 'welcome'
+                    });
+                } else if (permission === 'denied') {
+                    updateStatus('❌', 'Permission refusée', 'Activez les notifications dans les paramètres du navigateur', 'permission-denied');
+                    addLog('[ERROR] Permission refusée par l\'utilisateur');
+                } else {
+                    updateStatus('⏳', 'En attente', 'Cliquez sur "Demander Permission" pour activer', 'permission-required');
+                    addLog('[INFO] Permission en attente');
+                }
+            } catch (error) {
+                addLog('[ERROR] ' + error.message);
+            }
+        }
+
+        // Enable notification buttons
+        function enableNotificationButtons() {
+            document.querySelectorAll('.btn-success, .btn-warning, .btn-danger, .btn-info').forEach(btn => {
+                btn.disabled = false;
+            });
+        }
+
+        // Play notification sound
+        function playNotificationSound(type) {
+            if (!settings.sound) return;
+            
+            // Use Web Audio API for custom sounds (simplified version)
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            // Different frequencies for different alert types
+            const frequencies = {
+                motion: 440,      // A4
+                intrusion: 880,   // A5
+                critical: 1046.5, // C6
+                info: 523.25      // C5
+            };
+            
+            oscillator.frequency.value = frequencies[type] || 440;
+            oscillator.type = 'sine';
+            
+            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+            
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.5);
+        }
+
+        // Vibrate
+        function vibrateDevice(pattern) {
+            if (!settings.vibration) return;
+            if ('vibrate' in navigator) {
+                navigator.vibrate(pattern);
+            }
+        }
+
+        // Update badge
+        function updateBadge(count) {
+            if (!settings.badge) return;
+            if ('setAppBadge' in navigator) {
+                navigator.setAppBadge(count);
+            }
+        }
+
+        // Send test notification
+        function sendTestNotification(type) {
+            if (Notification.permission !== 'granted') {
+                addLog('[ERROR] Permission non accordée');
+                alert('Veuillez d\'abord accorder la permission');
+                return;
+            }
+
+            const notifications = {
+                motion: {
+                    title: '🎥 Détection de Mouvement',
+                    body: 'Mouvement détecté sur CAM-001 (Entrée Principale)',
+                    icon: '🎥',
+                    tag: 'motion-cam001',
+                    vibrate: [200, 100, 200]
+                },
+                intrusion: {
+                    title: '⚠️ Alerte Intrusion',
+                    body: 'Intrusion potentielle détectée sur CAM-003 (Bureau)',
+                    icon: '⚠️',
+                    tag: 'intrusion-cam003',
+                    vibrate: [300, 100, 300, 100, 300]
+                },
+                critical: {
+                    title: '🚨 ALERTE CRITIQUE',
+                    body: 'Activité suspecte détectée - Action immédiate requise',
+                    icon: '🚨',
+                    tag: 'critical-alert',
+                    requireInteraction: true,
+                    vibrate: [500, 200, 500, 200, 500]
+                },
+                info: {
+                    title: 'ℹ️ Information',
+                    body: 'Système de surveillance opérationnel - Toutes caméras en ligne',
+                    icon: 'ℹ️',
+                    tag: 'info',
+                    vibrate: [100]
+                }
+            };
+
+            const config = notifications[type];
+            if (!config) return;
+
+            addLog(`[NOTIFY] Envoi notification: ${config.title}`);
+
+            // Play sound
+            playNotificationSound(type);
+
+            // Vibrate
+            if (config.vibrate) {
+                vibrateDevice(config.vibrate);
+            }
+
+            // Create notification
+            const notification = new Notification(config.title, {
+                body: config.body,
+                icon: config.icon,
+                badge: config.icon,
+                tag: config.tag,
+                requireInteraction: config.requireInteraction || false,
+                silent: !settings.sound,
+                data: {
+                    cameraId: 'CAM-001',
+                    timestamp: Date.now(),
+                    type: type
+                }
+            });
+
+            // Handle notification click
+            notification.onclick = function(event) {
+                event.preventDefault();
+                addLog(`[CLICK] Notification cliquée: ${config.tag}`);
+                window.focus();
+                notification.close();
+                
+                // Simulate navigation to camera
+                alert(`Navigation vers la caméra: ${event.target.data.cameraId}`);
+            };
+
+            // Update badge
+            const currentBadge = parseInt(localStorage.getItem('badgeCount') || '0');
+            const newBadge = currentBadge + 1;
+            localStorage.setItem('badgeCount', newBadge.toString());
+            updateBadge(newBadge);
+
+            addLog(`[SUCCESS] Notification affichée (Badge: ${newBadge})`);
+        }
+
+        // Check initial permission
+        function checkInitialPermission() {
+            if (!checkNotificationSupport()) return;
+
+            const permission = Notification.permission;
+            settings.permission = permission;
+
+            if (permission === 'granted') {
+                updateStatus('✅', 'Permission accordée', 'Notifications activées', 'permission-granted');
+                addLog('[INFO] Permission déjà accordée');
+                enableNotificationButtons();
+            } else if (permission === 'denied') {
+                updateStatus('❌', 'Permission refusée', 'Activez les notifications dans les paramètres', 'permission-denied');
+                addLog('[INFO] Permission refusée');
+            } else {
+                updateStatus('⏳', 'Permission requise', 'Cliquez pour activer les notifications', 'permission-required');
+                addLog('[INFO] Permission non demandée');
+            }
+        }
+
+        // Initialize
+        loadSettings();
+        checkInitialPermission();
+
+        // Add help text
+        addLog('[INFO] Utilisez les boutons pour tester les différents types de notifications');
+        
+        // Clear badge on page load
+        if ('clearAppBadge' in navigator) {
+            navigator.clearAppBadge();
+        }
+    </script>
+</body>
+</html>

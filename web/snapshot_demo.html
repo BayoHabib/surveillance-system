@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Snapshot Editor - Demo</title>
+    
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="/static/css/common.css">
+    <link rel="stylesheet" href="/static/css/snapshot-editor.css">
+    
+    <style>
+        body {
+            padding: 40px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .demo-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .demo-header h1 {
+            margin: 0 0 10px 0;
+            color: var(--primary-color);
+        }
+
+        .demo-header p {
+            color: var(--text-secondary);
+            font-size: 16px;
+        }
+
+        .demo-section {
+            background: var(--bg-secondary);
+            padding: var(--spacing-lg);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-sm);
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .demo-section h2 {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            margin-bottom: var(--spacing-md);
+        }
+
+        .camera-demo {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: var(--spacing-lg);
+        }
+
+        .camera-demo-card {
+            background: var(--bg-primary);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .camera-demo-video {
+            width: 100%;
+            aspect-ratio: 16/9;
+            background: #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .camera-demo-video video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .camera-demo-placeholder {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-size: 48px;
+        }
+
+        .camera-demo-info {
+            padding: var(--spacing-md);
+        }
+
+        .camera-demo-name {
+            font-weight: 600;
+            margin-bottom: var(--spacing-xs);
+        }
+
+        .camera-demo-location {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: var(--spacing-md);
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: var(--spacing-md);
+            margin-top: var(--spacing-md);
+        }
+
+        .feature-card {
+            background: var(--bg-primary);
+            padding: var(--spacing-md);
+            border-radius: var(--radius-md);
+            border-left: 4px solid var(--primary-color);
+        }
+
+        .feature-card h3 {
+            font-size: 16px;
+            margin: 0 0 var(--spacing-xs) 0;
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-xs);
+        }
+
+        .feature-card p {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin: 0;
+        }
+
+        .instructions {
+            background: var(--info-light);
+            border-left: 4px solid var(--info-color);
+            padding: var(--spacing-md);
+            border-radius: var(--radius-md);
+            margin-top: var(--spacing-lg);
+        }
+
+        .instructions h3 {
+            margin: 0 0 var(--spacing-sm) 0;
+            color: var(--info-color);
+        }
+
+        .instructions ol {
+            margin: 0;
+            padding-left: 20px;
+        }
+
+        .instructions li {
+            margin-bottom: var(--spacing-xs);
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="demo-header">
+        <h1>📸 Snapshot Editor - Démo Interactive</h1>
+        <p>Éditeur de captures avancé avec annotations, métadonnées et export multi-format</p>
+    </div>
+
+    <!-- Features Section -->
+    <div class="demo-section">
+        <h2>✨ Fonctionnalités</h2>
+        <div class="features-grid">
+            <div class="feature-card">
+                <h3>🎨 Outils d'Annotation</h3>
+                <p>Flèches, rectangles, cercles, texte, dessin libre</p>
+            </div>
+            <div class="feature-card">
+                <h3>🎨 Personnalisation</h3>
+                <p>8 couleurs, épaisseur variable, tailles de police</p>
+            </div>
+            <div class="feature-card">
+                <h3>🔒 Confidentialité</h3>
+                <p>Outil de floutage pour masquer zones sensibles</p>
+            </div>
+            <div class="feature-card">
+                <h3>ℹ️ Métadonnées</h3>
+                <p>Horodatage, nom caméra, localisation, filigrane</p>
+            </div>
+            <div class="feature-card">
+                <h3>💾 Export Multiple</h3>
+                <p>PNG haute qualité ou JPG optimisé</p>
+            </div>
+            <div class="feature-card">
+                <h3>↶ Historique</h3>
+                <p>Annulation, suppression individuelle ou totale</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Demo Cameras -->
+    <div class="demo-section">
+        <h2>📹 Caméras de Démonstration</h2>
+        <div class="camera-demo">
+            <!-- Camera 1 -->
+            <div class="camera-demo-card">
+                <div class="camera-demo-video">
+                    <div class="camera-demo-placeholder" id="camera1">📹</div>
+                </div>
+                <div class="camera-demo-info">
+                    <div class="camera-demo-name">Caméra Entrée Principale</div>
+                    <div class="camera-demo-location">🏢 Hall d'entrée</div>
+                    <button class="btn btn-primary w-100" onclick="openSnapshotDemo('camera1', 'Entrée Principale', 'Hall d\'entrée')">
+                        📸 Capturer et Annoter
+                    </button>
+                </div>
+            </div>
+
+            <!-- Camera 2 -->
+            <div class="camera-demo-card">
+                <div class="camera-demo-video">
+                    <div class="camera-demo-placeholder" id="camera2" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">📹</div>
+                </div>
+                <div class="camera-demo-info">
+                    <div class="camera-demo-name">Caméra Parking</div>
+                    <div class="camera-demo-location">🚗 Zone véhicules</div>
+                    <button class="btn btn-primary w-100" onclick="openSnapshotDemo('camera2', 'Parking', 'Zone véhicules')">
+                        📸 Capturer et Annoter
+                    </button>
+                </div>
+            </div>
+
+            <!-- Camera 3 -->
+            <div class="camera-demo-card">
+                <div class="camera-demo-video">
+                    <div class="camera-demo-placeholder" id="camera3" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">📹</div>
+                </div>
+                <div class="camera-demo-info">
+                    <div class="camera-demo-name">Caméra Bureau</div>
+                    <div class="camera-demo-location">💼 Open space</div>
+                    <button class="btn btn-primary w-100" onclick="openSnapshotDemo('camera3', 'Bureau', 'Open space')">
+                        📸 Capturer et Annoter
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Instructions -->
+    <div class="demo-section">
+        <h2>📖 Mode d'Emploi</h2>
+        <div class="instructions">
+            <h3>🎯 Comment utiliser l'éditeur</h3>
+            <ol>
+                <li><strong>Capture</strong> : Cliquez sur "Capturer et Annoter" pour ouvrir l'éditeur</li>
+                <li><strong>Choisir un outil</strong> : Sélectionnez un outil dans la barre latérale (Flèche, Rectangle, Texte, etc.)</li>
+                <li><strong>Personnaliser</strong> : Choisissez une couleur et ajustez l'épaisseur/taille</li>
+                <li><strong>Annoter</strong> : Cliquez et glissez sur l'image pour dessiner</li>
+                <li><strong>Texte</strong> : Pour le texte, tapez votre message puis cliquez sur l'image</li>
+                <li><strong>Floutage</strong> : Utilisez l'outil "Flou" pour masquer des zones sensibles</li>
+                <li><strong>Métadonnées</strong> : Cochez/décochez les options (horodatage, nom caméra, etc.)</li>
+                <li><strong>Export</strong> : Téléchargez en PNG (haute qualité) ou JPG (optimisé)</li>
+            </ol>
+        </div>
+
+        <div class="instructions" style="margin-top: var(--spacing-md); background: var(--warning-light); border-left-color: var(--warning-color);">
+            <h3>⚡ Raccourcis Clavier</h3>
+            <ol>
+                <li><strong>ESC</strong> : Fermer l'éditeur</li>
+                <li><strong>Ctrl+Z</strong> : Annuler dernière annotation (prochainement)</li>
+                <li><strong>Delete</strong> : Effacer toutes les annotations (prochainement)</li>
+            </ol>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="/static/js/toast.js"></script>
+    <script src="/static/js/snapshot-editor.js"></script>
+
+    <script>
+        // Demo function to open snapshot editor
+        function openSnapshotDemo(cameraId, cameraName, location) {
+            // Create a mock video element with canvas
+            const canvas = document.createElement('canvas');
+            canvas.width = 1920;
+            canvas.height = 1080;
+            const ctx = canvas.getContext('2d');
+
+            // Draw a gradient background
+            const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+            
+            if (cameraId === 'camera1') {
+                gradient.addColorStop(0, '#667eea');
+                gradient.addColorStop(1, '#764ba2');
+            } else if (cameraId === 'camera2') {
+                gradient.addColorStop(0, '#f093fb');
+                gradient.addColorStop(1, '#f5576c');
+            } else {
+                gradient.addColorStop(0, '#4facfe');
+                gradient.addColorStop(1, '#00f2fe');
+            }
+
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Add some demo text
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+            ctx.font = 'bold 120px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(cameraName, canvas.width / 2, canvas.height / 2 - 100);
+            
+            ctx.font = '60px Arial';
+            ctx.fillText(location, canvas.width / 2, canvas.height / 2 + 50);
+
+            // Add timestamp
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+            ctx.font = '40px Arial';
+            ctx.textAlign = 'left';
+            const now = new Date().toLocaleString('fr-FR');
+            ctx.fillText(now, 50, 80);
+
+            // Add camera icon
+            ctx.font = '150px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('📹', canvas.width / 2, canvas.height / 2 + 250);
+
+            // Create a mock video element
+            const mockVideo = document.createElement('video');
+            mockVideo.width = canvas.width;
+            mockVideo.height = canvas.height;
+            mockVideo.videoWidth = canvas.width;
+            mockVideo.videoHeight = canvas.height;
+
+            // Create image from canvas
+            const img = new Image();
+            img.src = canvas.toDataURL();
+            img.onload = () => {
+                // Hack: attach canvas to video element for snapshot capture
+                mockVideo._canvas = canvas;
+                
+                // Override video draw for snapshot
+                const originalGetContext = HTMLCanvasElement.prototype.getContext;
+                HTMLCanvasElement.prototype.getContext = function(type) {
+                    const context = originalGetContext.call(this, type);
+                    if (type === '2d' && mockVideo._canvas) {
+                        const originalDrawImage = context.drawImage;
+                        context.drawImage = function(element, ...args) {
+                            if (element === mockVideo) {
+                                return originalDrawImage.call(context, img, ...args);
+                            }
+                            return originalDrawImage.call(context, element, ...args);
+                        };
+                    }
+                    return context;
+                };
+
+                // Open snapshot editor
+                snapshotEditor.open(mockVideo, {
+                    id: cameraId,
+                    name: cameraName,
+                    location: location
+                });
+
+                // Restore original getContext
+                setTimeout(() => {
+                    HTMLCanvasElement.prototype.getContext = originalGetContext;
+                }, 100);
+            };
+        }
+
+        // Show welcome toast
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                Toast.info('Cliquez sur une caméra pour tester l\'éditeur de capture', '', 5000);
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

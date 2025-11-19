@@ -226,13 +226,25 @@ bool OpenCVCaptureManager::SetupWebcamCapture() {
 bool OpenCVCaptureManager::SetupRtspCapture() {
     LOG_INFO("[OpenCVCaptureManager] Setting up RTSP: ", camera_url_);
     
+    // ============================================
+    // WSL FIX: Force RTSP over TCP instead of UDP
+    // ============================================
+    // WSL 2 has NAT issues with UDP/RTP packets used by default RTSP
+    // Forcing TCP transport resolves connection timeouts and packet loss
+    #ifdef __linux__
+        LOG_INFO("[OpenCVCaptureManager] WSL detected - forcing RTSP over TCP");
+        setenv("OPENCV_FFMPEG_CAPTURE_OPTIONS", "rtsp_transport;tcp", 1);
+    #elif _WIN32
+        _putenv("OPENCV_FFMPEG_CAPTURE_OPTIONS=rtsp_transport;tcp");
+    #endif
+    
     // Try FFMPEG backend first (better RTSP support than GStreamer)
-    LOG_DEBUG("[OpenCVCaptureManager] Trying FFMPEG backend...");
+    LOG_DEBUG("[OpenCVCaptureManager] Trying FFMPEG backend with TCP transport...");
     opencv_capture_ = std::make_unique<cv::VideoCapture>(camera_url_, CAP_FFMPEG);
     
-    // Use configured timeouts or defaults
-    int open_timeout = config_.open_timeout_ms > 0 ? config_.open_timeout_ms : 5000;
-    int read_timeout = config_.read_timeout_ms > 0 ? config_.read_timeout_ms : 3000;
+    // Use configured timeouts or defaults (increased for RTSP/TCP)
+    int open_timeout = config_.open_timeout_ms > 0 ? config_.open_timeout_ms : 10000;  // 10s for RTSP
+    int read_timeout = config_.read_timeout_ms > 0 ? config_.read_timeout_ms : 5000;   // 5s for reads
     
     // Configuration spéciale pour RTSP
     opencv_capture_->set(CAP_PROP_BUFFERSIZE, 1); // Réduire la latence
@@ -240,6 +252,7 @@ bool OpenCVCaptureManager::SetupRtspCapture() {
     opencv_capture_->set(CAP_PROP_READ_TIMEOUT_MSEC, read_timeout);
     
     LOG_DEBUG("[OpenCVCaptureManager] Timeouts configured: open=", open_timeout, "ms, read=", read_timeout, "ms");
+    LOG_DEBUG("[OpenCVCaptureManager] Buffer size: 1 frame (low latency mode)");
     
     auto start_time = std::chrono::steady_clock::now();
     
@@ -254,7 +267,12 @@ bool OpenCVCaptureManager::SetupRtspCapture() {
         opencv_capture_->set(CAP_PROP_OPEN_TIMEOUT_MSEC, open_timeout);
         opencv_capture_->set(CAP_PROP_READ_TIMEOUT_MSEC, read_timeout);
         if (!opencv_capture_->open(camera_url_)) {
-            SetError("Failed to open RTSP stream: " + camera_url_);
+            SetError("Failed to open RTSP stream (TCP): " + camera_url_);
+            LOG_ERROR("[OpenCVCaptureManager] Troubleshooting tips:");
+            LOG_ERROR("[OpenCVCaptureManager]   1. Verify camera is reachable: ping <camera_ip>");
+            LOG_ERROR("[OpenCVCaptureManager]   2. Test with VLC: vlc rtsp://...");
+            LOG_ERROR("[OpenCVCaptureManager]   3. Check credentials if authentication required");
+            LOG_ERROR("[OpenCVCaptureManager]   4. Verify firewall allows TCP port 554");
             return false;
         }
     }

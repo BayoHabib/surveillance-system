@@ -40,13 +40,17 @@ sudo apt install -y \
   libgrpc++-dev \
   libprotobuf-dev \
   protobuf-compiler-grpc \
-  libgtest-dev
+  libgtest-dev \
+  libopencv-dev \
+  ffmpeg
 ```
 
 **macOS :**
 ```bash
-brew install cmake grpc protobuf googletest
+brew install cmake grpc protobuf googletest opencv ffmpeg
 ```
+
+**⚠️ Note WSL 2** : Si vous utilisez WSL 2, des problèmes RTSP/UDP peuvent survenir. Voir [Fix RTSP WSL](#fix-rtsp-wsl).
 
 ### Build Automatique
 
@@ -399,6 +403,87 @@ C++ Vision Service (port 50051)
 - [Protocol Buffers](https://developers.google.com/protocol-buffers)
 - [CMake Documentation](https://cmake.org/documentation/)
 - [GoogleTest Framework](https://github.com/google/googletest)
+- [OpenCV Documentation](https://docs.opencv.org/)
+
+## 🔧 Fix RTSP WSL
+
+### Problème
+
+WSL 2 utilise NAT qui bloque les paquets UDP/RTP utilisés par défaut par RTSP. Les connexions timeout systématiquement.
+
+### Solution (Implémentée)
+
+Le code force automatiquement RTSP sur **TCP** au lieu d'UDP :
+
+```cpp
+// opencv_capture_manager.cpp - SetupRtspCapture()
+#ifdef __linux__
+    setenv("OPENCV_FFMPEG_CAPTURE_OPTIONS", "rtsp_transport;tcp", 1);
+#endif
+```
+
+### Test Rapide
+
+```bash
+# 1. Démarrer serveur RTSP de test
+docker run -d --rm -p 8554:8554 --name rtsp-test bluenviron/mediamtx
+
+# 2. Publier flux de test
+ffmpeg -re -f lavfi -i testsrc=size=1280x720:rate=30 \
+  -c:v libx264 -f rtsp rtsp://localhost:8554/test &
+
+# 3. Tester avec vision-service
+./build/vision-service --camera=rtsp://localhost:8554/test --log-level=DEBUG
+
+# 4. Vérifier les logs
+grep "TCP transport" logs/vision-service.log
+```
+
+### Script de Test Complet
+
+```bash
+# Lancer le script de test automatique
+chmod +x test_rtsp.sh
+./test_rtsp.sh
+
+# Ou avec caméra réelle
+./test_rtsp.sh rtsp://admin:password@192.168.1.50:554/stream
+```
+
+### Dépannage
+
+Si ça ne marche toujours pas :
+
+1. **Vérifier connectivité** :
+   ```bash
+   ping 192.168.1.50
+   nc -zv 192.168.1.50 554
+   ```
+
+2. **Tester avec VLC** :
+   ```bash
+   vlc rtsp://192.168.1.50:554/stream
+   ```
+
+3. **Vérifier FFmpeg** :
+   ```bash
+   ffmpeg -rtsp_transport tcp -i rtsp://192.168.1.50:554/stream \
+     -frames:v 1 test.jpg
+   ```
+
+4. **Analyser paquets** :
+   ```bash
+   sudo tcpdump -i eth0 -w rtsp.pcap port 554
+   wireshark rtsp.pcap
+   ```
+
+### Solutions Alternatives
+
+- **WSL Mirrored Mode** (Windows 11 22H2+) : Réseau direct sans NAT
+- **Build Windows Natif** : Pas de limitations WSL
+- **GStreamer** : Pipeline plus avancé que FFmpeg
+
+Voir [`RTSP_WSL_ANALYSIS.md`](../RTSP_WSL_ANALYSIS.md) pour analyse complète.
 
 ## 🤝 Contribution
 
@@ -417,7 +502,7 @@ C++ Vision Service (port 50051)
 
 ---
 
-## 🎉 Status Phase 2.1
+## 🎉 Status Phase 2
 
 - ✅ **Service gRPC** : 100% fonctionnel
 - ✅ **Architecture** : Thread-safe, extensible
@@ -425,5 +510,7 @@ C++ Vision Service (port 50051)
 - ✅ **Documentation** : Complète
 - ✅ **Build System** : CMake + Makefile
 - ✅ **CI Ready** : Tests automatisés
+- ✅ **RTSP Support** : Avec fix WSL (TCP transport)
+- ✅ **Motion Detection** : Algorithme basique implémenté
 
-**🚀 Prêt pour Phase 2.2 : Intégration Go ↔ C++ !**
+**🚀 Prêt pour intégration Go ↔ C++ et optimisations IA !**

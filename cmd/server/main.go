@@ -34,7 +34,19 @@ type App struct {
 	DetectionStreamMgr  *vision.DetectionStreamManager
 	Config              *core.Config
 	ActiveStreams       sync.Map // map[string]*StreamInfo
+	Cameras             sync.Map // map[string]*CameraInfo - NEW: Camera storage
 	Logger              *log.Logger
+}
+
+// CameraInfo stores camera configuration
+type CameraInfo struct {
+	ID        string    `json:"id"`
+	Name      string    `json:"name"`
+	URL       string    `json:"url"`
+	Location  string    `json:"location"`
+	Type      string    `json:"type"`
+	Status    string    `json:"status"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 type StreamInfo struct {
@@ -329,12 +341,19 @@ func setupRouter(app *App) *gin.Engine {
 
 	// Static file serving with security headers
 	router.Static("/static", "./web/static")
-	router.StaticFile("/", "./web/index_simple.html")
+	router.StaticFile("/", "./web/index_enhanced_v2.html")
+	router.StaticFile("/old-enhanced", "./web/index_enhanced.html")
+	router.StaticFile("/analytics", "./web/analytics.html")
+	router.StaticFile("/notifications", "./web/notifications_demo.html")
+	router.StaticFile("/snapshot-demo", "./web/snapshot_demo.html")
+	router.StaticFile("/poi", "./web/index_poi.html")
+	router.StaticFile("/futuristic", "./web/index_futuristic.html")
 	router.StaticFile("/modern", "./web/index_modern.html")
 	router.StaticFile("/internet", "./web/internet_streaming.html")
 	router.StaticFile("/test-notifications", "./web/test_notifications.html")
 	router.StaticFile("/explorer", "./web/alert_explorer.html")
 	router.StaticFile("/classic", "./web/index_video.html")
+	router.StaticFile("/simple", "./web/index_simple.html")
 
 	// 404 handler
 	router.NoRoute(func(c *gin.Context) {
@@ -623,6 +642,18 @@ func createCameraHandler(app *App) gin.HandlerFunc {
 		
 		cameraID := fmt.Sprintf("cam_%d", time.Now().Unix())
 		
+		// Store camera info
+		cameraInfo := &CameraInfo{
+			ID:        cameraID,
+			Name:      req.Name,
+			URL:       req.URL,
+			Location:  req.Location,
+			Type:      req.Type,
+			Status:    "offline",
+			CreatedAt: time.Now(),
+		}
+		app.Cameras.Store(cameraID, cameraInfo)
+		
 		// In production, save to database
 		app.Logger.Printf("📹 Creating camera: %s (%s)", req.Name, cameraID)
 		
@@ -704,16 +735,30 @@ func startCameraHandler(app *App) gin.HandlerFunc {
 	return gin.HandlerFunc(func(c *gin.Context) {
 		cameraID := c.Param("id")
 		
-		framesChan, err := app.VisionClient.StartStream(cameraID)
+		// Get camera info
+		camInfoRaw, exists := app.Cameras.Load(cameraID)
+		if !exists {
+			respondNotFound(c, "Camera not found")
+			return
+		}
+		camInfo := camInfoRaw.(*CameraInfo)
+		
+		// Start stream with actual URL
+		framesChan, err := app.VisionClient.StartStreamWithURL(cameraID, camInfo.URL)
 		if err != nil {
 			respondInternalError(c, "Failed to start camera stream", err)
 			return
 		}
 		
+		// Update camera status
+		camInfo.Status = "active"
+		app.Cameras.Store(cameraID, camInfo)
+		
 		// Store stream info
 		streamInfo := &StreamInfo{
 			ID:        cameraID,
-			Name:      "Camera " + cameraID,
+			Name:      camInfo.Name,
+			URL:       camInfo.URL,
 			Status:    "streaming",
 			StartTime: time.Now(),
 			FramesCh:  framesChan,

@@ -12,13 +12,29 @@ Ce projet implémente un système de surveillance avancé utilisant l'IA pour la
 
 ### ✨ Fonctionnalités Actuelles (Phase 1)
 
+#### Backend
 - 🎯 **Dashboard Temps Réel** - Interface web responsive avec contrôles multi-caméras
 - 🔌 **WebSocket** - Communication bidirectionnelle temps réel
 - 🤖 **Détection IA** - Système modulaire de détecteurs (mouvement, intrusion, reconnaissance)
 - 🚨 **Alertes Intelligentes** - Système d'alertes avec niveaux de priorité
 - 📊 **Monitoring** - Métriques de performance et logs temps réel
 - 🐳 **Containerisé** - Déploiement Docker/Docker Compose
-- 🏗️ **Architecture Modulaire** - Prêt pour l'évolution (C++, WASM, IA avancée)
+
+#### Frontend Avancé (Nouveau !)
+- � **Architecture Modulaire** - Séparation HTML/CSS/JS, design system avec CSS variables
+- 📸 **Éditeur de Captures** - 6 outils d'annotation (flèche, rectangle, cercle, texte, pen, blur), export PNG/JPG
+- ⭐ **Favoris & Groupes** - Organisation des caméras par favoris et groupes personnalisés avec sidebar
+- 🔍 **Zoom Numérique** - Zoom 1x-8x avec molette, pan click-drag, Picture-in-Picture
+- 📊 **Analytics Dashboard** - Visualisations Chart.js, statistiques détaillées
+- 🔔 **Notifications Push** - Web Notifications API avec son, vibration, badge counter
+
+📚 **Documentation Complète** : 
+- [ARCHITECTURE.md](web/ARCHITECTURE.md) - Architecture frontend modulaire
+- [SNAPSHOT_EDITOR.md](web/SNAPSHOT_EDITOR.md) - Guide éditeur de captures
+- [CAMERA_GROUPS.md](web/CAMERA_GROUPS.md) - Système de groupes et favoris
+- [VIDEO_ZOOM.md](web/VIDEO_ZOOM.md) - Fonctionnalités de zoom
+
+🎯 **Taille du Bundle** : ~35KB JS + ~15KB CSS (gzippé, sans dépendances externes)
 
 ## 🏛️ Architecture
 

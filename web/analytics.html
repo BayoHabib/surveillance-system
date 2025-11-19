@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📊 Analytics - Surveillance System</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f0f2f5;
+            color: #1c1e21;
+            min-height: 100vh;
+        }
+
+        /* Header */
+        .header {
+            background: white;
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid #e4e6eb;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .header-content {
+            max-width: 1600px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1877f2;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .nav-tabs {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .nav-tab {
+            padding: 0.5rem 1rem;
+            border: none;
+            background: transparent;
+            color: #65676b;
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+
+        .nav-tab:hover {
+            background: #f0f2f5;
+        }
+
+        .nav-tab.active {
+            background: #e7f3ff;
+            color: #1877f2;
+        }
+
+        /* Main Content */
+        .main-content {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 1.5rem;
+        }
+
+        /* Page Header */
+        .page-header {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .page-title {
+            font-size: 1.75rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            color: #1c1e21;
+        }
+
+        .page-subtitle {
+            color: #65676b;
+            font-size: 0.95rem;
+        }
+
+        /* Time Range Selector */
+        .time-range-selector {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .time-btn {
+            padding: 0.5rem 1rem;
+            border: 1px solid #e4e6eb;
+            background: white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #65676b;
+            transition: all 0.2s;
+        }
+
+        .time-btn:hover {
+            background: #f0f2f5;
+        }
+
+        .time-btn.active {
+            background: #1877f2;
+            border-color: #1877f2;
+            color: white;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: currentColor;
+        }
+
+        .stat-card.blue::before { background: #1877f2; }
+        .stat-card.green::before { background: #42b72a; }
+        .stat-card.red::before { background: #f02849; }
+        .stat-card.yellow::before { background: #f5c542; }
+        .stat-card.purple::before { background: #8b5cf6; }
+
+        .stat-icon {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            font-size: 0.875rem;
+            color: #65676b;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #1c1e21;
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-change {
+            font-size: 0.8rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .stat-change.positive {
+            color: #42b72a;
+        }
+
+        .stat-change.negative {
+            color: #f02849;
+        }
+
+        /* Chart Grid */
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .chart-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .chart-card.full-width {
+            grid-column: 1 / -1;
+        }
+
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .chart-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #1c1e21;
+        }
+
+        .chart-subtitle {
+            font-size: 0.875rem;
+            color: #65676b;
+        }
+
+        .chart-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .chart-btn {
+            padding: 0.35rem 0.75rem;
+            border: 1px solid #e4e6eb;
+            background: white;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            color: #65676b;
+            transition: all 0.2s;
+        }
+
+        .chart-btn:hover {
+            background: #f0f2f5;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+        }
+
+        .chart-container.large {
+            height: 400px;
+        }
+
+        /* Top Cameras Table */
+        .cameras-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .cameras-table th {
+            text-align: left;
+            padding: 0.75rem;
+            border-bottom: 2px solid #e4e6eb;
+            font-weight: 600;
+            color: #65676b;
+            font-size: 0.875rem;
+        }
+
+        .cameras-table td {
+            padding: 0.75rem;
+            border-bottom: 1px solid #e4e6eb;
+        }
+
+        .cameras-table tr:hover {
+            background: #f0f2f5;
+        }
+
+        .camera-name {
+            font-weight: 600;
+            color: #1c1e21;
+        }
+
+        .camera-id {
+            font-size: 0.8rem;
+            color: #65676b;
+        }
+
+        .progress-bar {
+            height: 8px;
+            background: #e4e6eb;
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #1877f2, #42b72a);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .badge.success {
+            background: #d8f3dc;
+            color: #2d6a4f;
+        }
+
+        .badge.warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .badge.danger {
+            background: #f8d7da;
+            color: #842029;
+        }
+
+        /* Export Button */
+        .export-btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            background: #1877f2;
+            color: white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.2s;
+        }
+
+        .export-btn:hover {
+            background: #166fe5;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .time-range-selector {
+                flex-wrap: wrap;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-content">
+            <div class="logo">
+                📊 Analytics Dashboard
+            </div>
+            <nav class="nav-tabs">
+                <a href="/" class="nav-tab">🏠 Accueil</a>
+                <a href="/analytics" class="nav-tab active">📊 Analytics</a>
+                <a href="/explorer" class="nav-tab">⚠️ Alertes</a>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Page Header -->
+        <div class="page-header">
+            <h1 class="page-title">Analytics & Rapports</h1>
+            <p class="page-subtitle">Vue d'ensemble de l'activité de votre système de surveillance</p>
+            
+            <div class="time-range-selector">
+                <button class="time-btn" data-range="1h">Dernière heure</button>
+                <button class="time-btn active" data-range="24h">24 heures</button>
+                <button class="time-btn" data-range="7d">7 jours</button>
+                <button class="time-btn" data-range="30d">30 jours</button>
+                <button class="export-btn" onclick="exportReport()">
+                    📥 Exporter PDF
+                </button>
+            </div>
+        </div>
+
+        <!-- Stats Grid -->
+        <div class="stats-grid">
+            <div class="stat-card blue">
+                <div class="stat-icon">📹</div>
+                <div class="stat-label">Caméras Actives</div>
+                <div class="stat-value" id="statActiveCameras">0</div>
+                <div class="stat-change positive">
+                    <span>↑ +2</span> vs hier
+                </div>
+            </div>
+
+            <div class="stat-card green">
+                <div class="stat-icon">✅</div>
+                <div class="stat-label">Taux de Disponibilité</div>
+                <div class="stat-value" id="statUptime">0%</div>
+                <div class="stat-change positive">
+                    <span>↑ +0.5%</span> vs hier
+                </div>
+            </div>
+
+            <div class="stat-card red">
+                <div class="stat-icon">⚠️</div>
+                <div class="stat-label">Alertes Détectées</div>
+                <div class="stat-value" id="statAlerts">0</div>
+                <div class="stat-change negative">
+                    <span>↓ -15</span> vs hier
+                </div>
+            </div>
+
+            <div class="stat-card yellow">
+                <div class="stat-icon">🎯</div>
+                <div class="stat-label">Détections Uniques</div>
+                <div class="stat-value" id="statDetections">0</div>
+                <div class="stat-change positive">
+                    <span>↑ +12</span> vs hier
+                </div>
+            </div>
+
+            <div class="stat-card purple">
+                <div class="stat-icon">⚡</div>
+                <div class="stat-label">FPS Moyen</div>
+                <div class="stat-value" id="statAvgFPS">0</div>
+                <div class="stat-change positive">
+                    <span>Stable</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Grid -->
+        <div class="charts-grid">
+            <!-- Detections Timeline -->
+            <div class="chart-card full-width">
+                <div class="chart-header">
+                    <div>
+                        <div class="chart-title">Détections au Fil du Temps</div>
+                        <div class="chart-subtitle">Évolution des détections sur la période sélectionnée</div>
+                    </div>
+                    <div class="chart-actions">
+                        <button class="chart-btn">📊 Ligne</button>
+                        <button class="chart-btn">📈 Aire</button>
+                    </div>
+                </div>
+                <div class="chart-container large">
+                    <canvas id="detectionsChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Camera Activity -->
+            <div class="chart-card">
+                <div class="chart-header">
+                    <div>
+                        <div class="chart-title">Activité par Caméra</div>
+                        <div class="chart-subtitle">Top 5 caméras les plus actives</div>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="cameraActivityChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Alert Types Distribution -->
+            <div class="chart-card">
+                <div class="chart-header">
+                    <div>
+                        <div class="chart-title">Types d'Alertes</div>
+                        <div class="chart-subtitle">Distribution des alertes</div>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="alertTypesChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Hourly Heatmap -->
+            <div class="chart-card">
+                <div class="chart-header">
+                    <div>
+                        <div class="chart-title">Activité par Heure</div>
+                        <div class="chart-subtitle">Heatmap 24h</div>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="hourlyHeatmapChart"></canvas>
+                </div>
+            </div>
+
+            <!-- System Performance -->
+            <div class="chart-card">
+                <div class="chart-header">
+                    <div>
+                        <div class="chart-title">Performance Système</div>
+                        <div class="chart-subtitle">FPS moyen par caméra</div>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="performanceChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Top Cameras Table -->
+        <div class="chart-card">
+            <div class="chart-header">
+                <div>
+                    <div class="chart-title">Caméras - Vue Détaillée</div>
+                    <div class="chart-subtitle">Statistiques complètes</div>
+                </div>
+            </div>
+            <table class="cameras-table">
+                <thead>
+                    <tr>
+                        <th>Caméra</th>
+                        <th>Status</th>
+                        <th>Détections</th>
+                        <th>Uptime</th>
+                        <th>FPS Moyen</th>
+                        <th>Dernière Activité</th>
+                    </tr>
+                </thead>
+                <tbody id="camerasTableBody">
+                    <!-- Will be populated by JS -->
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <script>
+        const API_BASE = 'http://localhost:8080/api/v1';
+        let timeRange = '24h';
+
+        // Initialize charts
+        let charts = {};
+
+        // Generate sample data (replace with real API calls)
+        function generateTimeSeriesData(points = 24) {
+            const labels = [];
+            const data = [];
+            const now = new Date();
+            
+            for (let i = points - 1; i >= 0; i--) {
+                const date = new Date(now - i * 3600000);
+                labels.push(date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }));
+                data.push(Math.floor(Math.random() * 50) + 10);
+            }
+            
+            return { labels, data };
+        }
+
+        // Detections Timeline Chart
+        function createDetectionsChart() {
+            const timeData = generateTimeSeriesData(24);
+            const ctx = document.getElementById('detectionsChart').getContext('2d');
+            
+            charts.detections = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: timeData.labels,
+                    datasets: [{
+                        label: 'Détections',
+                        data: timeData.data,
+                        borderColor: '#1877f2',
+                        backgroundColor: 'rgba(24, 119, 242, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        // Camera Activity Chart
+        function createCameraActivityChart() {
+            const ctx = document.getElementById('cameraActivityChart').getContext('2d');
+            
+            charts.cameraActivity = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['CAM-001', 'CAM-002', 'CAM-003', 'CAM-004', 'CAM-005'],
+                    datasets: [{
+                        label: 'Détections',
+                        data: [145, 132, 98, 87, 65],
+                        backgroundColor: [
+                            'rgba(24, 119, 242, 0.8)',
+                            'rgba(66, 183, 42, 0.8)',
+                            'rgba(245, 197, 66, 0.8)',
+                            'rgba(139, 92, 246, 0.8)',
+                            'rgba(240, 40, 73, 0.8)'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        // Alert Types Chart
+        function createAlertTypesChart() {
+            const ctx = document.getElementById('alertTypesChart').getContext('2d');
+            
+            charts.alertTypes = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Mouvement', 'Intrusion', 'Objet Détecté', 'Autre'],
+                    datasets: [{
+                        data: [145, 87, 45, 23],
+                        backgroundColor: [
+                            'rgba(24, 119, 242, 0.8)',
+                            'rgba(240, 40, 73, 0.8)',
+                            'rgba(245, 197, 66, 0.8)',
+                            'rgba(139, 92, 246, 0.8)'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        }
+
+        // Hourly Heatmap Chart
+        function createHourlyHeatmapChart() {
+            const ctx = document.getElementById('hourlyHeatmapChart').getContext('2d');
+            const hours = Array.from({ length: 24 }, (_, i) => `${i}h`);
+            const data = Array.from({ length: 24 }, () => Math.floor(Math.random() * 100));
+            
+            charts.hourlyHeatmap = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: hours,
+                    datasets: [{
+                        label: 'Activité',
+                        data: data,
+                        backgroundColor: data.map(v => {
+                            const intensity = v / 100;
+                            return `rgba(24, 119, 242, ${intensity})`;
+                        })
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        // Performance Chart
+        function createPerformanceChart() {
+            const ctx = document.getElementById('performanceChart').getContext('2d');
+            
+            charts.performance = new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: ['CAM-001', 'CAM-002', 'CAM-003', 'CAM-004', 'CAM-005'],
+                    datasets: [{
+                        label: 'FPS',
+                        data: [28, 30, 25, 29, 27],
+                        backgroundColor: 'rgba(66, 183, 42, 0.2)',
+                        borderColor: 'rgba(66, 183, 42, 1)',
+                        pointBackgroundColor: 'rgba(66, 183, 42, 1)'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        r: {
+                            beginAtZero: true,
+                            max: 30
+                        }
+                    }
+                }
+            });
+        }
+
+        // Populate cameras table
+        function populateCamerasTable() {
+            const tbody = document.getElementById('camerasTableBody');
+            const cameras = [
+                { id: 'CAM-001', name: 'Entrée Principale', status: 'active', detections: 145, uptime: 99.8, fps: 28, lastActivity: '2 min' },
+                { id: 'CAM-002', name: 'Parking', status: 'active', detections: 132, uptime: 98.5, fps: 30, lastActivity: '5 min' },
+                { id: 'CAM-003', name: 'Bureau 1', status: 'active', detections: 98, uptime: 100, fps: 25, lastActivity: '1 min' },
+                { id: 'CAM-004', name: 'Couloir', status: 'active', detections: 87, uptime: 97.2, fps: 29, lastActivity: '10 min' },
+                { id: 'CAM-005', name: 'Sortie Arrière', status: 'warning', detections: 65, uptime: 85.3, fps: 27, lastActivity: '15 min' }
+            ];
+            
+            tbody.innerHTML = cameras.map(cam => `
+                <tr>
+                    <td>
+                        <div class="camera-name">${cam.name}</div>
+                        <div class="camera-id">${cam.id}</div>
+                    </td>
+                    <td>
+                        <span class="badge ${cam.status === 'active' ? 'success' : 'warning'}">
+                            ${cam.status === 'active' ? 'Actif' : 'Attention'}
+                        </span>
+                    </td>
+                    <td><strong>${cam.detections}</strong></td>
+                    <td>
+                        <div style="min-width: 100px">
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: ${cam.uptime}%"></div>
+                            </div>
+                            <small style="color: #65676b; font-size: 0.75rem">${cam.uptime}%</small>
+                        </div>
+                    </td>
+                    <td><strong>${cam.fps}</strong> fps</td>
+                    <td style="color: #65676b">${cam.lastActivity}</td>
+                </tr>
+            `).join('');
+        }
+
+        // Update stats
+        function updateStats() {
+            document.getElementById('statActiveCameras').textContent = '5';
+            document.getElementById('statUptime').textContent = '98.2%';
+            document.getElementById('statAlerts').textContent = '234';
+            document.getElementById('statDetections').textContent = '527';
+            document.getElementById('statAvgFPS').textContent = '28';
+        }
+
+        // Time range selector
+        document.querySelectorAll('.time-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.time-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                timeRange = btn.dataset.range;
+                // Reload charts with new time range
+                updateCharts();
+            });
+        });
+
+        function updateCharts() {
+            // Destroy and recreate charts with new data
+            Object.values(charts).forEach(chart => chart.destroy());
+            createDetectionsChart();
+            createCameraActivityChart();
+            createAlertTypesChart();
+            createHourlyHeatmapChart();
+            createPerformanceChart();
+        }
+
+        // Export report
+        function exportReport() {
+            alert('Export PDF en cours de développement...\n\nCette fonctionnalité générera un rapport PDF complet avec tous les graphiques et statistiques.');
+        }
+
+        // Initialize
+        updateStats();
+        createDetectionsChart();
+        createCameraActivityChart();
+        createAlertTypesChart();
+        createHourlyHeatmapChart();
+        createPerformanceChart();
+        populateCamerasTable();
+
+        // Refresh data every 30 seconds
+        setInterval(() => {
+            updateStats();
+            updateCharts();
+        }, 30000);
+    </script>
+</body>
+</html>

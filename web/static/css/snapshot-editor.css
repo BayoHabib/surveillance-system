@@ -1,0 +1,416 @@
+/* ===================================
+   SURVEILLANCE SYSTEM - Snapshot Editor
+   =================================== */
+
+/* Modal Overlay */
+.snapshot-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.9);
+    z-index: 10000;
+    animation: fadeIn 0.2s ease;
+}
+
+.snapshot-modal.active {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+/* Modal Container */
+.snapshot-container {
+    background: var(--bg-secondary);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    max-width: 95vw;
+    max-height: 95vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/* Header */
+.snapshot-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--spacing-lg);
+    border-bottom: 1px solid var(--border-color);
+    background: var(--bg-primary);
+}
+
+.snapshot-title {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    margin: 0;
+}
+
+.snapshot-title .icon {
+    font-size: 24px;
+}
+
+.snapshot-close {
+    background: none;
+    border: none;
+    font-size: 32px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 0;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all var(--transition-fast);
+}
+
+.snapshot-close:hover {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+}
+
+/* Body */
+.snapshot-body {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+}
+
+/* Canvas Area */
+.snapshot-canvas-area {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #1a1a1a;
+    position: relative;
+    padding: var(--spacing-lg);
+}
+
+.snapshot-canvas {
+    max-width: 100%;
+    max-height: 100%;
+    border-radius: var(--radius-md);
+    box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+    cursor: crosshair;
+}
+
+.snapshot-canvas.drawing {
+    cursor: crosshair;
+}
+
+.snapshot-canvas.text-mode {
+    cursor: text;
+}
+
+.snapshot-canvas.arrow-mode {
+    cursor: pointer;
+}
+
+/* Sidebar Tools */
+.snapshot-sidebar {
+    width: 300px;
+    background: var(--bg-primary);
+    border-left: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+}
+
+.snapshot-section {
+    padding: var(--spacing-lg);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.snapshot-section-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: var(--spacing-md);
+}
+
+/* Tools */
+.snapshot-tools {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--spacing-sm);
+}
+
+.tool-btn {
+    padding: var(--spacing-md);
+    border: 2px solid var(--border-color);
+    background: var(--bg-secondary);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing-xs);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.tool-btn .icon {
+    font-size: 24px;
+}
+
+.tool-btn:hover {
+    border-color: var(--primary-color);
+    background: var(--primary-light);
+}
+
+.tool-btn.active {
+    border-color: var(--primary-color);
+    background: var(--primary-color);
+    color: white;
+}
+
+.tool-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Color Picker */
+.color-picker {
+    display: flex;
+    gap: var(--spacing-sm);
+    flex-wrap: wrap;
+    margin-top: var(--spacing-sm);
+}
+
+.color-option {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 3px solid transparent;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    position: relative;
+}
+
+.color-option:hover {
+    transform: scale(1.1);
+}
+
+.color-option.active {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(24, 119, 242, 0.2);
+}
+
+.color-option.active::after {
+    content: '✓';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: white;
+    font-weight: bold;
+    font-size: 16px;
+    text-shadow: 0 0 3px rgba(0, 0, 0, 0.5);
+}
+
+/* Stroke Width */
+.stroke-slider {
+    margin-top: var(--spacing-sm);
+}
+
+.stroke-slider input[type="range"] {
+    width: 100%;
+}
+
+.stroke-preview {
+    margin-top: var(--spacing-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--spacing-md);
+    background: var(--bg-secondary);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-color);
+}
+
+.stroke-preview-line {
+    height: 3px;
+    width: 100px;
+    background: var(--primary-color);
+    border-radius: 2px;
+    transition: height var(--transition-fast);
+}
+
+/* Text Input */
+.text-input-group {
+    margin-top: var(--spacing-sm);
+}
+
+.text-input-group textarea {
+    width: 100%;
+    min-height: 80px;
+    padding: var(--spacing-sm);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    font-size: 14px;
+    resize: vertical;
+    font-family: inherit;
+}
+
+.text-input-group textarea:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(24, 119, 242, 0.1);
+}
+
+.font-size-slider {
+    margin-top: var(--spacing-sm);
+}
+
+.font-size-preview {
+    margin-top: var(--spacing-sm);
+    padding: var(--spacing-md);
+    background: var(--bg-secondary);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-color);
+    text-align: center;
+    font-weight: 600;
+}
+
+/* Metadata */
+.snapshot-metadata {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+}
+
+.metadata-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.metadata-item input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+}
+
+.metadata-item label {
+    cursor: pointer;
+    user-select: none;
+    font-size: 14px;
+}
+
+/* Footer Actions */
+.snapshot-footer {
+    display: flex;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-lg);
+    border-top: 1px solid var(--border-color);
+    background: var(--bg-primary);
+}
+
+.snapshot-footer .btn {
+    flex: 1;
+}
+
+/* Annotations List */
+.annotations-list {
+    margin-top: var(--spacing-sm);
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.annotation-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--spacing-sm);
+    background: var(--bg-secondary);
+    border-radius: var(--radius-sm);
+    margin-bottom: var(--spacing-xs);
+    font-size: 13px;
+}
+
+.annotation-item:hover {
+    background: var(--bg-tertiary);
+}
+
+.annotation-type {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    font-weight: 600;
+}
+
+.annotation-delete {
+    background: none;
+    border: none;
+    color: var(--error-color);
+    cursor: pointer;
+    padding: 4px;
+    border-radius: var(--radius-sm);
+    transition: background var(--transition-fast);
+}
+
+.annotation-delete:hover {
+    background: var(--error-light);
+}
+
+/* Loading State */
+.snapshot-loading {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: var(--spacing-lg);
+    border-radius: var(--radius-lg);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .snapshot-container {
+        flex-direction: column;
+        max-height: 100vh;
+    }
+
+    .snapshot-body {
+        flex-direction: column;
+    }
+
+    .snapshot-sidebar {
+        width: 100%;
+        border-left: none;
+        border-top: 1px solid var(--border-color);
+        max-height: 300px;
+    }
+
+    .snapshot-canvas-area {
+        max-height: 50vh;
+    }
+
+    .snapshot-tools {
+        grid-template-columns: repeat(4, 1fr);
+    }
+
+    .snapshot-footer {
+        flex-direction: column;
+    }
+}

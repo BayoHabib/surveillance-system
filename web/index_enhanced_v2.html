@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Surveillance System - Enhanced</title>
+    
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="/static/css/common.css">
+    <link rel="stylesheet" href="/static/css/enhanced.css">
+    <link rel="stylesheet" href="/static/css/snapshot-editor.css">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-container">
+            <h1 class="header-title">
+                <span class="icon">🎥</span>
+                Surveillance System
+            </h1>
+            <nav class="header-nav">
+                <a href="/" class="btn btn-primary">Caméras</a>
+                <a href="/analytics" class="btn btn-secondary">Analytics</a>
+                <a href="/notifications" class="btn btn-secondary">Notifications</a>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Groups Sidebar -->
+    <aside id="groupsSidebar" class="groups-sidebar">
+        <!-- Will be populated by JavaScript -->
+    </aside>
+    
+    <!-- Sidebar Toggle Button -->
+    <button class="sidebar-toggle" onclick="document.getElementById('groupsSidebar').classList.toggle('collapsed')" title="Masquer/Afficher la sidebar">
+        ◀▶
+    </button>
+
+    <main id="mainContent" class="main-content with-sidebar" style="max-width: 1400px; margin: 0 auto; padding: 24px;">
+        <!-- Toolbar -->
+        <div class="toolbar">
+            <!-- First Row: Search & Filters -->
+            <div class="toolbar-row">
+                <div class="search-bar">
+                    <input 
+                        type="text" 
+                        id="searchInput" 
+                        placeholder="Rechercher une caméra..."
+                        autocomplete="off"
+                    >
+                </div>
+                <div class="filter-buttons">
+                    <button class="btn active" data-filter="all">Toutes</button>
+                    <button class="btn" data-filter="streaming">En ligne</button>
+                    <button class="btn" data-filter="offline">Hors ligne</button>
+                    <button class="btn" data-filter="error">Erreur</button>
+                </div>
+            </div>
+
+            <!-- Second Row: Layout & Bulk Actions -->
+            <div class="toolbar-row">
+                <div class="layout-selector">
+                    <button class="layout-btn" data-layout="1x1" title="Grille 1×1">
+                        <div class="layout-icon layout-1x1">
+                            <div class="grid-cell"></div>
+                        </div>
+                    </button>
+                    <button class="layout-btn active" data-layout="2x2" title="Grille 2×2">
+                        <div class="layout-icon layout-2x2">
+                            <div class="grid-cell"></div>
+                            <div class="grid-cell"></div>
+                            <div class="grid-cell"></div>
+                            <div class="grid-cell"></div>
+                        </div>
+                    </button>
+                    <button class="layout-btn" data-layout="3x3" title="Grille 3×3">
+                        <div class="layout-icon layout-3x3">
+                            <div class="grid-cell"></div>
+                            <div class="grid-cell"></div>
+                            <div class="grid-cell"></div>
+                            <div class="grid-cell"></div>
+                            <div class="grid-cell"></div>
+                            <div class="grid-cell"></div>
+                            <div class="grid-cell"></div>
+                            <div class="grid-cell"></div>
+                            <div class="grid-cell"></div>
+                        </div>
+                    </button>
+                    <button class="layout-btn" data-layout="4x4" title="Grille 4×4">
+                        <div class="layout-icon layout-4x4">
+                            <div class="grid-cell"></div>
+                            <div class="grid-cell"></div>
+                            <div class="grid-cell"></div>
+                            <div class="grid-cell"></div>
+                            <div class="grid-cell"></div>
+                            <div class="grid-cell"></div>
+                            <div class="grid-cell"></div>
+                            <div class="grid-cell"></div>
+                            <div class="grid-cell"></div>
+                            <div class="grid-cell"></div>
+                            <div class="grid-cell"></div>
+                            <div class="grid-cell"></div>
+                            <div class="grid-cell"></div>
+                            <div class="grid-cell"></div>
+                            <div class="grid-cell"></div>
+                            <div class="grid-cell"></div>
+                        </div>
+                    </button>
+                </div>
+                <button class="btn btn-success" id="startAllBtn">▶ Démarrer tout</button>
+                <button class="btn btn-danger" id="stopAllBtn">⏹ Arrêter tout</button>
+            </div>
+        </div>
+
+        <!-- Stats Bar -->
+        <div class="stats-bar">
+            <div class="stat-card">
+                <div class="stat-icon blue">📹</div>
+                <div class="stat-content">
+                    <div class="stat-label">Caméras actives</div>
+                    <div class="stat-value" id="activeCameras">0</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon green">📊</div>
+                <div class="stat-content">
+                    <div class="stat-label">Total caméras</div>
+                    <div class="stat-value" id="totalCameras">0</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon red">🚨</div>
+                <div class="stat-content">
+                    <div class="stat-label">Alertes (24h)</div>
+                    <div class="stat-value" id="alertCount">0</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon yellow">⚡</div>
+                <div class="stat-content">
+                    <div class="stat-label">FPS moyen</div>
+                    <div class="stat-value" id="avgFps">0</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Camera Grid -->
+        <div id="videoGrid" class="video-grid layout-2x2">
+            <!-- Camera cards will be inserted here by JavaScript -->
+        </div>
+    </main>
+
+    <!-- Scripts -->
+    <script src="/static/js/toast.js"></script>
+    <script src="/static/js/websocket.js"></script>
+    <script src="/static/js/api.js"></script>
+    <script src="/static/notification-manager.js"></script>
+    <script src="/static/js/snapshot-editor.js"></script>
+    <script src="/static/js/camera-groups.js"></script>
+    <script src="/static/js/video-zoom.js"></script>
+    <script src="/static/js/camera-manager.js"></script>
+
+    <!-- Initialize notifications -->
+    <script>
+        // Request notification permission after a delay
+        window.addEventListener('load', () => {
+            if (window.notificationManager && !notificationManager.hasPermission()) {
+                setTimeout(() => {
+                    notificationManager.requestPermission();
+                }, 5000);
+            }
+        });
+        
+        // Sidebar toggle handler
+        const sidebar = document.getElementById('groupsSidebar');
+        const mainContent = document.getElementById('mainContent');
+        const toggleBtn = document.querySelector('.sidebar-toggle');
+        
+        if (toggleBtn) {
+            toggleBtn.addEventListener('click', () => {
+                sidebar.classList.toggle('collapsed');
+                mainContent.classList.toggle('with-sidebar', !sidebar.classList.contains('collapsed'));
+            });
+        }
+        
+        // Close sidebar on mobile when selecting a group
+        if (window.innerWidth <= 768) {
+            window.addEventListener('group-filter-changed', () => {
+                sidebar.classList.add('collapsed');
+                mainContent.classList.remove('with-sidebar');
+            });
+        }
+    </script>
+</body>
+</html>
